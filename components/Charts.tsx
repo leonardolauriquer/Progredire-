@@ -78,6 +78,10 @@ export const RadarChart: React.FC<{ data: RadarChartData }> = ({ data }) => {
     const center = size / 2;
     const numSides = data.labels.length;
 
+    if (numSides === 0) {
+        return <div className="flex items-center justify-center h-full text-slate-500">Sem dados para exibir.</div>;
+    }
+
     const points = (values: number[]) => {
         return values.map((value, i) => {
             const angle = (Math.PI * 2 * i) / numSides - Math.PI / 2;
@@ -196,9 +200,9 @@ export const DistributionChart: React.FC<{ data: DistributionData[] }> = ({ data
             </div>
             <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-slate-600">
                 <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#ef4444'}}></span>Discordo T.</div>
-                <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#f97316'}}></span>Discordo</div>
+                <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#f97316'}}></span>Discordo P.</div>
                 <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#eab308'}}></span>Neutro</div>
-                <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#84cc16'}}></span>Concordo</div>
+                <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#84cc16'}}></span>Concordo P.</div>
                 <div className="flex items-center"><span className="w-3 h-3 rounded-full mr-1.5" style={{backgroundColor: '#22c55e'}}></span>Concordo T.</div>
             </div>
         </div>

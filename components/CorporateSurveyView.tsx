@@ -3,6 +3,19 @@ import { runCorporateSurveyAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon } from './icons';
 
+// FIX: Define explicit types for survey questions and topics to resolve TypeScript inference errors.
+// This ensures that the optional 'type' property is recognized on all question objects.
+interface SurveyQuestion {
+    id: string;
+    text: string;
+    type?: 'textarea';
+}
+
+interface SurveyTopic {
+    title: string;
+    questions: SurveyQuestion[];
+}
+
 const corporateFields = [
     { id: 'empresa', label: 'Empresa', type: 'text' },
     { id: 'diretoria', label: 'Diretoria', type: 'text' },
@@ -11,20 +24,118 @@ const corporateFields = [
     { id: 'tempoEmpresa', label: 'Tempo de Empresa', type: 'select', options: ['Menos de 1 ano', '1 a 3 anos', '3 a 5 anos', '5 a 10 anos', 'Mais de 10 anos'] },
 ];
 
-const questions = [
-  { id: 'q1', text: 'Sinto que o volume de trabalho e as metas são razoáveis e alcançáveis.', risk: 'Carga de trabalho excessiva' },
-  { id: 'q2', text: 'Minha jornada de trabalho e o ritmo exigido permitem pausas adequadas e um bom equilíbrio com a vida pessoal.', risk: 'Jornada longa / Ritmo elevado' },
-  { id: 'q3', text: 'Tenho clareza sobre minhas responsabilidades e o que a liderança espera de mim.', risk: 'Falta de clareza do papel' },
-  { id: 'q4', text: 'Tenho autonomia para tomar decisões sobre como realizar meu trabalho.', risk: 'Baixo controle/autonomia' },
-  { id: 'q5', text: 'Recebo apoio e ajuda da minha chefia e dos meus colegas quando preciso.', risk: 'Baixo suporte social' },
-  { id: 'q6', text: 'O ambiente de trabalho é respeitoso e livre de conflitos, assédio ou hostilidade.', risk: 'Más relações interpessoais / Conflitos' },
-  { id: 'q7', text: 'Meu esforço e minhas contribuições são devidamente reconhecidos e recompensados.', risk: 'Falta de reconhecimento' },
-  { id: 'q8', text: 'Sinto-me seguro(a) em meu emprego e as mudanças na empresa são comunicadas de forma transparente.', risk: 'Insegurança no emprego' },
-  { id: 'q9', text: 'Mesmo trabalhando de forma remota ou isolada, sinto-me conectado(a) e a comunicação com a equipe flui bem.', risk: 'Trabalho isolado / Comunicação difícil' },
-  { id: 'q10', text: 'Os processos de trabalho são bem definidos e o ambiente é organizado.', risk: 'Clima organizacional inadequado' },
+const surveyStructure: SurveyTopic[] = [
+    {
+        title: '1. Organização e Carga de Trabalho',
+        questions: [
+            { id: 'q1', text: 'Tenho tempo suficiente para realizar minhas atividades com qualidade.' },
+            { id: 'q2', text: 'O volume de tarefas é compatível com o que consigo entregar.' },
+            { id: 'q3', text: 'As metas estabelecidas são realistas e possíveis de atingir.' },
+            { id: 'q4', text: 'Recebo informações claras sobre prazos e prioridades.' },
+            { id: 'q5', text: 'Consigo equilibrar as demandas do trabalho com minha vida pessoal.' },
+        ]
+    },
+    {
+        title: '2. Demandas Emocionais e Cognitivas',
+        questions: [
+            { id: 'q6', text: 'O trabalho exige atenção constante e concentração intensa.' },
+            { id: 'q7', text: 'Preciso lidar com situações que geram estresse com frequência.' },
+            { id: 'q8', text: 'Meu trabalho exige lidar com pessoas em momentos difíceis.' },
+            { id: 'q9', text: 'Tenho energia emocional suficiente para lidar com os desafios diários.' },
+            { id: 'q10', text: 'As situações de pressão são bem gerenciadas pela equipe.' },
+        ]
+    },
+    {
+        title: '3. Autonomia e Controle',
+        questions: [
+            { id: 'q11', text: 'Tenho liberdade para decidir como realizar minhas tarefas.' },
+            { id: 'q12', text: 'Posso propor melhorias ou mudanças na forma de trabalhar.' },
+            { id: 'q13', text: 'Sou ouvido(a) quando apresento sugestões.' },
+            { id: 'q14', text: 'Sinto que confiam na minha capacidade de tomar decisões.' },
+        ]
+    },
+    {
+        title: '4. Clareza de Papéis e Responsabilidades',
+        questions: [
+            { id: 'q15', text: 'Sei claramente o que se espera do meu trabalho.' },
+            { id: 'q16', text: 'As responsabilidades da minha função estão bem definidas.' },
+            { id: 'q17', text: 'As tarefas de diferentes áreas não se confundem.' },
+            { id: 'q18', text: 'As metas individuais e da equipe são comunicadas com clareza.' },
+        ]
+    },
+    {
+        title: '5. Reconhecimento e Recompensas',
+        questions: [
+            { id: 'q19', text: 'Sinto que meu trabalho é valorizado.' },
+            { id: 'q20', text: 'Recebo feedback sobre meu desempenho.' },
+            { id: 'q21', text: 'Quando entrego bons resultados, isso é reconhecido.' },
+            { id: 'q22', text: 'Tenho oportunidades de crescer e me desenvolver profissionalmente.' },
+        ]
+    },
+    {
+        title: '6. Relacionamentos e Suporte Social',
+        questions: [
+            { id: 'q23', text: 'Tenho um bom relacionamento com meus colegas de trabalho.' },
+            { id: 'q24', text: 'Posso contar com ajuda quando preciso resolver um problema.' },
+            { id: 'q25', text: 'Há colaboração e espírito de equipe no ambiente de trabalho.' },
+            { id: 'q26', text: 'Sinto que minha equipe é unida.' },
+        ]
+    },
+    {
+        title: '7. Liderança e Comunicação',
+        questions: [
+            { id: 'q27', text: 'Meu líder comunica com clareza as informações importantes.' },
+            { id: 'q28', text: 'Posso conversar com minha liderança sobre dificuldades no trabalho.' },
+            { id: 'q29', text: 'As decisões da liderança são coerentes e justas.' },
+            { id: 'q30', text: 'Sinto que minha liderança se preocupa com o bem-estar da equipe.' },
+        ]
+    },
+    {
+        title: '8. Justiça e Equidade',
+        questions: [
+            { id: 'q31', text: 'As regras e políticas da empresa são aplicadas de forma justa.' },
+            { id: 'q32', text: 'As oportunidades são oferecidas de forma igual para todos.' },
+            { id: 'q33', text: 'O esforço de cada pessoa é reconhecido de maneira equilibrada.' },
+            { id: 'q34', text: 'As decisões são tomadas de forma transparente.' },
+        ]
+    },
+    {
+        title: '9. Segurança Psicológica, Assédio e Respeito',
+        questions: [
+            { id: 'q35', text: 'Sinto-me seguro(a) para expressar opiniões diferentes.' },
+            { id: 'q36', text: 'No meu trabalho, as pessoas se tratam com respeito.' },
+            { id: 'q37', text: 'Não presencio comportamentos de assédio ou humilhação.' },
+            { id: 'q38', text: 'Tenho liberdade para relatar situações inadequadas sem medo de punição.' },
+        ]
+    },
+    {
+        title: '10. Mudanças Organizacionais e Estabilidade',
+        questions: [
+            { id: 'q39', text: 'As mudanças na empresa são comunicadas de forma clara.' },
+            { id: 'q40', text: 'Recebo explicações sobre os motivos das mudanças.' },
+            { id: 'q41', text: 'Sinto segurança em relação à continuidade do meu trabalho.' },
+            { id: 'q42', text: 'Confio na direção que a empresa está seguindo.' },
+        ]
+    },
+    {
+        title: '11. Ambiente e Condições de Trabalho',
+        questions: [
+            { id: 'q43', text: 'O ambiente físico de trabalho é adequado para as atividades que realizo.' },
+            { id: 'q44', text: 'Tenho os recursos e equipamentos necessários para desempenhar bem.' },
+            { id: 'q45', text: 'As condições do local de trabalho favorecem o foco e a produtividade.' },
+        ]
+    },
+    {
+        title: 'Perguntas Abertas (percepções qualitativas)',
+        questions: [
+            { id: 'q46', text: 'O que mais causa estresse ou desconforto no seu trabalho?', type: 'textarea' },
+            { id: 'q47', text: 'O que você acredita que a empresa poderia fazer para melhorar o clima e o bem-estar?', type: 'textarea' },
+            { id: 'q48', text: 'Que prática ou atitude da liderança você considera mais importante manter?', type: 'textarea' },
+        ]
+    }
 ];
 
-const likertOptions = ['Discordo Totalmente', 'Discordo', 'Neutro', 'Concordo', 'Concordo Totalmente'];
+const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
 
 export const CorporateSurveyView: React.FC = () => {
     const [corporateData, setCorporateData] = useState<Record<string, string>>({});
@@ -37,15 +148,20 @@ export const CorporateSurveyView: React.FC = () => {
         setCorporateData(prev => ({ ...prev, [id]: value }));
     };
     
-    const handleAnswerChange = (questionId: string, option: string) => {
-        setAnswers(prev => ({ ...prev, [questionId]: option }));
+    const handleAnswerChange = (questionId: string, value: string) => {
+        setAnswers(prev => ({ ...prev, [questionId]: value }));
     };
+
+    const likertQuestions = useMemo(() => 
+        surveyStructure.flatMap(topic => topic.questions).filter(q => q.type !== 'textarea'), 
+        []
+    );
 
     const allFieldsCompleted = useMemo(() => {
         const corporateFieldsCompleted = corporateFields.every(field => corporateData[field.id]?.trim());
-        const questionsAnswered = Object.keys(answers).length === questions.length;
+        const questionsAnswered = likertQuestions.every(q => answers[q.id]);
         return corporateFieldsCompleted && questionsAnswered;
-    }, [corporateData, answers]);
+    }, [corporateData, answers, likertQuestions]);
 
     const handleSubmit = useCallback(async () => {
         if (!allFieldsCompleted || isLoading) return;
@@ -60,8 +176,13 @@ export const CorporateSurveyView: React.FC = () => {
         });
 
         formattedData += "\nRespostas do Questionário:\n";
-        questions.forEach(q => {
-            formattedData += `- Pergunta (Fator de Risco: ${q.risk}): "${q.text}"\n  Resposta: ${answers[q.id]}\n`;
+        surveyStructure.forEach(topic => {
+            topic.questions.forEach(q => {
+                const answer = answers[q.id];
+                if (answer && answer.trim()) { // Only include answered questions
+                    formattedData += `- Pergunta (Dimensão: ${topic.title}): "${q.text}"\n  Resposta: ${answer}\n`;
+                }
+            });
         });
 
         try {
@@ -117,30 +238,51 @@ export const CorporateSurveyView: React.FC = () => {
                         <p className="text-xs text-slate-400 mt-3">Estas informações são usadas apenas para agrupar dados e garantir o anonimato. Nenhum nome é coletado.</p>
                     </div>
 
-                    {/* Questions */}
-                    {questions.map((q, index) => (
-                        <div key={q.id} className="border border-slate-200 p-4 rounded-lg">
-                            <p className="font-semibold text-slate-800 mb-3">{index + 1}. {q.text}</p>
-                            <fieldset className="flex flex-wrap gap-2">
-                                <legend className="sr-only">Opções para: {q.text}</legend>
-                                {likertOptions.map(option => (
-                                    <button
-                                        key={option}
-                                        onClick={() => handleAnswerChange(q.id, option)}
-                                        role="radio"
-                                        aria-checked={answers[q.id] === option}
-                                        className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 border
-                                            ${answers[q.id] === option 
-                                                ? 'bg-blue-600 text-white border-blue-600' 
-                                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                                            }`}
-                                    >
-                                        {option}
-                                    </button>
-                                ))}
-                            </fieldset>
-                        </div>
-                    ))}
+                    {/* Questions by Topic */}
+                    <div className="space-y-6">
+                        {surveyStructure.map((topic, topicIndex) => (
+                            <div key={topicIndex} className="border border-slate-200 p-4 md:p-6 rounded-lg">
+                                <h3 className="font-semibold text-slate-900 mb-6 text-lg">{topic.title}</h3>
+                                <div className="space-y-8">
+                                    {topic.questions.map((q) => (
+                                        <div key={q.id}>
+                                            <label htmlFor={q.id} className="font-medium text-slate-800 mb-3 block">{q.id.replace('q', '')}. {q.text}</label>
+                                            {q.type === 'textarea' ? (
+                                                <textarea
+                                                    id={q.id}
+                                                    value={answers[q.id] || ''}
+                                                    onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                                                    className="w-full h-28 p-3 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                                                    placeholder="Sua resposta (opcional)..."
+                                                />
+                                            ) : (
+                                                <fieldset>
+                                                    <legend className="sr-only">Opções para: {q.text}</legend>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {likertOptions.map(option => (
+                                                            <button
+                                                                key={option}
+                                                                onClick={() => handleAnswerChange(q.id, option)}
+                                                                role="radio"
+                                                                aria-checked={answers[q.id] === option}
+                                                                className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 border
+                                                                    ${answers[q.id] === option 
+                                                                        ? 'bg-blue-600 text-white border-blue-600' 
+                                                                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                                                    }`}
+                                                            >
+                                                                {option}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </fieldset>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <button

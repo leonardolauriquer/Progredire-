@@ -1,19 +1,20 @@
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { BrainIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from './icons';
-import { mockResponses } from './dashboardMockData';
+import { mockResponses, dimensions } from './dashboardMockData';
 import { LineChart, Sparkline } from './Charts';
 
 const factorIdToName: Record<string, string> = {
-    'geral': 'Saúde Geral', 'q1': 'Carga de Trabalho', 'q2': 'Jornada e Ritmo', 'q3': 'Clareza do Papel', 'q4': 'Autonomia', 'q5': 'Suporte Social',
-    'q6': 'Relações Interpessoais', 'q7': 'Reconhecimento', 'q8': 'Segurança', 'q9': 'Comunicação/Isolamento', 'q10': 'Organização/Processos',
+    'geral': 'Saúde Geral',
+    ...Object.fromEntries(Object.entries(dimensions).map(([id, { name }]) => [id, name]))
 };
 const allFactorIds = Object.keys(factorIdToName);
 
 const likertToScore: Record<string, number> = {
-    'Discordo Totalmente': 1, 'Discordo': 2, 'Neutro': 3, 'Concordo': 4, 'Concordo Totalmente': 5,
+    'Discordo totalmente': 1, 'Discordo parcialmente': 2, 'Neutro / Indiferente': 3, 'Concordo parcialmente': 4, 'Concordo totalmente': 5,
 };
 
 type EvolutionData = {
@@ -42,24 +43,39 @@ const calculateAllFactorsEvolution = (): Record<string, EvolutionData> => {
             }
 
             if (factorId === 'geral') {
-                 let responseTotal = 0;
-                 let responseCount = 0;
-                 Object.entries(res.answers).forEach(([qId, answer]) => {
-                    if (factorIdToName[qId]) {
-                        responseTotal += likertToScore[answer] || 0;
-                        responseCount++;
-                    }
-                });
-                if (responseCount > 0) {
-                    const avgResponseScore = responseTotal / responseCount;
+                 let totalResponseScore = 0;
+                 let totalQuestionCount = 0;
+                 Object.values(dimensions).forEach(dim => {
+                    dim.questions.forEach(qId => {
+                        const answer = res.answers[qId];
+                        if (answer) {
+                            totalResponseScore += likertToScore[answer] || 0;
+                            totalQuestionCount++;
+                        }
+                    });
+                 });
+                if (totalQuestionCount > 0) {
+                    const avgResponseScore = totalResponseScore / totalQuestionCount;
                     monthlyData[monthKey][factorId].totalScore += avgResponseScore;
                     monthlyData[monthKey][factorId].count++;
                 }
-            } else {
-                const answer = res.answers[factorId];
-                if (answer) {
-                    monthlyData[monthKey][factorId].totalScore += likertToScore[answer] || 0;
-                    monthlyData[monthKey][factorId].count++;
+            } else { // It's a dimension
+                const dimQuestions = dimensions[factorId]?.questions;
+                if(dimQuestions) {
+                    let totalDimScore = 0;
+                    let questionCount = 0;
+                    dimQuestions.forEach(qId => {
+                         const answer = res.answers[qId];
+                         if (answer) {
+                            totalDimScore += likertToScore[answer] || 0;
+                            questionCount++;
+                         }
+                    });
+                    if (questionCount > 0) {
+                        const avgDimScore = totalDimScore / questionCount;
+                        monthlyData[monthKey][factorId].totalScore += avgDimScore;
+                        monthlyData[monthKey][factorId].count++;
+                    }
                 }
             }
         });
@@ -75,7 +91,7 @@ const calculateAllFactorsEvolution = (): Record<string, EvolutionData> => {
         });
 
         const data = sortedMonths.map(key => {
-            const monthFactorData = monthlyData[key][factorId];
+            const monthFactorData = monthlyData[key]?.[factorId];
             if (!monthFactorData || monthFactorData.count === 0) return 0;
             const avgScore = monthFactorData.totalScore / monthFactorData.count;
             return Math.round((avgScore - 1) / 4 * 100); // Normalize to 0-100
@@ -127,9 +143,19 @@ export const EvolutionView: React.FC = () => {
         setError(null);
         setAiInsight('');
 
-        let promptData = `Análise do período de ${evolutionData.geral.labels[0]} a ${evolutionData.geral.labels[evolutionData.geral.labels.length - 1]}:\n\n`;
+        const generalData = evolutionData.geral;
+        if (!generalData || generalData.labels.length === 0) {
+            setError("Não há dados de evolução suficientes para gerar a análise.");
+            setIsLoading(false);
+            return;
+        }
+
+        let promptData = `Análise do período de ${generalData.labels[0]} a ${generalData.labels[generalData.labels.length - 1]}:\n\n`;
         
-        Object.entries(evolutionData).forEach(([factorId, data]) => {
+        // FIX: Replaced Object.entries with Object.keys to ensure correct type inference for 'data'.
+        // This resolves the error where properties 'startScore' and 'endScore' were not found on type 'unknown'.
+        Object.keys(evolutionData).forEach((factorId) => {
+            const data = evolutionData[factorId];
             promptData += `- ${factorIdToName[factorId]}:\n  - Pontuação Inicial: ${data.startScore}\n  - Pontuação Final: ${data.endScore}\n\n`;
         });
 
@@ -179,10 +205,12 @@ export const EvolutionView: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-                <h2 className="text-xl font-semibold text-slate-800 mb-4">Evolução por Fator de Risco</h2>
+                <h2 className="text-xl font-semibold text-slate-800 mb-4">Evolução por Dimensão de Risco</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {Object.entries(evolutionData).map(([factorId, data]) => {
+                    {/* FIX: Replaced Object.entries with Object.keys to ensure correct type inference for the 'data' prop passed to FactorEvolutionCard. */}
+                    {Object.keys(evolutionData).map((factorId) => {
                         if (factorId === 'geral') return null;
+                        const data = evolutionData[factorId];
                         return <FactorEvolutionCard key={factorId} factorName={factorIdToName[factorId]} data={data} />;
                     })}
                 </div>

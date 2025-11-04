@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon } from './icons';
-import { mockResponses, mockFilters } from './dashboardMockData';
+import { mockResponses, mockFilters, dimensions } from './dashboardMockData';
 import { GaugeChart, RadarChart, DistributionChart } from './Charts';
 
 // --- Helper Functions & Types ---
@@ -26,62 +26,70 @@ interface AiInsightData {
     nextSteps: { title: string; content: string };
 }
 
-const likertOptions = ['Discordo Totalmente', 'Discordo', 'Neutro', 'Concordo', 'Concordo Totalmente'];
+const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
 const likertToScore: Record<string, number> = {
   [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
 };
-const factorIdToName: Record<string, string> = {
-    'q1': 'Carga de Trabalho', 'q2': 'Jornada e Ritmo', 'q3': 'Clareza do Papel', 'q4': 'Autonomia', 'q5': 'Suporte Social',
-    'q6': 'Relações Interpessoais', 'q7': 'Reconhecimento', 'q8': 'Segurança', 'q9': 'Comunicação/Isolamento', 'q10': 'Organização/Processos',
-};
-const allFactorIds = Object.keys(factorIdToName);
+const allDimensionIds = Object.keys(dimensions);
 
 const calculateDataForResponses = (responses: typeof mockResponses) => {
     if (responses.length === 0) {
         return {
-            riskFactors: allFactorIds.map(id => ({ id, name: factorIdToName[id], score: 0 })),
-            distributions: Object.fromEntries(allFactorIds.map(id => [id, []]))
+            riskFactors: allDimensionIds.map(id => ({ id, name: dimensions[id].name, score: 0 })),
+            distributions: Object.fromEntries(allDimensionIds.map(id => [id, []]))
         };
     }
 
-    const totalScores: Record<string, number> = {};
-    const counts: Record<string, number> = {};
+    const totalDimensionScores: Record<string, number> = {};
+    const dimensionCounts: Record<string, number> = {};
     const distributions: Record<string, Record<string, number>> = {};
 
-    allFactorIds.forEach(id => {
+    allDimensionIds.forEach(id => {
         distributions[id] = { [likertOptions[0]]: 0, [likertOptions[1]]: 0, [likertOptions[2]]: 0, [likertOptions[3]]: 0, [likertOptions[4]]: 0 };
     });
 
     responses.forEach(r => {
-        Object.entries(r.answers).forEach(([qId, answer]) => {
-            if (factorIdToName[qId]) {
-                const score = likertToScore[answer] || 0;
-                totalScores[qId] = (totalScores[qId] || 0) + score;
-                counts[qId] = (counts[qId] || 0) + 1;
-                if (distributions[qId] && answer in distributions[qId]) {
-                    distributions[qId][answer]++;
+        allDimensionIds.forEach(dimId => {
+            const dimQuestions = dimensions[dimId].questions;
+            let totalScoreForDim = 0;
+            let questionCountForDim = 0;
+            
+            dimQuestions.forEach(qId => {
+                const answer = r.answers[qId];
+                if (answer) {
+                    totalScoreForDim += likertToScore[answer] || 0;
+                    questionCountForDim++;
+                    if (distributions[dimId] && answer in distributions[dimId]) {
+                        distributions[dimId][answer]++;
+                    }
                 }
+            });
+
+            if (questionCountForDim > 0) {
+                const avgScoreForDim = totalScoreForDim / questionCountForDim;
+                totalDimensionScores[dimId] = (totalDimensionScores[dimId] || 0) + avgScoreForDim;
+                dimensionCounts[dimId] = (dimensionCounts[dimId] || 0) + 1;
             }
         });
     });
 
-    const riskFactors: RiskFactor[] = allFactorIds.map(id => {
-        const averageScore = (totalScores[id] || 0) / (counts[id] || 1);
+    const riskFactors: RiskFactor[] = allDimensionIds.map(id => {
+        const averageScore = (totalDimensionScores[id] || 0) / (dimensionCounts[id] || 1);
         const normalizedScore = Math.round((averageScore - 1) / 4 * 100);
-        return { id, name: factorIdToName[id], score: normalizedScore };
+        return { id, name: dimensions[id].name, score: normalizedScore };
     });
 
     const formattedDistributions = Object.fromEntries(
-        Object.entries(distributions).map(([qId, dist]) => {
-            const total = counts[qId] || 1;
+        Object.entries(distributions).map(([dimId, dist]) => {
+            const total = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
             const finalDist = [
                 { name: 'DT', value: (dist[likertOptions[0]] / total) * 100, color: '#ef4444' }, // red-500
-                { name: 'D', value: (dist[likertOptions[1]] / total) * 100, color: '#f97316' },  // orange-500
+                { name: 'DP', value: (dist[likertOptions[1]] / total) * 100, color: '#f97316' },  // orange-500
                 { name: 'N', value: (dist[likertOptions[2]] / total) * 100, color: '#eab308' },  // yellow-500
-                { name: 'C', value: (dist[likertOptions[3]] / total) * 100, color: '#84cc16' },  // lime-500
+                { name: 'CP', value: (dist[likertOptions[3]] / total) * 100, color: '#84cc16' },  // lime-500
                 { name: 'CT', value: (dist[likertOptions[4]] / total) * 100, color: '#22c55e' }, // green-500
             ];
-            return [qId, finalDist];
+            return [dimId, finalDist];
         })
     );
 
@@ -126,7 +134,7 @@ export const DashboardView: React.FC = () => {
     const [aiInsight, setAiInsight] = useState<AiInsightData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedFactorForDistribution, setSelectedFactorForDistribution] = useState<string>('q1');
+    const [selectedFactorForDistribution, setSelectedFactorForDistribution] = useState<string>('d1_carga');
 
     const data = useMemo(() => calculateDashboardData(filters), [filters]);
 
@@ -162,7 +170,7 @@ setError(null);
     }, [data, filters]);
 
     const radarChartData = {
-        labels: data.riskFactors.map(f => f.name.split(' ')[0]), // Shorten labels
+        labels: data.riskFactors.map(f => f.name.replace(' e ', '/').split(' ')[0]), // Shorten labels
         datasets: [
             {
                 label: 'Média da Empresa',
@@ -237,7 +245,7 @@ setError(null);
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow border border-slate-200">
                          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-                            <h2 className="text-lg font-semibold text-slate-800">Distribuição das Respostas</h2>
+                            <h2 className="text-lg font-semibold text-slate-800">Distribuição das Respostas por Dimensão</h2>
                             <select
                                 value={selectedFactorForDistribution}
                                 onChange={e => setSelectedFactorForDistribution(e.target.value)}
