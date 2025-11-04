@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 // --- Gauge Chart ---
@@ -296,5 +297,122 @@ export const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, c
         <svg viewBox={`0 0 ${width} ${height}`} className="w-[100px] h-[25px]">
             <path d={path} fill="none" stroke={color} strokeWidth="1.5" />
         </svg>
+    );
+};
+
+// --- Maturity Progress Bar ---
+export const MaturityProgressBar: React.FC<{ level: string }> = ({ level }) => {
+    const levels = ['M1', 'M2', 'M3', 'M4', 'M5'];
+    const currentIndex = levels.indexOf(level);
+    const progress = currentIndex >= 0 ? ((currentIndex + 1) / levels.length) * 100 : 0;
+  
+    return (
+      <div className="w-full mt-2">
+        <div className="relative h-2 bg-slate-200 rounded-full">
+          <div
+            className="absolute top-0 left-0 h-2 bg-blue-500 rounded-full"
+            style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}
+          ></div>
+        </div>
+        <div className="flex justify-between text-xs text-slate-500 mt-1">
+          {levels.map((l) => (
+            <span key={l} className={l === level ? 'font-bold text-blue-600' : ''}>
+              {l}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
+  // --- Stacked Bar Chart ---
+  type StackedBarData = {
+    label: string;
+    values: { value: number; color: string; tooltip: string }[];
+  };
+  
+  export const StackedBarChart: React.FC<{ data: StackedBarData[] }> = ({ data }) => (
+    <div className="space-y-3">
+      {data.map((item, index) => (
+        <div key={index}>
+          <div className="text-sm font-medium text-slate-700 mb-1">{item.label}</div>
+          <div className="w-full flex h-6 rounded-md overflow-hidden bg-slate-200">
+            {item.values.map((segment, segIndex) => (
+              <div
+                key={segIndex}
+                className="h-full"
+                style={{ width: `${segment.value}%`, backgroundColor: segment.color }}
+                title={segment.tooltip}
+              ></div>
+            ))}
+          </div>
+        </div>
+      ))}
+       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-xs text-slate-600">
+          <div className="flex items-center"><span className="w-3 h-3 rounded-sm mr-1.5 bg-red-500"></span>Risco Alto</div>
+          <div className="flex items-center"><span className="w-3 h-3 rounded-sm mr-1.5 bg-yellow-500"></span>Risco Moderado</div>
+          <div className="flex items-center"><span className="w-3 h-3 rounded-sm mr-1.5 bg-green-500"></span>Risco Baixo</div>
+      </div>
+    </div>
+  );
+  
+// --- Thermometer Chart ---
+export const ThermometerChart: React.FC<{ value: number; max: number }> = ({ value, max }) => {
+    const percentage = (value / max) * 100;
+    const getColor = (p: number) => {
+        if (p > 70) return 'bg-green-500'; // > 3.5
+        if (p > 50) return 'bg-yellow-500'; // > 2.5
+        return 'bg-red-500'; // <= 2.5
+    };
+
+    return (
+        <div className="flex items-center justify-center h-28">
+            <div className="relative w-6 h-full bg-slate-200 rounded-full border-2 border-slate-300">
+                <div 
+                    className={`absolute bottom-0 left-0 w-full rounded-full ${getColor(percentage)}`}
+                    style={{ height: `${percentage}%`, transition: 'height 0.5s ease-in-out' }}
+                />
+            </div>
+             <div className="ml-2 text-center">
+                <div className="text-2xl font-bold text-slate-800">{value.toFixed(1)}</div>
+                <div className="text-sm text-slate-500">/ {max.toFixed(1)}</div>
+            </div>
+        </div>
+    );
+};
+
+// --- Donut Chart ---
+export const DonutChart: React.FC<{ value: number; color: string }> = ({ value, color }) => {
+    const radius = 50;
+    const circumference = 2 * Math.PI * (radius - 10);
+    const offset = circumference - (value / 100) * circumference;
+
+    return (
+        <div className="relative flex items-center justify-center w-32 h-32">
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle
+                    className="text-slate-200"
+                    strokeWidth="10"
+                    stroke="currentColor"
+                    fill="transparent"
+                    r="40"
+                    cx="50"
+                    cy="50"
+                />
+                <circle
+                    strokeWidth="10"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                    strokeLinecap="round"
+                    stroke={color}
+                    fill="transparent"
+                    r="40"
+                    cx="50"
+                    cy="50"
+                    style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%', transition: 'stroke-dashoffset 0.5s ease-in-out' }}
+                />
+            </svg>
+            <span className="absolute text-2xl font-bold text-slate-800">{value}%</span>
+        </div>
     );
 };
