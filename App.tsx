@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -7,8 +8,9 @@ import { DashboardView } from './components/DashboardView';
 import { FaqView } from './components/FaqView';
 import { BottomNavbar } from './components/BottomNavbar';
 import { EvolutionView } from './components/EvolutionView';
+import { PlanoAcaoView } from './components/PlanoAcaoView';
 
-export type ActiveView = 'home' | 'dashboard' | 'corporate_survey' | 'history' | 'settings' | 'faq';
+export type ActiveView = 'home' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('home');
@@ -25,6 +27,8 @@ const App: React.FC = () => {
         return <FaqView />;
       case 'history':
         return <EvolutionView />;
+      case 'plano_acao':
+        return <PlanoAcaoView />;
       case 'settings':
         return (
           <div className="text-center p-8 bg-white rounded-lg shadow">

@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon } from './icons';
 // FIX: Import ActiveView from App to ensure type consistency across components.
 import { ActiveView } from '../App';
 
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
   { name: 'Análise', view: 'corporate_survey', icon: PencilSquareIcon },
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
+  { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
   { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
   { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];
