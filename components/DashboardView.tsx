@@ -10,6 +10,11 @@ import { GaugeChart, RadarChart, DistributionChart } from './Charts';
 // --- Helper Functions & Types ---
 type RiskFactor = { id: string; name: string; score: number };
 type ResponseDistribution = { name: string; value: number; color: string; }[];
+type MaturityLevel = {
+    level: string;
+    name: string;
+    description: string;
+};
 type DashboardData = {
   geralScore: number;
   irpGlobal: number;
@@ -18,6 +23,7 @@ type DashboardData = {
   participation: number;
   topRisks: RiskFactor[];
   mostCriticalDimension?: RiskFactor;
+  maturityLevel: MaturityLevel;
   riskFactors: RiskFactor[];
   companyAverageFactors: RiskFactor[];
   distributions: Record<string, ResponseDistribution>;
@@ -35,6 +41,43 @@ const likertToScore: Record<string, number> = {
   [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
 };
 const allDimensionIds = Object.keys(dimensions);
+
+const maturityLevels: Record<string, {name: string, description: string}> = {
+    'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
+    'M2': { name: 'Consciente', description: 'Reconhece riscos, mas sem plano estruturado (40-60% em risco moderado/alto).' },
+    'M3': { name: 'Estruturada', description: 'Políticas em implantação (30-40% em risco moderado).' },
+    'M4': { name: 'Preventiva', description: 'Gestão ativa do clima (10-30% em risco moderado).' },
+    'M5': { name: 'Estratégica', description: 'Cultura de bem-estar consolidada (>80% dos fatores em risco baixo).' },
+};
+
+const getMaturityLevel = (riskFactors: RiskFactor[]): MaturityLevel => {
+    if (riskFactors.length === 0) {
+        return { level: 'N/A', name: 'Dados Insuficientes', description: 'Não há dados para calcular.' };
+    }
+    
+    let highCount = 0, moderateCount = 0, lowCount = 0;
+
+    riskFactors.forEach(factor => {
+        const score_1_5 = (factor.score / 100) * 4 + 1;
+        if (score_1_5 <= 2.4) highCount++;
+        else if (score_1_5 <= 3.4) moderateCount++;
+        else lowCount++;
+    });
+
+    const total = riskFactors.length;
+    const highPercent = (highCount / total) * 100;
+    const moderatePercent = (moderateCount / total) * 100;
+    const lowPercent = (lowCount / total) * 100;
+
+    if (highPercent > 60) return { level: 'M1', ...maturityLevels['M1'] };
+    if (lowPercent > 80) return { level: 'M5', ...maturityLevels['M5'] };
+    if ((highPercent + moderatePercent) >= 40 && (highPercent + moderatePercent) <= 60) return { level: 'M2', ...maturityLevels['M2'] };
+    if (moderatePercent >= 30 && moderatePercent <= 40) return { level: 'M3', ...maturityLevels['M3'] };
+    if (moderatePercent >= 10 && moderatePercent < 30) return { level: 'M4', ...maturityLevels['M4'] };
+    
+    if ((highPercent + moderatePercent) > 30) return { level: 'M2', ...maturityLevels['M2'] };
+    return { level: 'M4', ...maturityLevels['M4'] }; // Fallback
+};
 
 const calculateDataForResponses = (responses: typeof mockResponses) => {
     if (responses.length === 0) {
@@ -108,6 +151,8 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const companyData = calculateDataForResponses(mockResponses);
     const filteredData = calculateDataForResponses(filteredResponses);
     
+    const maturityLevel = getMaturityLevel(filteredData.riskFactors);
+
     const emptyState = {
         geralScore: 0,
         irpGlobal: 0,
@@ -115,6 +160,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         riskClassification: { text: 'N/A', color: 'bg-slate-500' },
         participation: 0,
         topRisks: [],
+        maturityLevel: { level: 'N/A', name: 'Dados Insuficientes', description: '' },
         ...filteredData,
         companyAverageFactors: companyData.riskFactors
     };
@@ -147,6 +193,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         participation: filteredResponses.length, 
         topRisks, 
         mostCriticalDimension,
+        maturityLevel,
         ...filteredData, 
         companyAverageFactors: companyData.riskFactors 
     };
@@ -160,6 +207,69 @@ const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: 
   </div>
 );
 
+const MaturityLevelCard: React.FC<{ maturity: MaturityLevel }> = ({ maturity }) => (
+    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
+        <h3 className="text-sm font-medium text-slate-500 truncate">Nível de Maturidade (Etapa 5)</h3>
+        <div className="mt-1">
+            <p className="text-2xl font-semibold text-slate-900">{maturity.level} - {maturity.name}</p>
+            <p className="text-xs text-slate-500 mt-1">{maturity.description}</p>
+        </div>
+    </div>
+);
+
+const RiskHeatmap: React.FC<{ data: Record<string, Record<string, number>> }> = ({ data }) => {
+    const dimensionHeaders: Record<string, string> = {
+        'd1_carga': 'Carga',
+        'd3_autonomia': 'Autonomia',
+        'd6_suporte': 'Suporte',
+        'd5_reconhecimento': 'Reconhec.',
+        'd8_justica': 'Justiça',
+        'd7_lideranca': 'Liderança'
+    };
+    const dimensionIds = Object.keys(dimensionHeaders);
+    const sectors = Object.keys(data);
+
+    const getRiskDot = (score: number) => {
+        let color = 'bg-slate-300';
+        let title = 'Sem dados';
+        if (score > 0) {
+            if (score <= 2.4) { color = 'bg-red-500'; title = `Risco Alto (${score.toFixed(1)})`; }
+            else if (score <= 3.4) { color = 'bg-yellow-400'; title = `Risco Moderado (${score.toFixed(1)})`; }
+            else { color = 'bg-green-500'; title = `Risco Baixo (${score.toFixed(1)})`; }
+        }
+        return <span title={title} className={`inline-block h-5 w-5 rounded-full ${color}`}></span>;
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-lg shadow border border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-800 mb-4">Mapa de Risco Psicossocial (Etapa 4)</h2>
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-center">
+                    <thead className="bg-slate-50">
+                        <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Setor</th>
+                            {dimensionIds.map(id => <th key={id} className="px-4 py-2 text-xs font-medium text-slate-500 uppercase tracking-wider">{dimensionHeaders[id]}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                        {sectors.map(sector => (
+                            <tr key={sector}>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm text-left font-medium text-slate-900">{sector}</td>
+                                {dimensionIds.map(dimId => (
+                                    <td key={dimId} className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">
+                                        {getRiskDot(data[sector]?.[dimId] || 0)}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+
 // --- Main Component ---
 export const DashboardView: React.FC = () => {
     const [filters, setFilters] = useState<Record<string, string>>({});
@@ -169,6 +279,39 @@ export const DashboardView: React.FC = () => {
     const [selectedFactorForDistribution, setSelectedFactorForDistribution] = useState<string>('d1_carga');
 
     const data = useMemo(() => calculateDashboardData(filters), [filters]);
+
+    const heatmapData = useMemo(() => {
+        const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
+        const dimensionIds = ['d1_carga', 'd3_autonomia', 'd6_suporte', 'd5_reconhecimento', 'd8_justica', 'd7_lideranca'];
+        const heatmap: Record<string, Record<string, number>> = {};
+
+        sectors.forEach(sector => {
+            const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
+            if (sectorResponses.length > 0) {
+                heatmap[sector] = {};
+                dimensionIds.forEach(dimId => {
+                    let totalScore = 0; let responseCount = 0;
+                    sectorResponses.forEach(res => {
+                        const dimQuestions = dimensions[dimId].questions;
+                        let totalDimScoreForResponse = 0; let questionCount = 0;
+                        dimQuestions.forEach(qId => {
+                            const answer = res.answers[qId];
+                            if (answer) {
+                                totalDimScoreForResponse += likertToScore[answer] || 0;
+                                questionCount++;
+                            }
+                        });
+                        if (questionCount > 0) {
+                            totalScore += totalDimScoreForResponse / questionCount;
+                            responseCount++;
+                        }
+                    });
+                    heatmap[sector][dimId] = responseCount > 0 ? totalScore / responseCount : 0;
+                });
+            }
+        });
+        return heatmap;
+    }, []);
 
     const handleFilterChange = (id: string, value: string) => {
         setFilters(prev => ({ ...prev, [id]: value }));
@@ -185,7 +328,7 @@ export const DashboardView: React.FC = () => {
 
     const handleGenerateInsight = useCallback(async () => {
         setIsLoading(true);
-setError(null);
+        setError(null);
         setAiInsight(null);
         
         let promptData = `Dados do Dashboard para Análise:\n`;
@@ -256,15 +399,9 @@ setError(null);
                  <KpiCard title="Saúde Geral">
                     <span className="flex items-center">{data.geralScore} <span className="text-base text-slate-500 ml-1">/ 100</span></span>
                 </KpiCard>
+                <MaturityLevelCard maturity={data.maturityLevel} />
                 <KpiCard title="Nível de Risco">
                     <span className={`px-2 py-1 text-sm font-semibold text-white rounded-full ${data.riskLevel.color}`}>{data.riskLevel.text}</span>
-                </KpiCard>
-                <KpiCard title="Principais Pontos de Atenção">
-                    <div className="flex flex-wrap gap-1">
-                        {data.topRisks.map(risk => (
-                            <span key={risk.id} className="text-xs font-medium bg-red-100 text-red-800 px-2 py-1 rounded-full">{risk.name}</span>
-                        ))}
-                    </div>
                 </KpiCard>
             </div>
 
@@ -301,6 +438,9 @@ setError(null);
                 )}
             </div>
 
+            {/* Risk Heatmap (Etapa 4) */}
+            <RiskHeatmap data={heatmapData} />
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
@@ -318,7 +458,7 @@ setError(null);
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow border border-slate-200">
                          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-                            <h2 className="text-lg font-semibold text-slate-800">Mapa de calor</h2>
+                            <h2 className="text-lg font-semibold text-slate-800">Mapa de Calor das Respostas</h2>
                             <select
                                 value={selectedFactorForDistribution}
                                 onChange={e => setSelectedFactorForDistribution(e.target.value)}
