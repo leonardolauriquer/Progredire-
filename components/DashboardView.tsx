@@ -347,7 +347,7 @@ export const DashboardView: React.FC = () => {
                 ))}
             </div>
             
-            <DashboardSection title="Bloco 1: Visão Geral">
+            <DashboardSection title="Visão Geral">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
                     <KpiCard title="IRP Global (1-5)"><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
                     <KpiCard title="% Respostas (Meta ≥80%)">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {TOTAL_EMPLOYEES}</span></KpiCard>
@@ -369,7 +369,7 @@ export const DashboardView: React.FC = () => {
                 </div>
             </DashboardSection>
 
-            <DashboardSection title="Bloco 2: Riscos e Clima Organizacional">
+            <DashboardSection title="Riscos e Clima Organizacional">
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div className="space-y-6">
                         <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
@@ -398,7 +398,7 @@ export const DashboardView: React.FC = () => {
                  </div>
             </DashboardSection>
 
-            <DashboardSection title="Bloco 3: Engajamento e Liderança">
+            <DashboardSection title="Engajamento e Liderança">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <KpiCard title="Percepção da Liderança"><span className="text-slate-800">{data.leadershipScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
@@ -413,7 +413,7 @@ export const DashboardView: React.FC = () => {
                 </div>
             </DashboardSection>
             
-            <DashboardSection title="Bloco 4: Insights Estratégicos com IA">
+            <DashboardSection title="Insights Estratégicos com IA">
                  <button onClick={handleGenerateInsight} disabled={isLoading || data.participationRate === 0} className="w-full mb-4 flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">
                         {isLoading ? <><LoadingSpinner /> Gerando Relatório...</> : <><SparklesIcon className="w-5 h-5" /> Gerar Relatório Estratégico</>}
                     </button>
