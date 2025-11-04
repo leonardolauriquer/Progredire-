@@ -11,8 +11,73 @@
         font-family: 'Inter', sans-serif;
       }
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      
+      /* --- THEME AND FONT SIZE STYLES --- */
+      :root { font-size: 16px; }
+      html.font-size-sm { font-size: 14px; }
+      html.font-size-lg { font-size: 18px; }
+
+      /* Default Light Theme */
+      :root, html.theme-default-light {
+        --color-primary-50: #eff6ff; --color-primary-100: #dbeafe; --color-primary-300: #93c5fd; --color-primary-500: #3b82f6; --color-primary-600: #2563eb; --color-primary-700: #1d4ed8;
+        --color-background: #f1f5f9; /* slate-100 */
+        --color-foreground: #0f172a; /* slate-900 */
+        --color-card: #ffffff; /* white */
+        --color-card-foreground: #1e293b; /* slate-800 */
+        --color-card-muted-foreground: #64748b; /* slate-500 */
+        --color-muted: #f8fafc; /* slate-50 */
+        --color-muted-foreground: #64748b; /* slate-500 */
+        --color-accent: #f1f5f9; /* slate-100 */
+        --color-accent-foreground: #475569; /* slate-600 */
+        --color-border: #e2e8f0; /* slate-200 */
+        --color-input: #f8fafc; /* slate-50 */
+        --color-ring: #2563eb; /* blue-600 */
+        --color-destructive: #ef4444; --color-destructive-foreground: #fee2e2;
+      }
+
+      /* Default Dark Theme */
+      html.theme-default-dark {
+        --color-primary-50: #1e3a8a; --color-primary-100: #1e40af; --color-primary-300: #1d4ed8; --color-primary-500: #3b82f6; --color-primary-600: #60a5fa; --color-primary-700: #93c5fd;
+        --color-background: #020617; /* slate-950 */
+        --color-foreground: #f8fafc; /* slate-50 */
+        --color-card: #0f172a; /* slate-900 */
+        --color-card-foreground: #e2e8f0; /* slate-200 */
+        --color-card-muted-foreground: #94a3b8; /* slate-400 */
+        --color-muted: #1e293b; /* slate-800 */
+        --color-muted-foreground: #94a3b8; /* slate-400 */
+        --color-accent: #1e293b; /* slate-800 */
+        --color-accent-foreground: #cbd5e1; /* slate-300 */
+        --color-border: #334155; /* slate-700 */
+        --color-input: #1e293b; /* slate-800 */
+        --color-ring: #3b82f6; /* blue-500 */
+        --color-destructive: #f87171; --color-destructive-foreground: #450a0a;
+      }
+      
+      /* Colorblind Light Theme */
+      html.theme-colorblind-light {
+        --color-primary-50: #fffbeb; --color-primary-100: #fef3c7; --color-primary-300: #fcd34d; --color-primary-500: #f59e0b; --color-primary-600: #d97706; --color-primary-700: #b45309;
+        --color-background: #f1f5f9; --color-foreground: #0f172a; --color-card: #ffffff; --color-card-foreground: #1e293b; --color-card-muted-foreground: #64748b; --color-muted: #f8fafc; --color-muted-foreground: #64748b; --color-accent: #f1f5f9; --color-accent-foreground: #475569; --color-border: #e2e8f0; --color-input: #f8fafc; --color-ring: #d97706; --color-destructive: #ef4444; --color-destructive-foreground: #fee2e2;
+      }
+
+      /* Colorblind Dark Theme */
+      html.theme-colorblind-dark {
+        --color-primary-50: #422006; --color-primary-100: #78350f; --color-primary-300: #9a3412; --color-primary-500: #f59e0b; --color-primary-600: #fcd34d; --color-primary-700: #fef3c7;
+        --color-background: #020617; --color-foreground: #f8fafc; --color-card: #0f172a; --color-card-foreground: #e2e8f0; --color-card-muted-foreground: #94a3b8; --color-muted: #1e293b; --color-muted-foreground: #94a3b8; --color-accent: #1e293b; --color-accent-foreground: #cbd5e1; --color-border: #334155; --color-input: #1e293b; --color-ring: #f59e0b; --color-destructive: #f87171; --color-destructive-foreground: #450a0a;
+      }
+
+      .prose { color: var(--color-card-foreground); }
+      .prose strong { color: var(--color-card-foreground); }
+      .prose blockquote { 
+        border-left-color: var(--color-primary-500); 
+        background-color: var(--color-muted);
+        color: var(--color-card-muted-foreground);
+      }
+      .prose h1, .prose h2, .prose h3, .prose h4 {
+        color: var(--color-card-foreground);
+      }
+
     </style>
-  <script type="importmap">
+    <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -22,8 +87,20 @@
   }
 }
 </script>
+<script>
+  // Immediately apply theme and font size from localStorage to prevent FOUC
+  (function() {
+    try {
+      const theme = localStorage.getItem('progredire-theme') || 'theme-default-light';
+      const fontSize = localStorage.getItem('progredire-fontSize') || 'font-size-md';
+      document.documentElement.className = theme + ' ' + fontSize;
+    } catch (e) {
+      console.error('Failed to apply theme from localStorage', e);
+    }
+  })();
+</script>
 </head>
-  <body class="bg-slate-100">
+  <body class="bg-[--color-background]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

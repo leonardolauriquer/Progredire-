@@ -9,6 +9,7 @@ import { FaqView } from './components/FaqView';
 import { BottomNavbar } from './components/BottomNavbar';
 import { EvolutionView } from './components/EvolutionView';
 import { PlanoAcaoView } from './components/PlanoAcaoView';
+import { SettingsView } from './components/SettingsView';
 
 export type ActiveView = 'home' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq';
 
@@ -30,19 +31,14 @@ const App: React.FC = () => {
       case 'plano_acao':
         return <PlanoAcaoView />;
       case 'settings':
-        return (
-          <div className="text-center p-8 bg-white rounded-lg shadow">
-            <h2 className="text-2xl font-bold text-slate-800">Configurações</h2>
-            <p className="text-slate-500 mt-2">Esta funcionalidade estará disponível em breve.</p>
-          </div>
-        );
+        return <SettingsView />;
       default:
         return <HomeView setActiveView={setActiveView} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800">
+    <div className="min-h-screen bg-[--color-background] text-[--color-foreground]">
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
