@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -11,9 +12,12 @@ type RiskFactor = { id: string; name: string; score: number };
 type ResponseDistribution = { name: string; value: number; color: string; }[];
 type DashboardData = {
   geralScore: number;
+  irpGlobal: number;
   riskLevel: { text: string; color: string; };
+  riskClassification: { text: string; color: string; };
   participation: number;
   topRisks: RiskFactor[];
+  mostCriticalDimension?: RiskFactor;
   riskFactors: RiskFactor[];
   companyAverageFactors: RiskFactor[];
   distributions: Record<string, ResponseDistribution>;
@@ -104,20 +108,48 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const companyData = calculateDataForResponses(mockResponses);
     const filteredData = calculateDataForResponses(filteredResponses);
     
+    const emptyState = {
+        geralScore: 0,
+        irpGlobal: 0,
+        riskLevel: { text: 'N/A', color: 'bg-slate-500' },
+        riskClassification: { text: 'N/A', color: 'bg-slate-500' },
+        participation: 0,
+        topRisks: [],
+        ...filteredData,
+        companyAverageFactors: companyData.riskFactors
+    };
+    
     if (filteredResponses.length === 0) {
-        return { geralScore: 0, riskLevel: { text: 'N/A', color: 'bg-slate-500' }, participation: 0, topRisks: [], ...filteredData, companyAverageFactors: companyData.riskFactors };
+        return emptyState;
     }
 
     const geralScore = Math.round(filteredData.riskFactors.reduce((acc, curr) => acc + curr.score, 0) / filteredData.riskFactors.length);
+    const irpGlobal = (geralScore / 100) * 4 + 1;
     
-    const riskLevel = geralScore >= 75 ? { text: 'Saudável', color: 'bg-green-500' }
+    const riskLevelFromScore100 = geralScore >= 75 ? { text: 'Saudável', color: 'bg-green-500' }
                     : geralScore >= 50 ? { text: 'Moderado', color: 'bg-yellow-500' }
                     : geralScore >= 25 ? { text: 'Atenção', color: 'bg-orange-500' }
                     : { text: 'Crítico', color: 'bg-red-500' };
 
-    const topRisks = [...filteredData.riskFactors].sort((a, b) => a.score - b.score).slice(0, 3);
+    const riskClassificationFromScore5 = irpGlobal >= 3.5 ? { text: 'Baixo / Saudável', color: 'bg-green-500' }
+                                        : irpGlobal >= 2.5 ? { text: 'Risco Moderado', color: 'bg-yellow-500' }
+                                        : { text: 'Risco Alto', color: 'bg-red-500' };
 
-    return { geralScore, riskLevel, participation: filteredResponses.length, topRisks, ...filteredData, companyAverageFactors: companyData.riskFactors };
+    const sortedRisks = [...filteredData.riskFactors].sort((a, b) => a.score - b.score);
+    const topRisks = sortedRisks.slice(0, 3);
+    const mostCriticalDimension = sortedRisks[0];
+
+    return { 
+        geralScore, 
+        irpGlobal,
+        riskLevel: riskLevelFromScore100, 
+        riskClassification: riskClassificationFromScore5,
+        participation: filteredResponses.length, 
+        topRisks, 
+        mostCriticalDimension,
+        ...filteredData, 
+        companyAverageFactors: companyData.riskFactors 
+    };
 };
 
 // --- Sub-components ---
@@ -141,6 +173,14 @@ export const DashboardView: React.FC = () => {
     const handleFilterChange = (id: string, value: string) => {
         setFilters(prev => ({ ...prev, [id]: value }));
         setAiInsight(null); // Reset AI insight when filters change
+    };
+    
+    const getFilterDisplayName = () => {
+        const activeFilters = Object.values(filters).filter(Boolean);
+        if (activeFilters.length === 0) {
+            return "Geral (Toda a Empresa)";
+        }
+        return activeFilters.join(' / ');
     };
 
     const handleGenerateInsight = useCallback(async () => {
@@ -228,6 +268,39 @@ setError(null);
                 </KpiCard>
             </div>
 
+            {/* Risk Summary Table (Etapa 2 & 3) */}
+            <div className="bg-white p-6 rounded-lg shadow border border-slate-200">
+                <h2 className="text-lg font-semibold text-slate-800 mb-4">Análise de Riscos por Grupo (Etapa 2 & 3)</h2>
+                {data.participation > 0 ? (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Setor / Grupo Filtrado</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">IRP Global (1-5)</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dimensão Mais Crítica</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Classificação de Risco</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-slate-200">
+                                <tr>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{getFilterDisplayName()}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700 font-bold">{data.irpGlobal.toFixed(1)}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-700">{data.mostCriticalDimension?.name || 'N/A'}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">
+                                        <span className={`px-2 py-1 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>
+                                            {data.riskClassification.text}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <p className="text-sm text-center text-slate-500 py-4">Selecione filtros para ver a análise de risco de um grupo específico.</p>
+                )}
+            </div>
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
@@ -245,7 +318,7 @@ setError(null);
                     </div>
                     <div className="bg-white p-6 rounded-lg shadow border border-slate-200">
                          <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-                            <h2 className="text-lg font-semibold text-slate-800">Distribuição das Respostas por Dimensão</h2>
+                            <h2 className="text-lg font-semibold text-slate-800">Mapa de calor</h2>
                             <select
                                 value={selectedFactorForDistribution}
                                 onChange={e => setSelectedFactorForDistribution(e.target.value)}
