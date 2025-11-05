@@ -219,6 +219,73 @@ REGRAS:
 - A resposta deve ser em português do Brasil.
 `;
 
+const actionPlanResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        diagnosis: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para a seção de diagnóstico. Ex: 'Diagnóstico da Situação'" },
+                content: { type: Type.STRING, description: "Análise concisa do porquê o fator de risco selecionado é crítico para o público-alvo filtrado." },
+            },
+        },
+        strategicObjective: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para o objetivo. Ex: 'Objetivo Estratégico'" },
+                content: { type: Type.STRING, description: "Um objetivo claro e mensurável para o plano de ação." },
+            },
+        },
+        suggestedActions: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para as ações. Ex: 'Ações Sugeridas'" },
+                actions: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            actionTitle: { type: Type.STRING, description: "Um título curto e impactante para a ação." },
+                            actionDescription: { type: Type.STRING, description: "Descrição detalhada e prática da ação a ser implementada." },
+                        },
+                    },
+                },
+            },
+        },
+        kpis: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para os indicadores. Ex: 'Indicadores de Sucesso (KPIs)'" },
+                indicators: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING, description: "Um indicador chave de performance para medir o sucesso do plano." },
+                },
+            },
+        },
+    },
+};
+
+const systemInstructionActionPlan = `
+Você é um consultor de RH sênior e especialista em psicologia organizacional, especialista em criar planos de ação.
+Sua tarefa é gerar um plano de ação estratégico, prático e personalizado com base em um fator de risco crítico e no perfil do público-alvo.
+
+**Contexto:**
+- **Fator de Risco Crítico:** O ponto principal que o plano deve abordar.
+- **Perfil do Público-Alvo:** A descrição do grupo (setor, cargo, etc.) para o qual o plano se destina.
+
+**Instruções para preencher o schema JSON:**
+- **diagnosis**: Baseado no fator de risco e no perfil, escreva um diagnóstico preciso. Por que esse fator é um problema para este grupo específico? Ex: "Para a equipe de Engenharia, a alta 'Carga de Trabalho' se manifesta em prazos apertados e reuniões excessivas, impactando a qualidade e gerando burnout." Use o título 'Diagnóstico da Situação'.
+- **strategicObjective**: Defina um objetivo SMART (Específico, Mensurável, Atingível, Relevante, Temporal). Ex: "Reduzir a percepção de sobrecarga em 15% na equipe de Engenharia nos próximos 3 meses, melhorando a pontuação do fator 'Carga de Trabalho'." Use o título 'Objetivo Estratégico'.
+- **suggestedActions**: Crie 3 a 5 ações concretas e acionáveis. Para cada ação, forneça um 'actionTitle' (ex: "Otimização de Reuniões") e uma 'actionDescription' detalhada (ex: "Implementar a política de 'reuniões sem pauta são canceladas', limitar a duração para 45 minutos e definir um dia da semana sem reuniões internas."). Use o título 'Ações Sugeridas'.
+- **kpis**: Liste 2 a 3 indicadores (quantitativos ou qualitativos) para medir o sucesso. Ex: "Redução de horas extras não planejadas em 20%", "Aumento na pontuação de satisfação com o equilíbrio vida-trabalho na próxima pesquisa de pulso". Use o título 'Indicadores de Sucesso (KPIs)'.
+
+**REGRAS:**
+- Adote um tom de consultor: prático, estratégico e encorajador.
+- As ações devem ser realistas e específicas para o contexto corporativo.
+- Preencha todos os campos do schema JSON.
+- A resposta deve ser em português do Brasil.
+`;
+
 
 async function callGemini(userInput: string, instruction: string): Promise<string> {
     try {
@@ -297,6 +364,30 @@ export async function runEvolutionAnalysis(evolutionData: string): Promise<strin
         return response.text;
     } catch (error) {
         console.error("Error calling Gemini API for evolution analysis:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to get analysis from AI: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while communicating with the AI.");
+    }
+}
+
+export async function runActionPlanGeneration(factorName: string, segmentDescription: string): Promise<string> {
+    const prompt = `Gere um plano de ação detalhado com base nos seguintes dados:\n\n- Fator de Risco Crítico a ser abordado: "${factorName}"\n- Perfil do Público-Alvo: "${segmentDescription}"\n\nSiga as instruções e preencha o schema JSON.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                systemInstruction: systemInstructionActionPlan,
+                responseMimeType: "application/json",
+                responseSchema: actionPlanResponseSchema,
+            }
+        });
+
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API for action plan generation:", error);
         if (error instanceof Error) {
             throw new Error(`Failed to get analysis from AI: ${error.message}`);
         }

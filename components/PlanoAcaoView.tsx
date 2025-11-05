@@ -1,167 +1,38 @@
 
-
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
-import { ArrowDownTrayIcon } from './icons';
+import { runActionPlanGeneration } from '../services/geminiService';
+import { LoadingSpinner } from './LoadingSpinner';
+import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon } from './icons';
 
 // --- Types & Data ---
 
 type RiskFactor = { id: string; name: string; score: number };
-type MaturityLevel = {
-    level: string;
-    name: string;
-    description: string;
-};
+type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
+interface GeneratedPlan {
+    diagnosis: { title: string; content: string };
+    strategicObjective: { title: string; content: string };
+    suggestedActions: { title: string; actions: { actionTitle: string; actionDescription: string }[] };
+    kpis: { title: string; indicators: string[] };
+}
 
 const likertToScore: Record<string, number> = {
   'Discordo totalmente': 1, 'Discordo parcialmente': 2, 'Neutro / Indiferente': 3, 'Concordo parcialmente': 4, 'Concordo totalmente': 5,
 };
 const allDimensionIds = Object.keys(dimensions);
 
-const actionPlans: Record<string, {
-    level: string;
-    diagnosis: string;
-    strategicObjective: string;
-    focus: string;
-    suggestedActions: string[];
-    resultIndicators: string[];
-}> = {
-    'M1': {
-        level: 'M1 - Reativa',
-        diagnosis: 'Empresa que só reage após crises ou afastamentos. Cultura punitiva, liderança despreparada e ausência de políticas de apoio emocional.',
-        strategicObjective: 'Reconhecer os riscos psicossociais e iniciar a conscientização sobre o tema.',
-        focus: 'Sensibilização, diagnóstico e primeiros passos em segurança psicológica.',
-        suggestedActions: [
-            'Workshop de sensibilização sobre riscos psicossociais e NR-1.',
-            'Criação de canal de escuta anônima.',
-            'Implantação de política de prevenção ao assédio e violência psicológica.',
-            'Reuniões de feedback básico para líderes.',
-            'Avaliação inicial dos afastamentos e causas de adoecimento.'
-        ],
-        resultIndicators: [
-            'Taxa de participação no diagnóstico.',
-            'Redução de relatos de conflito.',
-            'Primeiros registros de planos de ação setoriais.'
-        ]
-    },
-    'M2': {
-        level: 'M2 - Consciente',
-        diagnosis: 'Empresa reconhece os problemas, mas ainda age de forma pontual. Liderança reage sem consistência. Falta sistematização.',
-        strategicObjective: 'Estruturar práticas mínimas de cuidado e iniciar programas piloto de gestão emocional.',
-        focus: 'Construir base organizacional para o gerenciamento dos riscos psicossociais.',
-        suggestedActions: [
-            'Capacitação inicial de líderes em comunicação empática e gestão emocional.',
-            'Treinamentos sobre saúde mental e burnout para todos os colaboradores.',
-            'Estruturação de um comitê de saúde emocional / ESG.',
-            'Implantar indicadores básicos de clima e absenteísmo.',
-            'Revisar jornadas e cargas de trabalho mais críticas.'
-        ],
-        resultIndicators: [
-            'Redução do absenteísmo em até 10%.',
-            '70% dos líderes treinados em gestão emocional.',
-            'Canal de escuta ativo e divulgado.'
-        ]
-    },
-    'M3': {
-        level: 'M3 - Estruturada',
-        diagnosis: 'Há políticas de cuidado e prevenção, mas ainda falta integração entre áreas e mensuração contínua. A cultura começa a mudar.',
-        strategicObjective: 'Consolidar práticas e medir impactos sobre clima, produtividade e saúde emocional.',
-        focus: 'Integração entre RH, liderança e segurança do trabalho.',
-        suggestedActions: [
-            'Implementar rotinas trimestrais de avaliação psicossocial.',
-            'Inserir riscos psicossociais oficialmente no PGR.',
-            'Criar plano de desenvolvimento de lideranças de médio prazo.',
-            'Implantar programas de reconhecimento e feedback estruturado.',
-            'Comunicar resultados e avanços ao time de forma transparente.'
-        ],
-        resultIndicators: [
-            'IRP médio acima de 3,5.',
-            'Redução de turnover em até 15%.',
-            'Aumento da percepção de justiça e reconhecimento.'
-        ]
-    },
-    'M4': {
-        level: 'M4 - Preventiva',
-        diagnosis: 'Empresa age de forma preventiva, com cultura de confiança e comunicação aberta. Ainda há espaço para integrar indicadores estratégicos e ROI.',
-        strategicObjective: 'Sustentar a cultura de saúde emocional e criar sistemas de melhoria contínua.',
-        focus: 'Desenvolvimento humano e integração com performance.',
-        suggestedActions: [
-            'Programas contínuos de liderança emocional e segurança psicológica.',
-            'Medições semestrais com comparativos e dashboards.',
-            'Criação de trilhas de desenvolvimento (soft skills e liderança compassiva).',
-            'Políticas de flexibilidade e equilíbrio vida-trabalho.',
-            'Envolvimento de diretoria nas pautas de clima e bem-estar.'
-        ],
-        resultIndicators: [
-            'ROI positivo (> 15% de economia em custos com pessoas).',
-            'Aumento da satisfação média dos colaboradores (ISG ≥ 4,0).',
-            'Redução de presenteísmo acima de 20%.'
-        ]
-    },
-    'M5': {
-        level: 'M5 - Estratégica',
-        diagnosis: 'Bem-estar emocional é valor institucional. O cuidado faz parte da cultura e é gerido como indicador de negócio.',
-        strategicObjective: 'Tornar-se referência em cultura saudável e alto desempenho sustentável.',
-        focus: 'Inovação, governança emocional e impacto social.',
-        suggestedActions: [
-            'Implantar programa anual “Empresa Emocionalmente Inteligente".',
-            'Integrar saúde emocional aos relatórios ESG e metas estratégicas.',
-            'Mentoria individual para diretores e líderes-chave.',
-            'Monitoramento contínuo de riscos com dashboard inteligente.',
-            'Certificação interna: “Ambiente Psicossocial Saudável – Método Natieli Griz®".'
-        ],
-        resultIndicators: [
-            'Turnover < 5%.',
-            'ISG ≥ 4,5.',
-            'Empresa reconhecida publicamente (premiações, índices ESG).',
-            'ROI acumulado > 30% em 12 meses.'
-        ]
-    }
-};
-
-const maturityLevels: Record<string, {name: string, description: string}> = {
-    'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
-    'M2': { name: 'Consciente', description: 'Reconhece riscos, mas sem plano estruturado (40-60% em risco moderado/alto).' },
-    'M3': { name: 'Estruturada', description: 'Políticas em implantação (30-40% em risco moderado).' },
-    'M4': { name: 'Preventiva', description: 'Gestão ativa do clima (10-30% em risco moderado).' },
-    'M5': { name: 'Estratégica', description: 'Cultura de bem-estar consolidada (>80% dos fatores em risco baixo).' },
-};
-
-
 // --- Helper Functions ---
 
-const getMaturityLevel = (riskFactors: RiskFactor[]): MaturityLevel => {
-    if (riskFactors.length === 0) {
-        return { level: 'N/A', name: 'Dados Insuficientes', description: 'Não há dados para calcular.' };
-    }
-    let highCount = 0, moderateCount = 0, lowCount = 0;
-    riskFactors.forEach(factor => {
-        const score_1_5 = (factor.score / 100) * 4 + 1;
-        if (score_1_5 <= 2.4) highCount++;
-        else if (score_1_5 <= 3.4) moderateCount++;
-        else lowCount++;
-    });
-    const total = riskFactors.length;
-    const highPercent = (highCount / total) * 100;
-    const moderatePercent = (moderateCount / total) * 100;
-    const lowPercent = (lowCount / total) * 100;
-    if (highPercent > 60) return { level: 'M1', ...maturityLevels['M1'] };
-    if (lowPercent > 80) return { level: 'M5', ...maturityLevels['M5'] };
-    if ((highPercent + moderatePercent) >= 40 && (highPercent + moderatePercent) <= 60) return { level: 'M2', ...maturityLevels['M2'] };
-    if (moderatePercent >= 30 && moderatePercent <= 40) return { level: 'M3', ...maturityLevels['M3'] };
-    if (moderatePercent >= 10 && moderatePercent < 30) return { level: 'M4', ...maturityLevels['M4'] };
-    if ((highPercent + moderatePercent) > 30) return { level: 'M2', ...maturityLevels['M2'] };
-    return { level: 'M4', ...maturityLevels['M4'] };
-};
-
 const calculateDataForResponses = (responses: typeof mockResponses) => {
+    if (responses.length === 0) {
+        return { riskFactors: allDimensionIds.map(id => ({ id, name: dimensions[id].name, score: 0 })) };
+    }
     const totalDimensionScores: Record<string, number> = {};
     const dimensionCounts: Record<string, number> = {};
     responses.forEach(r => {
         allDimensionIds.forEach(dimId => {
             const dimQuestions = dimensions[dimId].questions;
-            let totalScoreForDim = 0;
-            let questionCountForDim = 0;
+            let totalScoreForDim = 0; let questionCountForDim = 0;
             dimQuestions.forEach(qId => {
                 const answer = r.answers[qId];
                 if (answer) {
@@ -170,37 +41,16 @@ const calculateDataForResponses = (responses: typeof mockResponses) => {
                 }
             });
             if (questionCountForDim > 0) {
-                const avgScoreForDim = totalScoreForDim / questionCountForDim;
-                totalDimensionScores[dimId] = (totalDimensionScores[dimId] || 0) + avgScoreForDim;
+                totalDimensionScores[dimId] = (totalDimensionScores[dimId] || 0) + (totalScoreForDim / questionCountForDim);
                 dimensionCounts[dimId] = (dimensionCounts[dimId] || 0) + 1;
             }
         });
     });
     const riskFactors: RiskFactor[] = allDimensionIds.map(id => {
         const averageScore = (totalDimensionScores[id] || 0) / (dimensionCounts[id] || 1);
-        const normalizedScore = Math.round((averageScore - 1) / 4 * 100);
-        return { id, name: dimensions[id].name, score: normalizedScore };
+        return { id, name: dimensions[id].name, score: Math.round((averageScore - 1) / 4 * 100) };
     });
     return { riskFactors };
-};
-
-const calculateCompanyData = () => {
-    const { riskFactors } = calculateDataForResponses(mockResponses);
-    const maturityLevel = getMaturityLevel(riskFactors);
-    const topRisks = [...riskFactors].sort((a, b) => a.score - b.score).slice(0, 3);
-    
-    const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
-    const sectorScores = sectors.map(sector => {
-        const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
-        if (sectorResponses.length < 5) return { sector, score: -1 }; // Ignore small groups
-        const { riskFactors: sectorRiskFactors } = calculateDataForResponses(sectorResponses);
-        const irpGlobal = (sectorRiskFactors.reduce((acc, curr) => acc + curr.score, 0) / sectorRiskFactors.length) / 100 * 4 + 1;
-        return { sector, score: irpGlobal };
-    }).filter(s => s.score !== -1);
-    
-    const mostAffectedSectors = sectorScores.sort((a, b) => a.score - b.score).slice(0, 3);
-
-    return { maturityLevel, topRisks, mostAffectedSectors };
 };
 
 const exportToExcel = (htmlContent: string, filename: string) => {
@@ -209,14 +59,10 @@ const exportToExcel = (htmlContent: string, filename: string) => {
         <head>
             <!--[if gte mso 9]>
             <xml>
-                <x:ExcelWorkbook>
-                    <x:ExcelWorksheets>
-                        <x:ExcelWorksheet>
-                            <x:Name>Relatorio</x:Name>
-                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-                        </x:ExcelWorksheet>
-                    </x:ExcelWorksheets>
-                </x:ExcelWorkbook>
+                <x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+                <x:Name>Plano</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>
             </xml>
             <![endif]-->
             <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
@@ -227,11 +73,8 @@ const exportToExcel = (htmlContent: string, filename: string) => {
                 h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
             </style>
         </head>
-        <body>
-            ${htmlContent}
-        </body>
+        <body>${htmlContent}</body>
         </html>`;
-
     const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -240,22 +83,206 @@ const exportToExcel = (htmlContent: string, filename: string) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
 };
 
-// --- Sub-components ---
+// --- Main Component ---
+export const PlanoAcaoView: React.FC = () => {
+    const [filters, setFilters] = useState<Record<string, string>>({});
+    const [selectedFactorId, setSelectedFactorId] = useState<string>('');
+    const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
+    const [actionStatuses, setActionStatuses] = useState<Record<number, ActionStatus>>({});
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-const InfoCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-        <h3 className="text-md font-semibold text-slate-600 mb-2">{title}</h3>
-        {children}
-    </div>
-);
+    const criticalFactors = useMemo(() => {
+        const filteredResponses = mockResponses.filter(r => 
+            Object.entries(filters).every(([key, value]) => !value || r.segmentation[key] === value)
+        );
+        if (filteredResponses.length === 0) return [];
+        const { riskFactors } = calculateDataForResponses(filteredResponses);
+        return [...riskFactors].sort((a, b) => a.score - b.score).slice(0, 5);
+    }, [filters]);
 
-const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: string }> = ({ title, children, icon }) => (
+    const progress = useMemo(() => {
+        if (!generatedPlan) return 0;
+        const totalActions = generatedPlan.suggestedActions.actions.length;
+        if (totalActions === 0) return 100;
+        const completedActions = Object.values(actionStatuses).filter(s => s === 'Concluído').length;
+        return (completedActions / totalActions) * 100;
+    }, [actionStatuses, generatedPlan]);
+
+    const handleFilterChange = (id: string, value: string) => {
+        setFilters(prev => ({ ...prev, [id]: value }));
+        setSelectedFactorId('');
+        setGeneratedPlan(null);
+    };
+
+    const handleGeneratePlan = useCallback(async () => {
+        if (!selectedFactorId) return;
+        setIsLoading(true);
+        setError(null);
+        setGeneratedPlan(null);
+        
+        const factorName = dimensions[selectedFactorId]?.name || 'Fator Desconhecido';
+        const segmentDescription = Object.entries(filters)
+            .filter(([, value]) => value)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ') || 'Toda a empresa';
+
+        try {
+            const resultString = await runActionPlanGeneration(factorName, segmentDescription);
+            const plan: GeneratedPlan = JSON.parse(resultString);
+            setGeneratedPlan(plan);
+            const initialStatuses: Record<number, ActionStatus> = {};
+            plan.suggestedActions.actions.forEach((_, index) => {
+                initialStatuses[index] = 'A Fazer';
+            });
+            setActionStatuses(initialStatuses);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedFactorId, filters]);
+
+    const handleStatusChange = (index: number, status: ActionStatus) => {
+        setActionStatuses(prev => ({ ...prev, [index]: status }));
+    };
+
+    const handleExportXls = () => {
+        if (!generatedPlan) return;
+        let html = `<h1>Plano de Ação - ${dimensions[selectedFactorId]?.name}</h1>`;
+        
+        html += `<h2>${generatedPlan.diagnosis.title}</h2><p>${generatedPlan.diagnosis.content}</p>`;
+        html += `<h2>${generatedPlan.strategicObjective.title}</h2><p>${generatedPlan.strategicObjective.content}</p>`;
+
+        let actionsTable = `<h2>${generatedPlan.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Status</th></tr></thead><tbody>`;
+        generatedPlan.suggestedActions.actions.forEach((action, index) => {
+            actionsTable += `<tr><td>${action.actionTitle}</td><td>${action.actionDescription}</td><td>${actionStatuses[index] || 'A Fazer'}</td></tr>`;
+        });
+        actionsTable += '</tbody></table>';
+        html += actionsTable;
+
+        html += `<h2>${generatedPlan.kpis.title}</h2><ul>${generatedPlan.kpis.indicators.map(i => `<li>${i}</li>`).join('')}</ul>`;
+        
+        exportToExcel(html, `Plano_de_Acao_${dimensions[selectedFactorId]?.name.replace(' ', '_')}`);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div>
+                <h1 className="text-3xl font-bold text-slate-900">Plano de Ação com IA</h1>
+                <p className="text-slate-600 mt-1 max-w-3xl">
+                    Filtre o público, selecione um fator de risco e gere um plano de ação customizado para impulsionar a melhoria.
+                </p>
+            </div>
+
+            {/* Step 1: Filters */}
+            <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
+                <h2 className="font-semibold text-slate-800 mb-3">Passo 1: Selecione o público-alvo</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {mockFilters.map(f => (
+                        <div key={f.id}>
+                            <label htmlFor={`pa-${f.id}`} className="block text-sm font-medium text-slate-700 mb-1">{f.label}</label>
+                            <select id={`pa-${f.id}`} value={filters[f.id] || ''} onChange={e => handleFilterChange(f.id, e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="">Todos</option>
+                                {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Step 2: Select Critical Factor */}
+            {criticalFactors.length > 0 && (
+                <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
+                    <h2 className="font-semibold text-slate-800 mb-3">Passo 2: Escolha o Fator Crítico para focar</h2>
+                    <div className="flex flex-wrap gap-2">
+                        {criticalFactors.map(factor => (
+                            <button
+                                key={factor.id}
+                                onClick={() => setSelectedFactorId(factor.id)}
+                                className={`px-4 py-2 text-sm font-medium rounded-full border transition-all duration-200 ${selectedFactorId === factor.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}`}
+                            >
+                                {factor.name} <span className="ml-2 text-xs opacity-70">({factor.score}/100)</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            {/* Step 3: Generate Plan */}
+            <div className="flex justify-center">
+                <button
+                    onClick={handleGeneratePlan}
+                    disabled={!selectedFactorId || isLoading}
+                    className="flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all duration-300"
+                >
+                    {isLoading ? <><LoadingSpinner /> Gerando Plano...</> : <><BrainIcon className="w-5 h-5" /> Gerar Plano de Ação com IA</>}
+                </button>
+            </div>
+
+            {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
+            
+            {/* Display Plan */}
+            {generatedPlan && (
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-8">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">Plano para: {dimensions[selectedFactorId]?.name}</h2>
+                            <p className="text-slate-500">Acompanhe o progresso e exporte o relatório.</p>
+                        </div>
+                        <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50"><ArrowDownTrayIcon className="w-5 h-5" /> Exportar XLS</button>
+                    </div>
+
+                    {/* Progress */}
+                    <div>
+                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Progresso do Plano</h3>
+                        <div className="w-full bg-slate-200 rounded-full h-4">
+                            <div className="bg-green-500 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}>
+                                {progress.toFixed(0)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        <PlanSection icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />} title={generatedPlan.diagnosis.title}><p>{generatedPlan.diagnosis.content}</p></PlanSection>
+                        <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective.title}><p>{generatedPlan.strategicObjective.content}</p></PlanSection>
+                        <PlanSection icon={<LightBulbIcon className="w-6 h-6 text-yellow-500" />} title={generatedPlan.suggestedActions.title}>
+                            <div className="space-y-4">
+                                {generatedPlan.suggestedActions.actions.map((action, index) => (
+                                    <div key={index} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <p className="font-semibold text-slate-700">{action.actionTitle}</p>
+                                        <p className="text-sm text-slate-600 mt-1 mb-3">{action.actionDescription}</p>
+                                        <div className="flex items-center gap-4 text-xs">
+                                            <span className="font-medium text-slate-500">Status:</span>
+                                            {(['A Fazer', 'Em Andamento', 'Concluído'] as ActionStatus[]).map(status => (
+                                                <label key={status} className="flex items-center gap-1 cursor-pointer">
+                                                    <input type="radio" name={`status-${index}`} value={status} checked={actionStatuses[index] === status} onChange={() => handleStatusChange(index, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
+                                                    {status}
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </PlanSection>
+                        <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-red-500" />} title={generatedPlan.kpis.title}>
+                            <ul className="list-disc list-inside space-y-1">
+                                {generatedPlan.kpis.indicators.map((kpi, index) => <li key={index}>{kpi}</li>)}
+                            </ul>
+                        </PlanSection>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
     <div>
         <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center">
-            <span className="text-xl mr-3">{icon}</span>
+            <span className="mr-3">{icon}</span>
             {title}
         </h3>
         <div className="pl-9 text-slate-600 text-sm space-y-2">
@@ -263,139 +290,3 @@ const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: st
         </div>
     </div>
 );
-
-
-export const PlanoAcaoView: React.FC = () => {
-    const { maturityLevel, topRisks, mostAffectedSectors } = useMemo(() => calculateCompanyData(), []);
-    const currentPlan = actionPlans[maturityLevel.level as keyof typeof actionPlans];
-
-    const handleExportXls = () => {
-        if (!currentPlan) return;
-        
-        const createKeyValueTable = (title: string, obj: Record<string, any>) => {
-            let table = `<h2>${title}</h2><table><tbody>`;
-            for (const key in obj) {
-                table += `<tr><td><strong>${key}</strong></td><td>${obj[key]}</td></tr>`;
-            }
-            table += '</tbody></table>';
-            return table;
-        };
-
-        const createArrayTable = (title: string, headers: string[], rows: (string|number)[][]) => {
-            let table = `<h2>${title}</h2><table><thead><tr>`;
-            headers.forEach(h => table += `<th>${h}</th>`);
-            table += '</tr></thead><tbody>';
-            rows.forEach(row => {
-                table += '<tr>';
-                row.forEach(cell => table += `<td>${cell}</td>`);
-                table += '</tr>';
-            });
-            table += '</tbody></table>';
-            return table;
-        };
-        
-        let html = `<h1>Plano de Ação Direcionado - Progredire+</h1>`;
-
-        const summaryData = {
-            'Nível de Maturidade Geral': currentPlan.level,
-            'Dimensões Mais Críticas': topRisks.map(r => r.name).join(', '),
-            'Setores Mais Afetados': mostAffectedSectors.map(s => `${s.sector} (IRP: ${s.score.toFixed(1)})`).join(', ')
-        };
-        html += createKeyValueTable('Resumo do Diagnóstico', summaryData);
-
-        const planHeaders = ['Seção do Plano', 'Detalhes'];
-        const planRows = [
-            ['Diagnóstico', currentPlan.diagnosis],
-            ['Objetivo Estratégico', currentPlan.strategicObjective],
-            ['Foco de Atuação', currentPlan.focus],
-            ['Ações Sugeridas', `<ul>${currentPlan.suggestedActions.map(a => `<li>${a}</li>`).join('')}</ul>`],
-            ['Indicadores de Resultado', `<ul>${currentPlan.resultIndicators.map(i => `<li>${i}</li>`).join('')}</ul>`]
-        ];
-        html += createArrayTable('Plano de Ação Detalhado', planHeaders, planRows as (string|number)[][]);
-        
-        exportToExcel(html, 'Plano_de_Acao_Progredire');
-    };
-
-    if (!currentPlan) {
-        return (
-            <div className="text-center p-8 bg-white rounded-lg shadow">
-                <h2 className="text-2xl font-bold text-slate-800">Plano de Ação</h2>
-                <p className="text-slate-500 mt-2">Não foi possível determinar um plano de ação. Verifique se há dados suficientes.</p>
-            </div>
-        );
-    }
-
-    return (
-        <>
-            <div className="space-y-6">
-                 <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Plano de Ação Direcionado (Etapa 6)</h1>
-                        <p className="text-slate-600 mt-1 max-w-3xl">
-                            Com base nos resultados do diagnóstico, este plano de ação é recomendado para guiar a evolução da maturidade psicossocial da empresa.
-                        </p>
-                    </div>
-                    <button
-                        onClick={handleExportXls}
-                        className="no-print ml-4 flex-shrink-0 flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                        <ArrowDownTrayIcon className="w-5 h-5" />
-                        Exportar Plano (XLS)
-                    </button>
-                </div>
-
-                {/* Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
-                    <InfoCard title="Nível de Maturidade Geral">
-                        <p className="text-xl font-bold text-blue-600">{currentPlan.level}</p>
-                    </InfoCard>
-                    <InfoCard title="Dimensões Mais Críticas">
-                        <ul className="list-disc list-inside text-sm text-slate-700">
-                            {topRisks.map(risk => <li key={risk.id}>{risk.name}</li>)}
-                        </ul>
-                    </InfoCard>
-                    <InfoCard title="Setores Mais Afetados">
-                        <ul className="list-disc list-inside text-sm text-slate-700">
-                            {mostAffectedSectors.map(s => <li key={s.sector}>{s.sector} (IRP: {s.score.toFixed(1)})</li>)}
-                        </ul>
-                    </InfoCard>
-                </div>
-                
-                {/* Action Plan Details */}
-                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-6 printable-area">
-                    <h2 className="text-2xl font-bold text-slate-900 text-center mb-6">Plano de Ação para Nível: {currentPlan.level}</h2>
-                    
-                    <PlanSection title="Diagnóstico" icon="🩺">
-                        <p>{currentPlan.diagnosis}</p>
-                    </PlanSection>
-
-                    <PlanSection title="Objetivo Estratégico" icon="🎯">
-                        <p>{currentPlan.strategicObjective}</p>
-                    </PlanSection>
-
-                    <PlanSection title="Foco de Atuação" icon="🔍">
-                        <p>{currentPlan.focus}</p>
-                    </PlanSection>
-
-                    <PlanSection title="Ações Sugeridas" icon="💡">
-                        <ul className="list-disc list-inside space-y-2">
-                            {currentPlan.suggestedActions.map((action, index) => <li key={index}>{action}</li>)}
-                        </ul>
-                    </PlanSection>
-
-                    <PlanSection title="Indicadores de Resultado" icon="📈">
-                        <ul className="list-disc list-inside space-y-2">
-                            {currentPlan.resultIndicators.map((indicator, index) => <li key={index}>{indicator}</li>)}
-                        </ul>
-                    </PlanSection>
-                </div>
-
-                <footer className="text-center mt-8 no-print">
-                    <p className="text-sm text-slate-500">
-                        Progredire+ | Ferramenta de análise psicológica organizacional.
-                    </p>
-                </footer>
-            </div>
-        </>
-    );
-};
