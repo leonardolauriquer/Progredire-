@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 
 // --- Gauge Chart ---
@@ -210,70 +209,119 @@ export const DistributionChart: React.FC<{ data: DistributionData[] }> = ({ data
     );
 };
 
-// --- Line Chart ---
-interface LineChartData {
+// --- Line Chart (Multi & Single Line compatible) ---
+type SingleLineChartData = { labels: string[]; data: number[] };
+type MultiLineChartData = {
     labels: string[];
-    data: number[];
-}
+    datasets: {
+        label: string;
+        data: (number | null)[];
+        color: string;
+    }[];
+};
+type LineChartProps = { chartData: SingleLineChartData | MultiLineChartData };
 
-export const LineChart: React.FC<{ chartData: LineChartData }> = ({ chartData }) => {
+const createPathWithGaps = (
+    data: (number | null)[],
+    xPoint: (i: number) => number,
+    yPoint: (value: number) => number
+): string => {
+    let path = '';
+    let currentSegment = '';
+    data.forEach((d, i) => {
+        if (d !== null) {
+            if (currentSegment === '') {
+                currentSegment += `M ${xPoint(i)} ${yPoint(d)}`;
+            } else {
+                currentSegment += ` L ${xPoint(i)} ${yPoint(d)}`;
+            }
+        } else {
+            if (currentSegment !== '') {
+                path += currentSegment;
+                currentSegment = '';
+            }
+        }
+    });
+    if (currentSegment !== '') path += currentSegment;
+    return path;
+};
+
+export const LineChart: React.FC<LineChartProps> = ({ chartData }) => {
     const width = 600;
     const height = 300;
     const padding = 40;
+    
+    const isMulti = 'datasets' in chartData;
+    const datasets = isMulti ? chartData.datasets : [{ label: '', data: chartData.data, color: '#3b82f6' }];
+    const labels = chartData.labels;
 
-    if (!chartData || chartData.data.length < 2) {
+    if (!labels || labels.length < 2 || datasets.every(ds => ds.data.filter(d => d !== null).length < 2)) {
         return <div className="text-center text-slate-500 h-[300px] flex items-center justify-center">Dados insuficientes para exibir a evolução.</div>;
     }
-
-    const data = chartData.data;
-    const labels = chartData.labels;
 
     const yMax = 100;
     const yMin = 0;
     
-    const xPoint = (i: number) => padding + (i / (data.length - 1)) * (width - 2 * padding);
+    const xPoint = (i: number) => padding + (i / (labels.length - 1)) * (width - 2 * padding);
     const yPoint = (value: number) => height - padding - ((value - yMin) / (yMax - yMin)) * (height - 2 * padding);
     
-    const path = data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xPoint(i)} ${yPoint(d)}`).join(' ');
-
     return (
-        <div className="w-full overflow-x-auto">
-            <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[600px]">
-                {/* Y-axis lines and labels */}
-                {[0, 25, 50, 75, 100].map(val => (
-                    <g key={val}>
-                        <line
-                            x1={padding}
-                            y1={yPoint(val)}
-                            x2={width - padding}
-                            y2={yPoint(val)}
-                            stroke="#e2e8f0"
-                            strokeDasharray="2,4"
-                        />
-                        <text x={padding - 10} y={yPoint(val) + 5} textAnchor="end" fontSize="10" fill="#64748b">
-                            {val}
+        <div className="w-full">
+            <div className="overflow-x-auto">
+                <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[600px]">
+                    {/* Y-axis lines and labels */}
+                    {[0, 25, 50, 75, 100].map(val => (
+                        <g key={val}>
+                            <line
+                                x1={padding}
+                                y1={yPoint(val)}
+                                x2={width - padding}
+                                y2={yPoint(val)}
+                                stroke="#e2e8f0"
+                                strokeDasharray="2,4"
+                            />
+                            <text x={padding - 10} y={yPoint(val) + 5} textAnchor="end" fontSize="10" fill="#64748b">
+                                {val}
+                            </text>
+                        </g>
+                    ))}
+
+                    {/* X-axis labels */}
+                    {labels.map((label, i) => (
+                        <text key={i} x={xPoint(i)} y={height - padding + 20} textAnchor="middle" fontSize="10" fill="#64748b">
+                            {label}
                         </text>
-                    </g>
-                ))}
+                    ))}
 
-                {/* X-axis labels */}
-                {labels.map((label, i) => (
-                    <text key={i} x={xPoint(i)} y={height - padding + 20} textAnchor="middle" fontSize="10" fill="#64748b">
-                        {label}
-                    </text>
-                ))}
-
-                {/* Line */}
-                <path d={path} fill="none" stroke="#3b82f6" strokeWidth="2" />
-                
-                {/* Points */}
-                {data.map((d, i) => (
-                    <circle key={i} cx={xPoint(i)} cy={yPoint(d)} r="4" fill="#3b82f6" />
-                ))}
-            </svg>
+                    {/* Data Lines and Points */}
+                    {datasets.map((dataset) => {
+                        const path = createPathWithGaps(dataset.data, xPoint, yPoint);
+                        return (
+                            <g key={dataset.label}>
+                                <path d={path} fill="none" stroke={dataset.color} strokeWidth="2" />
+                                {dataset.data.map((d, i) => (
+                                    d !== null && <circle key={i} cx={xPoint(i)} cy={yPoint(d)} r="4" fill={dataset.color} />
+                                ))}
+                            </g>
+                        );
+                    })}
+                </svg>
+            </div>
+            
+            {isMulti && datasets.length > 0 && (
+                <div className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 mt-4 text-sm">
+                    {datasets.map(ds => (
+                        <div key={ds.label} className="flex items-center">
+                            <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: ds.color }}></span>
+                            <span className="text-slate-600">{ds.label}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
+
 
 // --- Sparkline Chart ---
 export const Sparkline: React.FC<{ data: number[]; color: string }> = ({ data, color }) => {

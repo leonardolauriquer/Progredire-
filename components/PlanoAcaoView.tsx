@@ -1,6 +1,8 @@
 
+
 import React, { useMemo } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
+import { PrinterIcon } from './icons';
 
 // --- Types & Data ---
 
@@ -227,6 +229,10 @@ export const PlanoAcaoView: React.FC = () => {
     const { maturityLevel, topRisks, mostAffectedSectors } = useMemo(() => calculateCompanyData(), []);
     const currentPlan = actionPlans[maturityLevel.level as keyof typeof actionPlans];
 
+    const handlePrintPlan = () => {
+        window.print();
+    };
+
     if (!currentPlan) {
         return (
             <div className="text-center p-8 bg-white rounded-lg shadow">
@@ -237,63 +243,96 @@ export const PlanoAcaoView: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-slate-900">Plano de Ação Direcionado (Etapa 6)</h1>
-            <p className="text-slate-600">
-                Com base nos resultados do diagnóstico, este plano de ação é recomendado para guiar a evolução da maturidade psicossocial da empresa.
-            </p>
+        <>
+            <style>{`
+                @media print {
+                    body > #root > aside,
+                    body > #root > .md\\:pl-64 > header,
+                    body > #root > nav,
+                    .no-print {
+                        display: none !important;
+                    }
+                    body > #root > .md\\:pl-64 {
+                        padding-left: 0 !important;
+                    }
+                    main {
+                        padding: 1rem !important;
+                    }
+                    .printable-area {
+                        box-shadow: none !important;
+                        border: none !important;
+                    }
+                }
+            `}</style>
+            <div className="space-y-6">
+                 <div className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900">Plano de Ação Direcionado (Etapa 6)</h1>
+                        <p className="text-slate-600 mt-1 max-w-3xl">
+                            Com base nos resultados do diagnóstico, este plano de ação é recomendado para guiar a evolução da maturidade psicossocial da empresa.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handlePrintPlan}
+                        className="no-print ml-4 flex-shrink-0 flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <PrinterIcon className="w-5 h-5" />
+                        Imprimir Plano
+                    </button>
+                </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <InfoCard title="Nível de Maturidade Geral">
-                    <p className="text-xl font-bold text-blue-600">{currentPlan.level}</p>
-                </InfoCard>
-                <InfoCard title="Dimensões Mais Críticas">
-                    <ul className="list-disc list-inside text-sm text-slate-700">
-                        {topRisks.map(risk => <li key={risk.id}>{risk.name}</li>)}
-                    </ul>
-                </InfoCard>
-                 <InfoCard title="Setores Mais Afetados">
-                    <ul className="list-disc list-inside text-sm text-slate-700">
-                        {mostAffectedSectors.map(s => <li key={s.sector}>{s.sector} (IRP: {s.score.toFixed(1)})</li>)}
-                    </ul>
-                </InfoCard>
-            </div>
-            
-            {/* Action Plan Details */}
-            <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-6">
-                <h2 className="text-2xl font-bold text-slate-900 text-center mb-6">Plano de Ação para Nível: {currentPlan.level}</h2>
+                {/* Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+                    <InfoCard title="Nível de Maturidade Geral">
+                        <p className="text-xl font-bold text-blue-600">{currentPlan.level}</p>
+                    </InfoCard>
+                    <InfoCard title="Dimensões Mais Críticas">
+                        <ul className="list-disc list-inside text-sm text-slate-700">
+                            {topRisks.map(risk => <li key={risk.id}>{risk.name}</li>)}
+                        </ul>
+                    </InfoCard>
+                    <InfoCard title="Setores Mais Afetados">
+                        <ul className="list-disc list-inside text-sm text-slate-700">
+                            {mostAffectedSectors.map(s => <li key={s.sector}>{s.sector} (IRP: {s.score.toFixed(1)})</li>)}
+                        </ul>
+                    </InfoCard>
+                </div>
                 
-                <PlanSection title="Diagnóstico" icon="🩺">
-                    <p>{currentPlan.diagnosis}</p>
-                </PlanSection>
+                {/* Action Plan Details */}
+                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-6 printable-area">
+                    <h2 className="text-2xl font-bold text-slate-900 text-center mb-6">Plano de Ação para Nível: {currentPlan.level}</h2>
+                    
+                    <PlanSection title="Diagnóstico" icon="🩺">
+                        <p>{currentPlan.diagnosis}</p>
+                    </PlanSection>
 
-                <PlanSection title="Objetivo Estratégico" icon="🎯">
-                    <p>{currentPlan.strategicObjective}</p>
-                </PlanSection>
+                    <PlanSection title="Objetivo Estratégico" icon="🎯">
+                        <p>{currentPlan.strategicObjective}</p>
+                    </PlanSection>
 
-                <PlanSection title="Foco de Atuação" icon="🔍">
-                    <p>{currentPlan.focus}</p>
-                </PlanSection>
+                    <PlanSection title="Foco de Atuação" icon="🔍">
+                        <p>{currentPlan.focus}</p>
+                    </PlanSection>
 
-                <PlanSection title="Ações Sugeridas" icon="💡">
-                    <ul className="list-disc list-inside space-y-2">
-                        {currentPlan.suggestedActions.map((action, index) => <li key={index}>{action}</li>)}
-                    </ul>
-                </PlanSection>
+                    <PlanSection title="Ações Sugeridas" icon="💡">
+                        <ul className="list-disc list-inside space-y-2">
+                            {currentPlan.suggestedActions.map((action, index) => <li key={index}>{action}</li>)}
+                        </ul>
+                    </PlanSection>
 
-                <PlanSection title="Indicadores de Resultado" icon="📈">
-                    <ul className="list-disc list-inside space-y-2">
-                        {currentPlan.resultIndicators.map((indicator, index) => <li key={index}>{indicator}</li>)}
-                    </ul>
-                </PlanSection>
+                    <PlanSection title="Indicadores de Resultado" icon="📈">
+                        <ul className="list-disc list-inside space-y-2">
+                            {currentPlan.resultIndicators.map((indicator, index) => <li key={index}>{indicator}</li>)}
+                        </ul>
+                    </PlanSection>
+                </div>
+
+                <footer className="text-center mt-8 no-print">
+                    <p className="text-sm text-slate-500">
+                        Progredire+ | Ferramenta de análise psicológica organizacional.
+                    </p>
+                </footer>
             </div>
-
-            <footer className="text-center mt-8">
-                <p className="text-sm text-slate-500">
-                    Progredire+ | Ferramenta de análise psicológica organizacional.
-                </p>
-            </footer>
-        </div>
+        </>
     );
 };

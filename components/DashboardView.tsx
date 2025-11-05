@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { runDashboardAnalysis, runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon } from './icons';
+import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon } from './icons';
 import { mockResponses, mockFilters, dimensions } from './dashboardMockData';
 import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart } from './Charts';
 
@@ -328,11 +328,82 @@ export const DashboardView: React.FC = () => {
             setIsLoading(false);
         }
     }, [data, filters]);
+    
+    const handleExportCsv = useCallback(() => {
+        if (!data.riskFactors || data.riskFactors.length === 0) return;
+
+        const headers = ['"Fator de Risco"', '"Pontuação (Seleção Atual)"', '"Pontuação (Média Empresa)"'];
+        const rows = data.riskFactors.map(factor => {
+            const companyFactor = data.companyAverageFactors.find(f => f.id === factor.id);
+            return [
+                `"${factor.name.replace(/"/g, '""')}"`, // Escape quotes
+                factor.score,
+                companyFactor ? companyFactor.score : 'N/A'
+            ].join(',');
+        });
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'dashboard_insights.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [data]);
+
+    const handlePrintReport = () => {
+        const reportContent = document.getElementById('ai-report-content')?.innerHTML;
+        if (!reportContent) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert('Por favor, permita pop-ups para imprimir o relatório.');
+            return;
+        }
+        
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Relatório Estratégico - Progredire+</title>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <style>
+                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+                        body { font-family: 'Inter', sans-serif; padding: 2rem; }
+                    </style>
+                </head>
+                <body>
+                    <h1 class="text-2xl font-bold text-slate-800 mb-4">Relatório Estratégico</h1>
+                    <div class="space-y-4">${reportContent}</div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500); // Wait for styles to load
+    };
+
 
     return (
     <>
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold text-slate-900">Dashboard Executivo</h1>
+            <div className="flex justify-between items-start">
+                <h1 className="text-3xl font-bold text-slate-900">Dashboard Executivo</h1>
+                <button
+                    onClick={handleExportCsv}
+                    disabled={!data || data.riskFactors.length === 0}
+                    className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Exportar CSV
+                </button>
+            </div>
+
 
             {/* Filters */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -414,34 +485,45 @@ export const DashboardView: React.FC = () => {
             </DashboardSection>
             
             <DashboardSection title="Insights Estratégicos com IA">
-                 <button onClick={handleGenerateInsight} disabled={isLoading || data.participationRate === 0} className="w-full mb-4 flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">
-                        {isLoading ? <><LoadingSpinner /> Gerando Relatório...</> : <><SparklesIcon className="w-5 h-5" /> Gerar Relatório Estratégico</>}
-                    </button>
-                    {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
-                    {aiInsight ? (
-                        <div className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
-                           <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                                <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary.title}</h3>
-                                <p className="text-sm text-slate-600">{aiInsight.summary.content}</p>
-                            </div>
-                            <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                                <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths.title}</h3>
-                                <ul className="space-y-2 text-sm">{aiInsight.strengths.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
-                            </div>
-                            <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                                <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints.title}</h3>
-                                <ul className="space-y-2 text-sm">{aiInsight.attentionPoints.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
-                            </div>
-                            <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                                <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations.title}</h3>
-                                <div className="space-y-3 text-sm">{aiInsight.recommendations.points.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-slate-600 mt-1">{p.actions.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
-                            </div>
-                            <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                                <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps.title}</h3>
-                                <p className="text-sm text-slate-600">{aiInsight.nextSteps.content}</p>
-                            </div>
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                     <button onClick={handleGenerateInsight} disabled={isLoading || data.participationRate === 0} className="flex-grow flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">
+                            {isLoading ? <><LoadingSpinner /> Gerando Relatório...</> : <><SparklesIcon className="w-5 h-5" /> Gerar Relatório Estratégico</>}
+                        </button>
+                    {aiInsight && (
+                        <button
+                            onClick={handlePrintReport}
+                            className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2.5 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                            <PrinterIcon className="w-5 h-5" />
+                            Imprimir Relatório
+                        </button>
+                    )}
+                </div>
+                {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
+                {aiInsight ? (
+                    <div id="ai-report-content" className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
+                       <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary.title}</h3>
+                            <p className="text-sm text-slate-600">{aiInsight.summary.content}</p>
                         </div>
-                    ) : (data.participationRate > 0 && <p className="text-center text-sm text-slate-500">Clique no botão acima para gerar uma análise estratégica completa dos dados atuais.</p>)}
+                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths.title}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.strengths.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                        </div>
+                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints.title}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.attentionPoints.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                        </div>
+                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations.title}</h3>
+                            <div className="space-y-3 text-sm">{aiInsight.recommendations.points.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-slate-600 mt-1">{p.actions.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
+                        </div>
+                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps.title}</h3>
+                            <p className="text-sm text-slate-600">{aiInsight.nextSteps.content}</p>
+                        </div>
+                    </div>
+                ) : (data.participationRate > 0 && <p className="text-center text-sm text-slate-500">Clique no botão acima para gerar uma análise estratégica completa dos dados atuais.</p>)}
             </DashboardSection>
 
         </div>
