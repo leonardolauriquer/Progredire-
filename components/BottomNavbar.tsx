@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { HomeIcon, ChartBarIcon, PencilSquareIcon, BrainIcon, ArrowTrendingUpIcon } from './icons';
 import { ActiveView } from '../App';
@@ -7,13 +8,14 @@ interface BottomNavbarProps {
     activeView: ActiveView;
     // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
     setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+    onNavigateToDashboard: (filters?: Record<string, string>) => void;
 }
 
 const navigation = [
     { name: 'Início', view: 'home', icon: HomeIcon },
     { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-    { name: 'Diagnóstico', view: 'corporate_survey', icon: PencilSquareIcon },
+    { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
     { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
 ];
 
@@ -33,7 +35,7 @@ const NavItem: React.FC<{
     </button>
 );
 
-export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView }) => {
+export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
     return (
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-t-lg z-30">
             <div className="flex justify-around">
@@ -42,7 +44,13 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiv
                         key={item.view}
                         item={item as any}
                         isActive={activeView === item.view}
-                        onClick={() => setActiveView(item.view as ActiveView)}
+                        onClick={() => {
+                            if (item.view === 'dashboard') {
+                                onNavigateToDashboard();
+                            } else {
+                                setActiveView(item.view as ActiveView)
+                            }
+                        }}
                     />
                 ))}
             </div>

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runDashboardAnalysis, runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -343,8 +344,8 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
 };
 
 // --- Main Component ---
-export const DashboardView: React.FC = () => {
-    const [filters, setFilters] = useState<Record<string, string>>({});
+export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }> = ({ initialFilters }) => {
+    const [filters, setFilters] = useState<Record<string, string>>(initialFilters || {});
     const [aiInsight, setAiInsight] = useState<AiInsightData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

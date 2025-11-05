@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runCorporateSurveyAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -199,9 +200,9 @@ export const CorporateSurveyView: React.FC = () => {
         <>
             <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 space-y-8">
                 <div className="text-center">
-                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Análise de Riscos Psicossociais</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Questionário Psicossocial</h2>
                     <p className="text-slate-500 mt-2">
-                        Preencha os dados e responda ao questionário. Suas respostas são confidenciais.
+                        Responda ao questionário de forma confidencial. Suas percepções são fundamentais para construirmos um ambiente de trabalho melhor.
                     </p>
                 </div>
 

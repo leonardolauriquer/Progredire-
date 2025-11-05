@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon } from './icons';
 // FIX: Import ActiveView from App to ensure type consistency across components.
 import { ActiveView } from '../App';
 
@@ -11,13 +11,15 @@ interface SidebarProps {
   activeView: ActiveView;
   // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
   setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+  onNavigateToDashboard: (filters?: Record<string, string>) => void;
 }
 
 const navigation = [
   { name: 'Início', view: 'home', icon: HomeIcon },
   { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-  { name: 'Diagnóstico Corp.', view: 'corporate_survey', icon: PencilSquareIcon },
+  { name: 'Questionário Psicossocial', view: 'corporate_survey', icon: PencilSquareIcon },
+  { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
   { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
   { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
@@ -45,7 +47,7 @@ const NavItem: React.FC<{
   </li>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
   const handleNavClick = (view: ActiveView) => {
     setActiveView(view);
   };
@@ -72,7 +74,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) =
                     key={item.name}
                     item={item as any}
                     isActive={activeView === item.view}
-                    onClick={() => handleNavClick(item.view as ActiveView)}
+                    onClick={() => {
+                        if (item.view === 'dashboard') {
+                            onNavigateToDashboard();
+                        } else {
+                            handleNavClick(item.view as ActiveView)
+                        }
+                    }}
                 />
                 ))}
             </ul>

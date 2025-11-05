@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ChevronDownIcon } from './icons';
 
@@ -12,11 +13,11 @@ const faqData = [
     },
     {
         question: "Meus dados estão seguros e confidenciais?",
-        answer: "Sim. A confidencialidade é nossa prioridade. Na 'Análise Psico-Social', as informações que você insere não são armazenadas. No 'Diagnóstico Corporativo', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
+        answer: "Sim. A confidencialidade é nossa prioridade. Na 'Análise Psico-Social', as informações que você insere não são armazenadas. No 'Questionário Psicossocial', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
     },
     {
-        question: "Quem deve usar o Diagnóstico Corporativo?",
-        answer: "O 'Diagnóstico Corporativo' foi desenhado para equipes de RH, lideranças e consultores organizacionais. Ele permite a aplicação de um questionário padronizado sobre riscos psicossociais e, em seguida, a visualização dos dados agregados no 'Dashboard', ajudando a identificar pontos de atenção e a planejar ações estratégicas para melhorar o bem-estar no ambiente de trabalho."
+        question: "Quem deve usar o Questionário Psicossocial?",
+        answer: "O 'Questionário Psicossocial' foi desenhado para equipes de RH, lideranças e consultores organizacionais. Ele permite a aplicação de um questionário padronizado sobre riscos psicossociais e, em seguida, a visualização dos dados agregados no 'Dashboard', ajudando a identificar pontos de atenção e a planejar ações estratégicas para melhorar o bem-estar no ambiente de trabalho."
     },
     {
         question: "Como funciona a nova tela de Evolução Organizacional?",

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -8,6 +9,7 @@ import { ActiveView } from '../App';
 interface HomeViewProps {
   // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
   setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+  onNavigateToDashboard: (filters?: Record<string, string>) => void;
 }
 
 const ActionCard: React.FC<{
@@ -33,7 +35,7 @@ const ActionCard: React.FC<{
   </button>
 );
 
-export const HomeView: React.FC<HomeViewProps> = ({ setActiveView }) => {
+export const HomeView: React.FC<HomeViewProps> = ({ setActiveView, onNavigateToDashboard }) => {
     const [insight, setInsight] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ setActiveView }) => {
       
         {/* Header */}
         <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900">
+            <h1 className="text-4xl md:text-5xl font-extold text-slate-900">
                 Bem-vindo ao <span className="text-blue-600">Progredire+</span>
             </h1>
             <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
@@ -109,15 +111,15 @@ export const HomeView: React.FC<HomeViewProps> = ({ setActiveView }) => {
             />
             <ActionCard
                 icon={PencilSquareIcon}
-                title="Diagnóstico Corporativo"
-                description="Preencha o questionário de riscos e receba uma análise preliminar para entender o cenário da sua equipe."
+                title="Questionário Psicossocial"
+                description="Aplique um questionário validado aos colaboradores para coletar dados valiosos sobre o ambiente de trabalho de forma confidencial."
                 onClick={() => setActiveView('corporate_survey')}
             />
             <ActionCard
                 icon={ChartBarIcon}
                 title="Dashboard Organizacional"
                 description="Explore dados agregados e gere relatórios estratégicos com IA para aprimorar o ambiente de trabalho."
-                onClick={() => setActiveView('dashboard')}
+                onClick={() => onNavigateToDashboard()}
             />
         </div>
         
