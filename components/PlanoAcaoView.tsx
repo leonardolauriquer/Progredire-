@@ -3,21 +3,26 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
 import { runActionPlanGeneration } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon } from './icons';
+import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon, ArchiveBoxIcon, PlusCircleIcon, PencilIcon, TrashIcon } from './icons';
+import { ActiveView } from '../App';
 
 // --- Types & Data ---
 
 type RiskFactor = { id: string; name: string; score: number };
 type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
+type ActionItem = { id: number; title: string; description: string };
 interface GeneratedPlan {
     diagnosis: { title: string; content: string };
     strategicObjective: { title: string; content: string };
     suggestedActions: { title: string; actions: { actionTitle: string; actionDescription: string }[] };
     kpis: { title: string; indicators: string[] };
 }
+interface PlanoAcaoViewProps {
+  setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+}
 
-const likertToScore: Record<string, number> = {
-  'Discordo totalmente': 1, 'Discordo parcialmente': 2, 'Neutro / Indiferente': 3, 'Concordo parcialmente': 4, 'Concordo totalmente': 5,
+const likertToScore: Record<string, string> = {
+  'Discordo totalmente': '1', 'Discordo parcialmente': '2', 'Neutro / Indiferente': '3', 'Concordo parcialmente': '4', 'Concordo totalmente': '5',
 };
 const allDimensionIds = Object.keys(dimensions);
 
@@ -36,7 +41,7 @@ const calculateDataForResponses = (responses: typeof mockResponses) => {
             dimQuestions.forEach(qId => {
                 const answer = r.answers[qId];
                 if (answer) {
-                    totalScoreForDim += likertToScore[answer] || 0;
+                    totalScoreForDim += parseInt(likertToScore[answer]) || 0;
                     questionCountForDim++;
                 }
             });
@@ -86,13 +91,15 @@ const exportToExcel = (htmlContent: string, filename: string) => {
 };
 
 // --- Main Component ---
-export const PlanoAcaoView: React.FC = () => {
+export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) => {
     const [filters, setFilters] = useState<Record<string, string>>({});
     const [selectedFactorId, setSelectedFactorId] = useState<string>('');
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
+    const [currentActions, setCurrentActions] = useState<ActionItem[]>([]);
     const [actionStatuses, setActionStatuses] = useState<Record<number, ActionStatus>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [editingAction, setEditingAction] = useState<ActionItem | null>(null);
 
     const criticalFactors = useMemo(() => {
         const filteredResponses = mockResponses.filter(r => 
@@ -104,17 +111,17 @@ export const PlanoAcaoView: React.FC = () => {
     }, [filters]);
 
     const progress = useMemo(() => {
-        if (!generatedPlan) return 0;
-        const totalActions = generatedPlan.suggestedActions.actions.length;
-        if (totalActions === 0) return 100;
+        const totalActions = currentActions.length;
+        if (totalActions === 0) return 0;
         const completedActions = Object.values(actionStatuses).filter(s => s === 'Concluído').length;
         return (completedActions / totalActions) * 100;
-    }, [actionStatuses, generatedPlan]);
+    }, [actionStatuses, currentActions]);
 
     const handleFilterChange = (id: string, value: string) => {
         setFilters(prev => ({ ...prev, [id]: value }));
         setSelectedFactorId('');
         setGeneratedPlan(null);
+        setCurrentActions([]);
     };
 
     const handleGeneratePlan = useCallback(async () => {
@@ -133,9 +140,15 @@ export const PlanoAcaoView: React.FC = () => {
             const resultString = await runActionPlanGeneration(factorName, segmentDescription);
             const plan: GeneratedPlan = JSON.parse(resultString);
             setGeneratedPlan(plan);
+            const initialActions: ActionItem[] = plan.suggestedActions.actions.map((a, i) => ({
+                id: Date.now() + i,
+                title: a.actionTitle,
+                description: a.actionDescription,
+            }));
+            setCurrentActions(initialActions);
             const initialStatuses: Record<number, ActionStatus> = {};
-            plan.suggestedActions.actions.forEach((_, index) => {
-                initialStatuses[index] = 'A Fazer';
+            initialActions.forEach(action => {
+                initialStatuses[action.id] = 'A Fazer';
             });
             setActionStatuses(initialStatuses);
         } catch (err) {
@@ -144,11 +157,64 @@ export const PlanoAcaoView: React.FC = () => {
             setIsLoading(false);
         }
     }, [selectedFactorId, filters]);
-
-    const handleStatusChange = (index: number, status: ActionStatus) => {
-        setActionStatuses(prev => ({ ...prev, [index]: status }));
+    
+    const handleAddOrUpdateAction = (action: {title: string, description: string}) => {
+        if (editingAction) { // Update
+            setCurrentActions(prev => prev.map(a => a.id === editingAction.id ? {...a, ...action} : a));
+        } else { // Add
+            const newAction: ActionItem = { id: Date.now(), ...action };
+            setCurrentActions(prev => [...prev, newAction]);
+            setActionStatuses(prev => ({...prev, [newAction.id]: 'A Fazer'}));
+        }
+        setEditingAction(null);
     };
 
+    const handleDeleteAction = (id: number) => {
+        if (window.confirm('Tem certeza que deseja excluir esta ação?')) {
+            setCurrentActions(prev => prev.filter(a => a.id !== id));
+            setActionStatuses(prev => {
+                const newStatuses = {...prev};
+                delete newStatuses[id];
+                return newStatuses;
+            });
+        }
+    };
+    
+    const handleStatusChange = (id: number, status: ActionStatus) => {
+        setActionStatuses(prev => ({ ...prev, [id]: status }));
+    };
+
+    const handleArchivePlan = () => {
+        if (!generatedPlan || !window.confirm('Deseja finalizar e arquivar este plano? Você não poderá mais editá-lo.')) return;
+        
+        const history = JSON.parse(localStorage.getItem('progredire-action-plan-history') || '[]');
+        const archivedPlan = {
+            id: Date.now(),
+            date: new Date().toISOString(),
+            factor: dimensions[selectedFactorId]?.name,
+            segment: Object.values(filters).filter(Boolean).join(', ') || 'Toda a empresa',
+            progress: progress,
+            plan: {
+                ...generatedPlan,
+                suggestedActions: { // Save the current state of actions
+                    ...generatedPlan.suggestedActions,
+                    actions: currentActions.map(a => ({ actionTitle: a.title, actionDescription: a.description }))
+                }
+            },
+            statuses: actionStatuses,
+        };
+        history.push(archivedPlan);
+        localStorage.setItem('progredire-action-plan-history', JSON.stringify(history));
+
+        // Reset state
+        setGeneratedPlan(null);
+        setCurrentActions([]);
+        setActionStatuses({});
+        setSelectedFactorId('');
+        alert('Plano arquivado com sucesso!');
+        setActiveView('action_tracking');
+    };
+    
     const handleExportXls = () => {
         if (!generatedPlan) return;
         let html = `<h1>Plano de Ação - ${dimensions[selectedFactorId]?.name}</h1>`;
@@ -157,8 +223,8 @@ export const PlanoAcaoView: React.FC = () => {
         html += `<h2>${generatedPlan.strategicObjective.title}</h2><p>${generatedPlan.strategicObjective.content}</p>`;
 
         let actionsTable = `<h2>${generatedPlan.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Status</th></tr></thead><tbody>`;
-        generatedPlan.suggestedActions.actions.forEach((action, index) => {
-            actionsTable += `<tr><td>${action.actionTitle}</td><td>${action.actionDescription}</td><td>${actionStatuses[index] || 'A Fazer'}</td></tr>`;
+        currentActions.forEach(action => {
+            actionsTable += `<tr><td>${action.title}</td><td>${action.description}</td><td>${actionStatuses[action.id] || 'A Fazer'}</td></tr>`;
         });
         actionsTable += '</tbody></table>';
         html += actionsTable;
@@ -170,12 +236,16 @@ export const PlanoAcaoView: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900">Plano de Ação com IA</h1>
-                <p className="text-slate-600 mt-1 max-w-3xl">
-                    Filtre o público, selecione um fator de risco e gere um plano de ação customizado para impulsionar a melhoria.
-                </p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">Plano de Ação com IA</h1>
+                    <p className="text-slate-600 mt-1 max-w-3xl">
+                        Filtre o público, selecione um fator de risco e gere um plano de ação customizado para impulsionar a melhoria.
+                    </p>
+                </div>
+                 <button onClick={() => setActiveView('action_tracking')} className="text-sm font-medium text-blue-600 hover:underline">Acompanhar Ações</button>
             </div>
+
 
             {/* Step 1: Filters */}
             <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
@@ -194,7 +264,7 @@ export const PlanoAcaoView: React.FC = () => {
             </div>
 
             {/* Step 2: Select Critical Factor */}
-            {criticalFactors.length > 0 && (
+            {criticalFactors.length > 0 && !generatedPlan && (
                 <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
                     <h2 className="font-semibold text-slate-800 mb-3">Passo 2: Escolha o Fator Crítico para focar</h2>
                     <div className="flex flex-wrap gap-2">
@@ -212,27 +282,29 @@ export const PlanoAcaoView: React.FC = () => {
             )}
             
             {/* Step 3: Generate Plan */}
-            <div className="flex justify-center">
-                <button
-                    onClick={handleGeneratePlan}
-                    disabled={!selectedFactorId || isLoading}
-                    className="flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                    {isLoading ? <><LoadingSpinner /> Gerando Plano...</> : <><BrainIcon className="w-5 h-5" /> Gerar Plano de Ação com IA</>}
-                </button>
-            </div>
+            {!generatedPlan && (
+                <div className="flex justify-center">
+                    <button
+                        onClick={handleGeneratePlan}
+                        disabled={!selectedFactorId || isLoading}
+                        className="flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all duration-300"
+                    >
+                        {isLoading ? <><LoadingSpinner /> Gerando Plano...</> : <><BrainIcon className="w-5 h-5" /> Gerar Plano de Ação com IA</>}
+                    </button>
+                </div>
+            )}
 
             {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
             
             {/* Display Plan */}
             {generatedPlan && (
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-8">
-                    <div className="flex justify-between items-start">
+                     <div className="flex flex-wrap justify-between items-start gap-4">
                         <div>
                             <h2 className="text-2xl font-bold text-slate-900">Plano para: {dimensions[selectedFactorId]?.name}</h2>
-                            <p className="text-slate-500">Acompanhe o progresso e exporte o relatório.</p>
+                            <p className="text-slate-500">Acompanhe o progresso e adicione suas próprias ações.</p>
                         </div>
-                        <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50"><ArrowDownTrayIcon className="w-5 h-5" /> Exportar XLS</button>
+                         <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50"><ArrowDownTrayIcon className="w-5 h-5" /> Exportar XLS</button>
                     </div>
 
                     {/* Progress */}
@@ -240,7 +312,7 @@ export const PlanoAcaoView: React.FC = () => {
                         <h3 className="text-lg font-semibold text-slate-800 mb-2">Progresso do Plano</h3>
                         <div className="w-full bg-slate-200 rounded-full h-4">
                             <div className="bg-green-500 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}>
-                                {progress.toFixed(0)}%
+                                {progress > 10 ? `${progress.toFixed(0)}%` : ''}
                             </div>
                         </div>
                     </div>
@@ -250,28 +322,50 @@ export const PlanoAcaoView: React.FC = () => {
                         <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective.title}><p>{generatedPlan.strategicObjective.content}</p></PlanSection>
                         <PlanSection icon={<LightBulbIcon className="w-6 h-6 text-yellow-500" />} title={generatedPlan.suggestedActions.title}>
                             <div className="space-y-4">
-                                {generatedPlan.suggestedActions.actions.map((action, index) => (
-                                    <div key={index} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <p className="font-semibold text-slate-700">{action.actionTitle}</p>
-                                        <p className="text-sm text-slate-600 mt-1 mb-3">{action.actionDescription}</p>
+                                {currentActions.map(action => (
+                                    <div key={action.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-semibold text-slate-700">{action.title}</p>
+                                                <p className="text-sm text-slate-600 mt-1 mb-3">{action.description}</p>
+                                            </div>
+                                            <div className="flex gap-2 flex-shrink-0 ml-2">
+                                                <button onClick={() => setEditingAction(action)} className="text-slate-400 hover:text-blue-600"><PencilIcon className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteAction(action.id)} className="text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-4 text-xs">
                                             <span className="font-medium text-slate-500">Status:</span>
                                             {(['A Fazer', 'Em Andamento', 'Concluído'] as ActionStatus[]).map(status => (
                                                 <label key={status} className="flex items-center gap-1 cursor-pointer">
-                                                    <input type="radio" name={`status-${index}`} value={status} checked={actionStatuses[index] === status} onChange={() => handleStatusChange(index, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
+                                                    <input type="radio" name={`status-${action.id}`} value={status} checked={actionStatuses[action.id] === status} onChange={() => handleStatusChange(action.id, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
                                                     {status}
                                                 </label>
                                             ))}
                                         </div>
                                     </div>
                                 ))}
+                                {editingAction ? (
+                                    <ActionForm action={editingAction} onSave={handleAddOrUpdateAction} onCancel={() => setEditingAction(null)} />
+                                ) : (
+                                    <button onClick={() => setEditingAction({id: 0, title: '', description: ''})} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline">
+                                        <PlusCircleIcon className="w-5 h-5"/> Adicionar Nova Ação
+                                    </button>
+                                )}
                             </div>
                         </PlanSection>
-                        <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-red-500" />} title={generatedPlan.kpis.title}>
+                        <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-indigo-500" />} title={generatedPlan.kpis.title}>
                             <ul className="list-disc list-inside space-y-1">
                                 {generatedPlan.kpis.indicators.map((kpi, index) => <li key={index}>{kpi}</li>)}
                             </ul>
                         </PlanSection>
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-200 flex justify-end">
+                        <button onClick={handleArchivePlan} className="flex items-center gap-2 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-slate-800">
+                            <ArchiveBoxIcon className="w-5 h-5" />
+                            Finalizar e Arquivar Plano
+                        </button>
                     </div>
                 </div>
             )}
@@ -282,7 +376,7 @@ export const PlanoAcaoView: React.FC = () => {
 const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
     <div>
         <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center">
-            <span className="mr-3">{icon}</span>
+            <span className="mr-3 flex-shrink-0">{icon}</span>
             {title}
         </h3>
         <div className="pl-9 text-slate-600 text-sm space-y-2">
@@ -290,3 +384,53 @@ const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: Re
         </div>
     </div>
 );
+
+const ActionForm: React.FC<{
+    action: ActionItem | {title: string, description: string};
+    onSave: (action: {title: string, description: string}) => void;
+    onCancel: () => void;
+}> = ({ action, onSave, onCancel }) => {
+    const [title, setTitle] = useState(action.title);
+    const [description, setDescription] = useState(action.description);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (title.trim()) {
+            onSave({ title, description });
+            setTitle('');
+            setDescription('');
+        }
+    };
+    
+    return (
+        <form onSubmit={handleSubmit} className="bg-slate-100 p-4 rounded-lg border border-slate-300 space-y-3">
+            <h4 className="font-semibold text-slate-700">{'id' in action && action.id ? 'Editar Ação' : 'Adicionar Nova Ação'}</h4>
+            <div>
+                <label htmlFor="action-title" className="sr-only">Título</label>
+                <input
+                    id="action-title"
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Título da ação"
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                    required
+                />
+            </div>
+            <div>
+                <label htmlFor="action-desc" className="sr-only">Descrição</label>
+                <textarea
+                    id="action-desc"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Descrição da ação"
+                    className="w-full p-2 border border-slate-300 rounded-md h-20 resize-none"
+                />
+            </div>
+            <div className="flex gap-2 justify-end">
+                <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50">Cancelar</button>
+                <button type="submit" className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar Ação</button>
+            </div>
+        </form>
+    );
+};

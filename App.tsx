@@ -11,8 +11,9 @@ import { EvolutionView } from './components/EvolutionView';
 import { PlanoAcaoView } from './components/PlanoAcaoView';
 import { SettingsView } from './components/SettingsView';
 import { AnalysisView } from './components/AnalysisView';
+import { PlanoAcaoHistoryView } from './components/PlanoAcaoHistoryView';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('home');
@@ -32,7 +33,9 @@ const App: React.FC = () => {
       case 'history':
         return <EvolutionView />;
       case 'plano_acao':
-        return <PlanoAcaoView />;
+        return <PlanoAcaoView setActiveView={setActiveView} />;
+      case 'action_tracking':
+        return <PlanoAcaoHistoryView />;
       case 'settings':
         return <SettingsView />;
       default:
