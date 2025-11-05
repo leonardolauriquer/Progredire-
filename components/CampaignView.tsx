@@ -123,7 +123,6 @@ const CreateCampaignModal: React.FC<{
     
     const handleFilterChange = (id: string, value: string) => {
         const newFilters = { ...campaignData.filters, [id]: value };
-        // Remove filter if value is empty
         if (!value) delete newFilters[id];
         
         const targetAudience = Object.entries(newFilters)
@@ -149,7 +148,6 @@ const CreateCampaignModal: React.FC<{
         };
         onAddCampaign(newCampaign);
         onClose();
-        // Reset state for next time
         setCurrentStep(1);
         setCampaignData({ name: '', description: '', filters: {}, startDate: '', endDate: '', emailMessage: defaultEmailMessage });
     };
@@ -158,79 +156,78 @@ const CreateCampaignModal: React.FC<{
 
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                <div className="flex justify-between items-center p-4 border-b border-slate-200">
-                    <h2 className="text-xl font-bold text-slate-800">Criar Nova Campanha</h2>
-                    <button onClick={onClose} className="text-slate-500 hover:text-slate-800"><XIcon className="w-6 h-6" /></button>
+            <div className="bg-[--color-card] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center p-4 border-b border-[--color-border]">
+                    <h2 className="text-xl font-bold text-[--color-card-foreground]">Criar Nova Campanha</h2>
+                    <button onClick={onClose} className="text-[--color-card-muted-foreground] hover:text-[--color-card-foreground]"><XIcon className="w-6 h-6" /></button>
                 </div>
                 
-                {/* Wizard Steps */}
                 <div className="p-6 overflow-y-auto">
                     {currentStep === 1 && (
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg text-slate-700">Passo 1: Definição</h3>
+                            <h3 className="font-semibold text-lg text-[--color-card-foreground]">Passo 1: Definição</h3>
                             <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
                                 Nota: Esta campanha aplicará o 'Questionário Psicossocial' a todos os participantes selecionados.
                             </p>
                             <div>
-                                <label htmlFor="c-name" className="block text-sm font-medium text-slate-700 mb-1">Nome da Campanha</label>
-                                <input type="text" id="c-name" value={campaignData.name} onChange={e => handleInputChange('name', e.target.value)} placeholder="Ex: Diagnóstico Anual de Clima" className="w-full p-2 border border-slate-300 rounded-md"/>
+                                <label htmlFor="c-name" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Nome da Campanha</label>
+                                <input type="text" id="c-name" value={campaignData.name || ''} onChange={e => handleInputChange('name', e.target.value)} placeholder="Ex: Diagnóstico Anual de Clima" className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
                             </div>
                             <div>
-                                <label htmlFor="c-desc" className="block text-sm font-medium text-slate-700 mb-1">Descrição</label>
-                                <textarea id="c-desc" value={campaignData.description} onChange={e => handleInputChange('description', e.target.value)} className="w-full p-2 border border-slate-300 rounded-md h-24" placeholder="Um breve resumo sobre o objetivo desta campanha."></textarea>
+                                <label htmlFor="c-desc" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Descrição</label>
+                                <textarea id="c-desc" value={campaignData.description || ''} onChange={e => handleInputChange('description', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md h-24 focus:ring-2 focus:ring-[--color-ring]" placeholder="Um breve resumo sobre o objetivo desta campanha."></textarea>
                             </div>
                         </div>
                     )}
                      {currentStep === 2 && (
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg text-slate-700">Passo 2: Público-Alvo</h3>
-                            <p className="text-sm text-slate-500">Selecione para quem o diagnóstico será aplicado. Deixe em branco para aplicar a todos.</p>
+                            <h3 className="font-semibold text-lg text-[--color-card-foreground]">Passo 2: Público-Alvo</h3>
+                            <p className="text-sm text-[--color-card-muted-foreground]">Selecione para quem o diagnóstico será aplicado. Deixe em branco para aplicar a todos.</p>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {mockFilters.map(f => (
                                     <div key={f.id}>
-                                        <label htmlFor={`cf-${f.id}`} className="block text-sm font-medium text-slate-700 mb-1">{f.label}</label>
-                                        <select id={`cf-${f.id}`} value={campaignData.filters?.[f.id] || ''} onChange={e => handleFilterChange(f.id, e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm">
+                                        <label htmlFor={`cf-${f.id}`} className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">{f.label}</label>
+                                        <select id={`cf-${f.id}`} value={campaignData.filters?.[f.id] || ''} onChange={e => handleFilterChange(f.id, e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md shadow-sm focus:ring-2 focus:ring-[--color-ring]">
                                             <option value="">Todos</option>
                                             {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                         </select>
                                     </div>
                                 ))}
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-md mt-4">
-                                <p className="text-sm font-medium text-slate-600">Resumo do público: <span className="font-bold text-slate-800">{campaignData.targetAudience}</span></p>
+                            <div className="p-3 bg-[--color-muted] rounded-md mt-4">
+                                <p className="text-sm font-medium text-[--color-muted-foreground]">Resumo do público: <span className="font-bold text-[--color-foreground]">{campaignData.targetAudience}</span></p>
                             </div>
                         </div>
                     )}
                      {currentStep === 3 && (
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg text-slate-700">Passo 3: Agendamento</h3>
+                            <h3 className="font-semibold text-lg text-[--color-card-foreground]">Passo 3: Agendamento</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="c-start" className="block text-sm font-medium text-slate-700 mb-1">Data de Início</label>
-                                    <input type="date" id="c-start" value={campaignData.startDate} onChange={e => handleInputChange('startDate', e.target.value)} className="w-full p-2 border border-slate-300 rounded-md"/>
+                                    <label htmlFor="c-start" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Data de Início</label>
+                                    <input type="date" id="c-start" value={campaignData.startDate || ''} onChange={e => handleInputChange('startDate', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
                                 </div>
                                 <div>
-                                    <label htmlFor="c-end" className="block text-sm font-medium text-slate-700 mb-1">Data de Fim</label>
-                                    <input type="date" id="c-end" value={campaignData.endDate} onChange={e => handleInputChange('endDate', e.target.value)} className="w-full p-2 border border-slate-300 rounded-md"/>
+                                    <label htmlFor="c-end" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Data de Fim</label>
+                                    <input type="date" id="c-end" value={campaignData.endDate || ''} onChange={e => handleInputChange('endDate', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
                                 </div>
                              </div>
                         </div>
                     )}
                      {currentStep === 4 && (
                         <div className="space-y-4">
-                            <h3 className="font-semibold text-lg text-slate-700">Passo 4: Mensagem de Convite</h3>
-                            <p className="text-sm text-slate-500">Personalize a mensagem que será enviada aos colaboradores.</p>
+                            <h3 className="font-semibold text-lg text-[--color-card-foreground]">Passo 4: Mensagem de Convite</h3>
+                            <p className="text-sm text-[--color-card-muted-foreground]">Personalize a mensagem que será enviada aos colaboradores.</p>
                              <div>
                                 <label htmlFor="c-msg" className="sr-only">Mensagem</label>
-                                <textarea id="c-msg" value={campaignData.emailMessage} onChange={e => handleInputChange('emailMessage', e.target.value)} className="w-full p-2 border border-slate-300 rounded-md h-48 font-mono text-xs"></textarea>
+                                <textarea id="c-msg" value={campaignData.emailMessage || ''} onChange={e => handleInputChange('emailMessage', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md h-48 font-mono text-xs focus:ring-2 focus:ring-[--color-ring]"></textarea>
                             </div>
                         </div>
                     )}
                 </div>
 
-                <div className="flex justify-between items-center p-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl">
-                    <button onClick={handleBack} disabled={currentStep === 1} className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-md disabled:opacity-50">Voltar</button>
+                <div className="flex justify-between items-center p-4 border-t border-[--color-border] bg-[--color-muted] rounded-b-2xl">
+                    <button onClick={handleBack} disabled={currentStep === 1} className="px-4 py-2 text-sm font-semibold text-[--color-card-foreground] bg-[--color-card] border border-[--color-border] rounded-md disabled:opacity-50">Voltar</button>
                     {currentStep < 4 ? (
                         <button onClick={handleNext} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700">Próximo</button>
                     ) : (

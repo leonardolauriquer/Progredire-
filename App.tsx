@@ -13,8 +13,9 @@ import { SettingsView } from './components/SettingsView';
 import { AnalysisView } from './components/AnalysisView';
 import { PlanoAcaoHistoryView } from './components/PlanoAcaoHistoryView';
 import { CampaignView } from './components/CampaignView';
+import { ContactView } from './components/ContactView';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'contact';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('home');
@@ -47,6 +48,8 @@ const App: React.FC = () => {
         return <CampaignView setActiveView={setActiveView} navigateToDashboard={handleNavigateToDashboard} />;
       case 'settings':
         return <SettingsView />;
+      case 'contact':
+        return <ContactView />;
       default:
         return <HomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
     }

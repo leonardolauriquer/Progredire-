@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
 import { runActionPlanGeneration } from '../services/geminiService';
@@ -122,13 +121,22 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
         setSelectedFactorId('');
         setGeneratedPlan(null);
         setCurrentActions([]);
+        setActionStatuses({});
+        setError(null);
     };
 
-    const handleGeneratePlan = useCallback(async () => {
+    const handleFactorSelect = (factorId: string) => {
+        setSelectedFactorId(factorId);
+        setGeneratedPlan(null);
+        setCurrentActions([]);
+        setActionStatuses({});
+        setError(null);
+    };
+
+    const handleGenerateSuggestions = useCallback(async () => {
         if (!selectedFactorId) return;
         setIsLoading(true);
         setError(null);
-        setGeneratedPlan(null);
         
         const factorName = dimensions[selectedFactorId]?.name || 'Fator Desconhecido';
         const segmentDescription = Object.entries(filters)
@@ -140,17 +148,17 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
             const resultString = await runActionPlanGeneration(factorName, segmentDescription);
             const plan: GeneratedPlan = JSON.parse(resultString);
             setGeneratedPlan(plan);
-            const initialActions: ActionItem[] = plan.suggestedActions.actions.map((a, i) => ({
+            const newActions: ActionItem[] = plan.suggestedActions.actions.map((a, i) => ({
                 id: Date.now() + i,
                 title: a.actionTitle,
                 description: a.actionDescription,
             }));
-            setCurrentActions(initialActions);
-            const initialStatuses: Record<number, ActionStatus> = {};
-            initialActions.forEach(action => {
-                initialStatuses[action.id] = 'A Fazer';
+            setCurrentActions(prev => [...prev, ...newActions]);
+            const newStatuses: Record<number, ActionStatus> = {};
+            newActions.forEach(action => {
+                newStatuses[action.id] = 'A Fazer';
             });
-            setActionStatuses(initialStatuses);
+            setActionStatuses(prev => ({...prev, ...newStatuses}));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
         } finally {
@@ -159,7 +167,7 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
     }, [selectedFactorId, filters]);
     
     const handleAddOrUpdateAction = (action: {title: string, description: string}) => {
-        if (editingAction) { // Update
+        if (editingAction && 'id' in editingAction && editingAction.id) { // Update
             setCurrentActions(prev => prev.map(a => a.id === editingAction.id ? {...a, ...action} : a));
         } else { // Add
             const newAction: ActionItem = { id: Date.now(), ...action };
@@ -185,8 +193,15 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
     };
 
     const handleArchivePlan = () => {
-        if (!generatedPlan || !window.confirm('Deseja finalizar e arquivar este plano? Você não poderá mais editá-lo.')) return;
+        if (currentActions.length === 0 || !window.confirm('Deseja finalizar e arquivar este plano? Você não poderá mais editá-lo.')) return;
         
+        const planToArchive = generatedPlan || {
+            diagnosis: { title: 'Diagnóstico da Situação', content: 'Este é um plano de ação criado manualmente, focado nas ações definidas abaixo.' },
+            strategicObjective: { title: 'Objetivo Estratégico', content: `Melhorar o fator de risco "${dimensions[selectedFactorId]?.name}" para o público-alvo selecionado.` },
+            suggestedActions: { title: 'Ações Sugeridas', actions: [] },
+            kpis: { title: 'Indicadores de Sucesso (KPIs)', indicators: ['Execução e conclusão das ações propostas.'] },
+        };
+
         const history = JSON.parse(localStorage.getItem('progredire-action-plan-history') || '[]');
         const archivedPlan = {
             id: Date.now(),
@@ -195,9 +210,9 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
             segment: Object.values(filters).filter(Boolean).join(', ') || 'Toda a empresa',
             progress: progress,
             plan: {
-                ...generatedPlan,
-                suggestedActions: { // Save the current state of actions
-                    ...generatedPlan.suggestedActions,
+                ...planToArchive,
+                suggestedActions: {
+                    ...planToArchive.suggestedActions,
                     actions: currentActions.map(a => ({ actionTitle: a.title, actionDescription: a.description }))
                 }
             },
@@ -206,30 +221,34 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
         history.push(archivedPlan);
         localStorage.setItem('progredire-action-plan-history', JSON.stringify(history));
 
-        // Reset state
-        setGeneratedPlan(null);
-        setCurrentActions([]);
-        setActionStatuses({});
-        setSelectedFactorId('');
+        handleFactorSelect('');
         alert('Plano arquivado com sucesso!');
         setActiveView('action_tracking');
     };
     
     const handleExportXls = () => {
-        if (!generatedPlan) return;
+        if (currentActions.length === 0) return;
+
+        const planData = generatedPlan || {
+            diagnosis: { title: 'Diagnóstico da Situação', content: 'Plano de ação criado manualmente.' },
+            strategicObjective: { title: 'Objetivo Estratégico', content: `Melhorar o fator de risco "${dimensions[selectedFactorId]?.name}".` },
+            suggestedActions: { title: 'Ações Propostas', actions: [] },
+            kpis: { title: 'Indicadores de Sucesso (KPIs)', indicators: ['Acompanhamento do status das ações.'] },
+        };
+
         let html = `<h1>Plano de Ação - ${dimensions[selectedFactorId]?.name}</h1>`;
         
-        html += `<h2>${generatedPlan.diagnosis.title}</h2><p>${generatedPlan.diagnosis.content}</p>`;
-        html += `<h2>${generatedPlan.strategicObjective.title}</h2><p>${generatedPlan.strategicObjective.content}</p>`;
+        html += `<h2>${planData.diagnosis.title}</h2><p>${planData.diagnosis.content}</p>`;
+        html += `<h2>${planData.strategicObjective.title}</h2><p>${planData.strategicObjective.content}</p>`;
 
-        let actionsTable = `<h2>${generatedPlan.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Status</th></tr></thead><tbody>`;
+        let actionsTable = `<h2>${planData.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Status</th></tr></thead><tbody>`;
         currentActions.forEach(action => {
             actionsTable += `<tr><td>${action.title}</td><td>${action.description}</td><td>${actionStatuses[action.id] || 'A Fazer'}</td></tr>`;
         });
         actionsTable += '</tbody></table>';
         html += actionsTable;
 
-        html += `<h2>${generatedPlan.kpis.title}</h2><ul>${generatedPlan.kpis.indicators.map(i => `<li>${i}</li>`).join('')}</ul>`;
+        html += `<h2>${planData.kpis.title}</h2><ul>${planData.kpis.indicators.map(i => `<li>${i}</li>`).join('')}</ul>`;
         
         exportToExcel(html, `Plano_de_Acao_${dimensions[selectedFactorId]?.name.replace(' ', '_')}`);
     };
@@ -240,7 +259,7 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                 <div>
                     <h1 className="text-3xl font-bold text-slate-900">Plano de Ação com IA</h1>
                     <p className="text-slate-600 mt-1 max-w-3xl">
-                        Filtre o público, selecione um fator de risco e gere um plano de ação customizado para impulsionar a melhoria.
+                        Filtre o público, selecione um fator de risco e construa um plano de ação para impulsionar a melhoria.
                     </p>
                 </div>
                  <button onClick={() => setActiveView('action_tracking')} className="text-sm font-medium text-blue-600 hover:underline">Acompanhar Ações</button>
@@ -264,14 +283,14 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
             </div>
 
             {/* Step 2: Select Critical Factor */}
-            {criticalFactors.length > 0 && !generatedPlan && (
+            {criticalFactors.length > 0 && (
                 <div className="bg-white p-4 rounded-xl shadow border border-slate-200">
                     <h2 className="font-semibold text-slate-800 mb-3">Passo 2: Escolha o Fator Crítico para focar</h2>
                     <div className="flex flex-wrap gap-2">
                         {criticalFactors.map(factor => (
                             <button
                                 key={factor.id}
-                                onClick={() => setSelectedFactorId(factor.id)}
+                                onClick={() => handleFactorSelect(factor.id)}
                                 className={`px-4 py-2 text-sm font-medium rounded-full border transition-all duration-200 ${selectedFactorId === factor.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'}`}
                             >
                                 {factor.name} <span className="ml-2 text-xs opacity-70">({factor.score}/100)</span>
@@ -281,92 +300,107 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                 </div>
             )}
             
-            {/* Step 3: Generate Plan */}
-            {!generatedPlan && (
-                <div className="flex justify-center">
-                    <button
-                        onClick={handleGeneratePlan}
-                        disabled={!selectedFactorId || isLoading}
-                        className="flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-all duration-300"
-                    >
-                        {isLoading ? <><LoadingSpinner /> Gerando Plano...</> : <><BrainIcon className="w-5 h-5" /> Gerar Plano de Ação com IA</>}
-                    </button>
-                </div>
-            )}
-
             {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
             
             {/* Display Plan */}
-            {generatedPlan && (
+            {selectedFactorId && (
                 <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 space-y-8">
                      <div className="flex flex-wrap justify-between items-start gap-4">
                         <div>
                             <h2 className="text-2xl font-bold text-slate-900">Plano para: {dimensions[selectedFactorId]?.name}</h2>
-                            <p className="text-slate-500">Acompanhe o progresso e adicione suas próprias ações.</p>
+                            <p className="text-slate-500">Adicione ações manualmente ou use a IA para obter sugestões.</p>
                         </div>
-                         <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50"><ArrowDownTrayIcon className="w-5 h-5" /> Exportar XLS</button>
+                         {currentActions.length > 0 && (
+                            <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50"><ArrowDownTrayIcon className="w-5 h-5" /> Exportar XLS</button>
+                         )}
                     </div>
 
                     {/* Progress */}
+                    {currentActions.length > 0 && (
+                        <div>
+                            <h3 className="text-lg font-semibold text-slate-800 mb-2">Progresso do Plano</h3>
+                            <div className="w-full bg-slate-200 rounded-full h-4">
+                                <div className="bg-green-500 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}>
+                                    {progress > 10 ? `${progress.toFixed(0)}%` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {generatedPlan && (
+                        <div className="space-y-6">
+                            <PlanSection icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />} title={generatedPlan.diagnosis.title}><p>{generatedPlan.diagnosis.content}</p></PlanSection>
+                            <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective.title}><p>{generatedPlan.strategicObjective.content}</p></PlanSection>
+                        </div>
+                    )}
+                    
                     <div>
-                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Progresso do Plano</h3>
-                        <div className="w-full bg-slate-200 rounded-full h-4">
-                            <div className="bg-green-500 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${progress}%`, transition: 'width 0.5s ease-in-out' }}>
-                                {progress > 10 ? `${progress.toFixed(0)}%` : ''}
+                        <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center">
+                           <LightBulbIcon className="w-6 h-6 text-yellow-500 mr-3" />
+                            Ações Propostas
+                        </h3>
+                        <div className="pl-9 space-y-4">
+                            {currentActions.length > 0 ? currentActions.map(action => (
+                                <div key={action.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-slate-700">{action.title}</p>
+                                            <p className="text-sm text-slate-600 mt-1 mb-3">{action.description}</p>
+                                        </div>
+                                        <div className="flex gap-2 flex-shrink-0 ml-2">
+                                            <button onClick={() => setEditingAction(action)} className="text-slate-400 hover:text-blue-600"><PencilIcon className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDeleteAction(action.id)} className="text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs">
+                                        <span className="font-medium text-slate-500">Status:</span>
+                                        {(['A Fazer', 'Em Andamento', 'Concluído'] as ActionStatus[]).map(status => (
+                                            <label key={status} className="flex items-center gap-1 cursor-pointer">
+                                                <input type="radio" name={`status-${action.id}`} value={status} checked={actionStatuses[action.id] === status} onChange={() => handleStatusChange(action.id, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
+                                                {status}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )) : (
+                                <p className="text-sm text-slate-500">Nenhuma ação adicionada ainda.</p>
+                            )}
+
+                            {editingAction && (
+                                <ActionForm action={editingAction} onSave={handleAddOrUpdateAction} onCancel={() => setEditingAction(null)} />
+                            )}
+
+                             <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-200 mt-4">
+                                <button onClick={() => setEditingAction({id: 0, title: '', description: ''})} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <PlusCircleIcon className="w-5 h-5"/> Adicionar Ação Manualmente
+                                </button>
+                                 <button
+                                    onClick={handleGenerateSuggestions}
+                                    disabled={isLoading}
+                                    className="flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 border border-blue-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isLoading ? <><LoadingSpinner /> Gerando...</> : <><BrainIcon className="w-5 h-5" /> Gerar Sugestões com IA</>}
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <PlanSection icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />} title={generatedPlan.diagnosis.title}><p>{generatedPlan.diagnosis.content}</p></PlanSection>
-                        <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective.title}><p>{generatedPlan.strategicObjective.content}</p></PlanSection>
-                        <PlanSection icon={<LightBulbIcon className="w-6 h-6 text-yellow-500" />} title={generatedPlan.suggestedActions.title}>
-                            <div className="space-y-4">
-                                {currentActions.map(action => (
-                                    <div key={action.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold text-slate-700">{action.title}</p>
-                                                <p className="text-sm text-slate-600 mt-1 mb-3">{action.description}</p>
-                                            </div>
-                                            <div className="flex gap-2 flex-shrink-0 ml-2">
-                                                <button onClick={() => setEditingAction(action)} className="text-slate-400 hover:text-blue-600"><PencilIcon className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDeleteAction(action.id)} className="text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4 text-xs">
-                                            <span className="font-medium text-slate-500">Status:</span>
-                                            {(['A Fazer', 'Em Andamento', 'Concluído'] as ActionStatus[]).map(status => (
-                                                <label key={status} className="flex items-center gap-1 cursor-pointer">
-                                                    <input type="radio" name={`status-${action.id}`} value={status} checked={actionStatuses[action.id] === status} onChange={() => handleStatusChange(action.id, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
-                                                    {status}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                                {editingAction ? (
-                                    <ActionForm action={editingAction} onSave={handleAddOrUpdateAction} onCancel={() => setEditingAction(null)} />
-                                ) : (
-                                    <button onClick={() => setEditingAction({id: 0, title: '', description: ''})} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:underline">
-                                        <PlusCircleIcon className="w-5 h-5"/> Adicionar Nova Ação
-                                    </button>
-                                )}
-                            </div>
-                        </PlanSection>
+                    {generatedPlan && (
                         <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-indigo-500" />} title={generatedPlan.kpis.title}>
                             <ul className="list-disc list-inside space-y-1">
                                 {generatedPlan.kpis.indicators.map((kpi, index) => <li key={index}>{kpi}</li>)}
                             </ul>
                         </PlanSection>
-                    </div>
+                    )}
 
-                    <div className="pt-6 border-t border-slate-200 flex justify-end">
-                        <button onClick={handleArchivePlan} className="flex items-center gap-2 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-slate-800">
-                            <ArchiveBoxIcon className="w-5 h-5" />
-                            Finalizar e Arquivar Plano
-                        </button>
-                    </div>
+                    {currentActions.length > 0 && (
+                        <div className="pt-6 border-t border-slate-200 flex justify-end">
+                            <button onClick={handleArchivePlan} className="flex items-center gap-2 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-slate-800">
+                                <ArchiveBoxIcon className="w-5 h-5" />
+                                Finalizar e Arquivar Plano
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -1,7 +1,7 @@
 
 
 import React from 'react';
-import { HomeIcon, ChartBarIcon, PencilSquareIcon, BrainIcon, ArrowTrendingUpIcon } from './icons';
+import { HomeIcon, ChartBarIcon, PencilSquareIcon, BrainIcon, EnvelopeIcon } from './icons';
 import { ActiveView } from '../App';
 
 interface BottomNavbarProps {
@@ -16,7 +16,7 @@ const navigation = [
     { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
     { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
-    { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
+    { name: 'Contato', view: 'contact', icon: EnvelopeIcon },
 ];
 
 const NavItem: React.FC<{
