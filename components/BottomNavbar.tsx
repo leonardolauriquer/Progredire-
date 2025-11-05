@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { 
     HomeIcon, 
@@ -11,39 +10,42 @@ import {
     ArrowTrendingUpIcon,
     ClipboardDocumentListIcon,
     ClipboardDocumentCheckIcon,
-    EnvelopeIcon,
     QuestionMarkCircleIcon,
     CogIcon,
     XIcon,
     UserGroupIcon
 } from './icons';
-import { ActiveView } from '../App';
+import { ActiveView, UserRole } from '../App';
 
 interface BottomNavbarProps {
     activeView: ActiveView;
     setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
     onNavigateToDashboard: (filters?: Record<string, string>) => void;
+    userRole: UserRole;
 }
 
-const primaryNavigation = [
+const allNavItems = [
     { name: 'Início', view: 'home', icon: HomeIcon },
     { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
     { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
-];
-
-const secondaryNavigation = [
     { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
     { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
-    { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
-    { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
-    { name: 'Equipe de Apoio', view: 'support_team', icon: UserGroupIcon },
+    { name: 'Plano Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
+    { name: 'Acompanhar', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
+    { name: 'Equipe Apoio', view: 'support_team', icon: UserGroupIcon },
     { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
-    { name: 'Configurações', view: 'settings', icon: CogIcon },
+    { name: 'Ajustes', view: 'settings', icon: CogIcon },
 ];
 
+const companyViews: ActiveView[] = ['home', 'personal_reflection', 'dashboard', 'corporate_survey', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
+const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team', 'faq', 'settings'];
+
+const companyPrimaryViews: ActiveView[] = ['home', 'dashboard', 'campaigns', 'plano_acao'];
+const collaboratorPrimaryViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team'];
+
 const NavItem: React.FC<{
-    item: typeof primaryNavigation[0];
+    item: typeof allNavItems[0];
     isActive: boolean;
     onClick: () => void;
 }> = ({ item, isActive, onClick }) => (
@@ -62,7 +64,8 @@ const MoreMenu: React.FC<{
     onClose: () => void;
     activeView: ActiveView;
     setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
-}> = ({ onClose, activeView, setActiveView }) => {
+    secondaryNavigation: typeof allNavItems;
+}> = ({ onClose, activeView, setActiveView, secondaryNavigation }) => {
     
     const handleNavClick = (view: ActiveView) => {
         setActiveView(view);
@@ -104,13 +107,22 @@ const MoreMenu: React.FC<{
 };
 
 
-export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
+export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView, onNavigateToDashboard, userRole }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-    // Check if the active view is in the secondary navigation to highlight the "More" button
+    const { primaryNavigation, secondaryNavigation } = useMemo(() => {
+        const allowedViews = userRole === 'company' ? companyViews : collaboratorViews;
+        const primaryViews = userRole === 'company' ? companyPrimaryViews : collaboratorPrimaryViews;
+
+        const primaryNav = allNavItems.filter(item => primaryViews.includes(item.view as ActiveView));
+        const secondaryNav = allNavItems.filter(item => allowedViews.includes(item.view as ActiveView) && !primaryViews.includes(item.view as ActiveView));
+
+        return { primaryNavigation: primaryNav, secondaryNavigation: secondaryNav };
+    }, [userRole]);
+
     const isMoreMenuActive = useMemo(() => 
         secondaryNavigation.some(item => item.view === activeView),
-        [activeView]
+        [activeView, secondaryNavigation]
     );
 
     return (
@@ -148,6 +160,7 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiv
                     onClose={() => setIsMenuOpen(false)}
                     activeView={activeView}
                     setActiveView={setActiveView}
+                    secondaryNavigation={secondaryNavigation}
                 />
             )}
         </>

@@ -1,20 +1,17 @@
 
-import React from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, EnvelopeIcon, UserGroupIcon } from './icons';
-// FIX: Import ActiveView from App to ensure type consistency across components.
-import { ActiveView } from '../App';
-
-// FIX: Removed local ActiveView type definition which was inconsistent with the main app type.
-// type ActiveView = 'home' | 'dashboard' | 'analysis' | 'corporate_survey' | 'history' | 'settings' | 'faq';
+import React, { useMemo } from 'react';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon } from './icons';
+import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
   activeView: ActiveView;
-  // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
   setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
   onNavigateToDashboard: (filters?: Record<string, string>) => void;
+  userRole: UserRole;
+  onLogout: () => void;
 }
 
-const navigation = [
+const allNavigation = [
   { name: 'Início', view: 'home', icon: HomeIcon },
   { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
@@ -28,8 +25,11 @@ const navigation = [
   { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];
 
+const companyViews: ActiveView[] = ['home', 'personal_reflection', 'dashboard', 'corporate_survey', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
+const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team', 'faq', 'settings'];
+
 const NavItem: React.FC<{
-  item: typeof navigation[0];
+  item: typeof allNavigation[0];
   isActive: boolean;
   onClick: () => void;
 }> = ({ item, isActive, onClick }) => (
@@ -48,7 +48,13 @@ const NavItem: React.FC<{
   </li>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onNavigateToDashboard, userRole, onLogout }) => {
+  
+  const navigation = useMemo(() => {
+    const allowedViews = userRole === 'company' ? companyViews : collaboratorViews;
+    return allNavigation.filter(item => allowedViews.includes(item.view as ActiveView));
+  }, [userRole]);
+  
   const handleNavClick = (view: ActiveView) => {
     setActiveView(view);
   };
@@ -68,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onN
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4 py-4">
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
             <ul className="space-y-1">
                 {navigation.map((item) => (
                 <NavItem
@@ -86,6 +92,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onN
                 ))}
             </ul>
         </nav>
+
+        {/* Logout */}
+        <div className="px-4 py-4 border-t border-slate-200 flex-shrink-0">
+            <button
+            onClick={onLogout}
+            className="w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
+            >
+            <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" />
+            <span>Sair</span>
+            </button>
+        </div>
     </aside>
   );
 };

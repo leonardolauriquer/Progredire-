@@ -14,12 +14,24 @@ import { AnalysisView } from './components/AnalysisView';
 import { PlanoAcaoHistoryView } from './components/PlanoAcaoHistoryView';
 import { CampaignView } from './components/CampaignView';
 import { SupportTeamView } from './components/SupportTeamView';
+import { LoginView } from './components/LoginView';
 
 export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team';
+export type UserRole = 'company' | 'collaborator';
 
 const App: React.FC = () => {
+  const [user, setUser] = useState<{ role: UserRole | null }>({ role: null });
   const [activeView, setActiveView] = useState<ActiveView>('home');
   const [dashboardFilters, setDashboardFilters] = useState<Record<string, string> | undefined>(undefined);
+
+  const handleLogin = (role: UserRole) => {
+    setUser({ role });
+    setActiveView('home'); // Reset to home on login
+  };
+
+  const handleLogout = () => {
+    setUser({ role: null });
+  };
 
   const handleNavigateToDashboard = (filters?: Record<string, string>) => {
     setDashboardFilters(filters);
@@ -54,6 +66,10 @@ const App: React.FC = () => {
         return <HomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
     }
   };
+  
+  if (!user.role) {
+    return <LoginView onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-[--color-background] text-[--color-foreground]">
@@ -61,6 +77,8 @@ const App: React.FC = () => {
         activeView={activeView}
         setActiveView={setActiveView}
         onNavigateToDashboard={handleNavigateToDashboard}
+        userRole={user.role}
+        onLogout={handleLogout}
       />
       <div className="md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0">
         <Header />
@@ -72,6 +90,7 @@ const App: React.FC = () => {
         activeView={activeView}
         setActiveView={setActiveView}
         onNavigateToDashboard={handleNavigateToDashboard}
+        userRole={user.role}
       />
     </div>
   );
