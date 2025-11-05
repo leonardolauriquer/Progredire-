@@ -25,7 +25,7 @@ const allNavigation = [
   { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];
 
-const companyViews: ActiveView[] = ['home', 'personal_reflection', 'dashboard', 'corporate_survey', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
+const companyViews: ActiveView[] = ['home', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team', 'faq', 'settings'];
 
 const NavItem: React.FC<{

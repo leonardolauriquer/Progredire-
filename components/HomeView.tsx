@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { BrainIcon, PencilSquareIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, NexusTechLogo, AuraDigitalLogo, ShieldCheckIcon } from './icons';
+import { BrainIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, NexusTechLogo, AuraDigitalLogo, ShieldCheckIcon, PaperAirplaneIcon, ClipboardDocumentListIcon } from './icons';
 import { ActiveView } from '../App';
 
 interface CompanyHomeViewProps {
@@ -103,22 +103,22 @@ export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView,
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <ActionCard
-                icon={BrainIcon}
-                title="Reflexão Pessoal"
-                description="Descreva um sentimento ou desafio e receba uma nova perspectiva da IA para guiar sua auto-reflexão."
-                onClick={() => setActiveView('personal_reflection')}
-            />
-            <ActionCard
-                icon={PencilSquareIcon}
-                title="Questionário Psicossocial"
-                description="Aplique um questionário validado aos colaboradores para coletar dados valiosos sobre o ambiente de trabalho de forma confidencial."
-                onClick={() => setActiveView('corporate_survey')}
-            />
-            <ActionCard
                 icon={ChartBarIcon}
                 title="Dashboard Organizacional"
                 description="Explore dados agregados e gere relatórios estratégicos com IA para aprimorar o ambiente de trabalho."
                 onClick={() => onNavigateToDashboard()}
+            />
+            <ActionCard
+                icon={PaperAirplaneIcon}
+                title="Gerenciar Campanhas"
+                description="Crie, dispare e acompanhe pesquisas de clima para coletar dados valiosos de forma confidencial."
+                onClick={() => setActiveView('campaigns')}
+            />
+            <ActionCard
+                icon={ClipboardDocumentListIcon}
+                title="Criar Plano de Ação"
+                description="Transforme insights do dashboard em ações concretas para impulsionar a melhoria contínua."
+                onClick={() => setActiveView('plano_acao')}
             />
         </div>
         
