@@ -1,26 +1,48 @@
 
 
-import React from 'react';
-import { HomeIcon, ChartBarIcon, PencilSquareIcon, BrainIcon, EnvelopeIcon } from './icons';
+import React, { useState, useMemo } from 'react';
+import { 
+    HomeIcon, 
+    ChartBarIcon, 
+    PencilSquareIcon, 
+    BrainIcon, 
+    MenuIcon,
+    PaperAirplaneIcon,
+    ArrowTrendingUpIcon,
+    ClipboardDocumentListIcon,
+    ClipboardDocumentCheckIcon,
+    EnvelopeIcon,
+    QuestionMarkCircleIcon,
+    CogIcon,
+    XIcon
+} from './icons';
 import { ActiveView } from '../App';
 
 interface BottomNavbarProps {
     activeView: ActiveView;
-    // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
     setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
     onNavigateToDashboard: (filters?: Record<string, string>) => void;
 }
 
-const navigation = [
+const primaryNavigation = [
     { name: 'Início', view: 'home', icon: HomeIcon },
     { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
     { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
+];
+
+const secondaryNavigation = [
+    { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
+    { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
+    { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
+    { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
     { name: 'Contato', view: 'contact', icon: EnvelopeIcon },
+    { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
+    { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];
 
 const NavItem: React.FC<{
-    item: typeof navigation[0];
+    item: typeof primaryNavigation[0];
     isActive: boolean;
     onClick: () => void;
 }> = ({ item, isActive, onClick }) => (
@@ -35,25 +57,98 @@ const NavItem: React.FC<{
     </button>
 );
 
-export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
+const MoreMenu: React.FC<{
+    onClose: () => void;
+    activeView: ActiveView;
+    setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+}> = ({ onClose, activeView, setActiveView }) => {
+    
+    const handleNavClick = (view: ActiveView) => {
+        setActiveView(view);
+        onClose();
+    };
+
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-t-lg z-30">
-            <div className="flex justify-around">
-                {navigation.map((item) => (
-                    <NavItem 
-                        key={item.view}
-                        item={item as any}
-                        isActive={activeView === item.view}
-                        onClick={() => {
-                            if (item.view === 'dashboard') {
-                                onNavigateToDashboard();
-                            } else {
-                                setActiveView(item.view as ActiveView)
-                            }
-                        }}
-                    />
-                ))}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden" onClick={onClose}>
+            <div 
+                className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-4 shadow-lg"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-slate-800">Todos os Menus</h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-800">
+                        <XIcon className="w-6 h-6" />
+                    </button>
+                </div>
+                <ul className="space-y-2">
+                    {secondaryNavigation.map(item => (
+                        <li key={item.view}>
+                            <button
+                                onClick={() => handleNavClick(item.view as ActiveView)}
+                                className={`w-full flex items-center p-3 text-md font-medium rounded-lg transition-colors duration-200 ${
+                                    activeView === item.view
+                                    ? 'bg-blue-50 text-blue-600'
+                                    : 'text-slate-700 hover:bg-slate-100'
+                                }`}
+                            >
+                                <item.icon className="h-6 w-6 mr-4 text-slate-500" />
+                                <span>{item.name}</span>
+                            </button>
+                        </li>
+                    ))}
+                </ul>
             </div>
-        </nav>
+        </div>
+    );
+};
+
+
+export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiveView, onNavigateToDashboard }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    // Check if the active view is in the secondary navigation to highlight the "More" button
+    const isMoreMenuActive = useMemo(() => 
+        secondaryNavigation.some(item => item.view === activeView),
+        [activeView]
+    );
+
+    return (
+        <>
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-t-lg z-30">
+                <div className="flex justify-around">
+                    {primaryNavigation.map((item) => (
+                        <NavItem 
+                            key={item.view}
+                            item={item as any}
+                            isActive={activeView === item.view}
+                            onClick={() => {
+                                if (item.view === 'dashboard') {
+                                    onNavigateToDashboard();
+                                } else {
+                                    setActiveView(item.view as ActiveView)
+                                }
+                            }}
+                        />
+                    ))}
+                    {/* More Button */}
+                    <button
+                        onClick={() => setIsMenuOpen(true)}
+                        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${
+                            isMoreMenuActive ? 'text-blue-600' : 'text-slate-500 hover:text-blue-600'
+                        }`}
+                    >
+                        <MenuIcon className="h-6 w-6 mb-1" />
+                        <span className="text-xs font-medium">Mais</span>
+                    </button>
+                </div>
+            </nav>
+            {isMenuOpen && (
+                <MoreMenu 
+                    onClose={() => setIsMenuOpen(false)}
+                    activeView={activeView}
+                    setActiveView={setActiveView}
+                />
+            )}
+        </>
     );
 };
