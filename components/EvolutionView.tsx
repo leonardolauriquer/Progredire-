@@ -361,7 +361,8 @@ export const EvolutionView: React.FC = () => {
     const { topMovers, bottomMovers } = useMemo(() => {
         const factors = Object.entries(allFactorsEvolutionData)
             .filter(([id]) => id !== 'geral')
-            .sort(([, a], [, b]) => b.change - a.change);
+// FIX: Explicitly cast `a` and `b` to `EvolutionData` to resolve TypeScript's type inference issue within the sort callback, which was causing the `.change` property access to fail.
+            .sort(([, a], [, b]) => (b as EvolutionData).change - (a as EvolutionData).change);
         return {
             topMovers: factors.slice(0, 5),
             bottomMovers: factors.slice(-5).reverse(),

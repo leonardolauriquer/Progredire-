@@ -104,39 +104,66 @@ export const PlanoAcaoHistoryView: React.FC = () => {
 
         actions.forEach(action => {
             if(data[action.planFactor]) {
-                data[action.planFactor][action.status]++;
+                data[action.planFactor][action.status as ActionStatus]++;
                 data[action.planFactor]['Total']++;
             }
         });
 
         const totals: Record<ActionStatus | 'Total', number> = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
-        Object.values(data).forEach(factorData => {
-            statuses.forEach(status => totals[status] += factorData[status]);
-            totals['Total'] += factorData['Total'];
+        // FIX: The original loop using `Object.values(data)` had type inference issues.
+        // Refactoring to iterate over `allFactors` (the keys of `data`) ensures `factorData` is correctly typed, resolving the indexing error.
+        allFactors.forEach(factor => {
+            const factorData = data[factor];
+            if (factorData) {
+                statuses.forEach(status => {
+                    totals[status] += factorData[status];
+                });
+                totals['Total'] += factorData['Total'];
+            }
         });
 
-        return { factors: data, totals, factorsList: allFactors, statuses };
+
+        const totalsByStatus: Record<ActionStatus | 'Total', number> = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
+        Object.values(data).forEach(factorData => {
+            statuses.forEach(status => totalsByStatus[status] += factorData[status]);
+            totalsByStatus['Total'] += factorData['Total'];
+        });
+
+        return { factors: data, totals: totalsByStatus, factorsList: allFactors, statuses };
     }, [actions]);
 
     const maxCount = useMemo(() => {
-        // FIX: Correctly filter out the 'Total' count before finding the max value for the heatmap.
-        // The original code incorrectly tried to filter an array of values by a key, which caused a type error.
-        // This version uses object destructuring to get only the status counts, excluding 'Total'.
         const counts = Object.values(heatmapData.factors).flatMap(factorData => {
-            const { Total, ...statusCounts } = factorData;
+            const { Total, ...statusCounts } = factorData as Record<ActionStatus | 'Total', number>;
             return Object.values(statusCounts);
         });
         return Math.max(...counts, 1);
     }, [heatmapData]);
 
-    const getHeatmapColor = (count: number) => {
+    const getHeatmapColor = (count: number, status: ActionStatus) => {
         if (count === 0) return 'bg-slate-50 text-slate-600';
-        const intensity = Math.min(count / (maxCount / 1.5), 1); // Adjust divisor for better color spread
-        if (intensity > 0.8) return 'bg-blue-700 text-white';
-        if (intensity > 0.6) return 'bg-blue-600 text-white';
-        if (intensity > 0.4) return 'bg-blue-400 text-slate-800';
-        if (intensity > 0.2) return 'bg-blue-200 text-slate-800';
-        return 'bg-blue-100 text-slate-800';
+        
+        const intensity = Math.min(count / maxCount, 1);
+        
+        switch(status) {
+            case 'A Fazer':
+                if (intensity > 0.75) return 'bg-red-700 text-white';
+                if (intensity > 0.5) return 'bg-red-500 text-white';
+                if (intensity > 0.25) return 'bg-red-300 text-red-900';
+                return 'bg-red-100 text-red-800';
+            case 'Em Andamento':
+                if (intensity > 0.75) return 'bg-yellow-600 text-white';
+                if (intensity > 0.5) return 'bg-yellow-500 text-yellow-900';
+                if (intensity > 0.25) return 'bg-yellow-300 text-yellow-800';
+                return 'bg-yellow-100 text-yellow-800';
+            case 'Concluído':
+                if (intensity > 0.75) return 'bg-green-700 text-white';
+                if (intensity > 0.5) return 'bg-green-600 text-white';
+                if (intensity > 0.25) return 'bg-green-300 text-green-900';
+                return 'bg-green-100 text-green-800';
+            default:
+                return 'bg-slate-100 text-slate-800';
+        }
     };
 
 
@@ -159,8 +186,8 @@ export const PlanoAcaoHistoryView: React.FC = () => {
 
     const getStatusColor = (status: ActionStatus) => {
         switch (status) {
-            case 'A Fazer': return 'bg-slate-200 text-slate-800';
-            case 'Em Andamento': return 'bg-blue-100 text-blue-800';
+            case 'A Fazer': return 'bg-red-100 text-red-800';
+            case 'Em Andamento': return 'bg-yellow-100 text-yellow-800';
             case 'Concluído': return 'bg-green-100 text-green-800';
         }
     };
@@ -195,7 +222,7 @@ export const PlanoAcaoHistoryView: React.FC = () => {
                                 <tr key={factor}>
                                     <th scope="row" className="p-2 border border-slate-200 text-left text-sm font-medium text-slate-700">{factor}</th>
                                     {heatmapData.statuses.map(status => (
-                                        <td key={status} className={`p-2 border border-slate-200 text-center font-bold text-sm ${getHeatmapColor(heatmapData.factors[factor][status])}`}>
+                                        <td key={status} className={`p-2 border border-slate-200 text-center font-bold text-sm ${getHeatmapColor(heatmapData.factors[factor][status], status)}`}>
                                             {heatmapData.factors[factor][status]}
                                         </td>
                                     ))}
