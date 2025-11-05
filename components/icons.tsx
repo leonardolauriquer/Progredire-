@@ -283,3 +283,30 @@ export const EnvelopeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
         <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
     </svg>
 );
+
+export const UserGroupIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.282 2.72a3 3 0 0 1-4.682-2.72M12 18.72V21m-4.755-9.742a4.5 4.5 0 1 1 9.5 0 4.5 4.5 0 0 1-9.5 0ZM12 12.75a2.25 2.25 0 0 0-2.25 2.25v.75m4.5 0v-.75a2.25 2.25 0 0 0-2.25-2.25M3.75 16.035a2.25 2.25 0 0 0-2.25 2.25v.75c0 1.108.892 2 2 2h1.5M20.25 16.035v.75c0 1.108.892 2 2 2h1.5a2.25 2.25 0 0 0 2.25-2.25v-.75" />
+    </svg>
+);
+
+export const StethoscopeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.75h16.5m-16.5 0a2.25 2.25 0 0 1-2.25-2.25V5.25A2.25 2.25 0 0 1 3.75 3h16.5a2.25 2.25 0 0 1 2.25 2.25v2.25a2.25 2.25 0 0 1-2.25 2.25M3.75 14.25v2.25c0 1.105.895 2 2 2h1.5V12.75H5.75a2 2 0 0 0-2 2Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M18.25 12.75v5.75c0 1.105.895 2 2 2h1.5V14.25h-3.5Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.25 18.25v2.25c0 1.105.895 2 2 2h7.5c1.105 0 2-.895 2-2v-2.25" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12.75v10.5" />
+    </svg>
+);
+
+export const ChatBubbleOvalLeftEllipsisIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.76 9.76 0 0 1-2.53-.372A5.569 5.569 0 0 0 6 21.75a5.57 5.57 0 0 0-2.53-12.441c.21-.527.433-1.036.67-1.528A9.028 9.028 0 0 1 12 3.75c4.97 0 9 3.694 9 8.25Z" />
+    </svg>
+);
+
+export const PhoneIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.211-.992-.584-1.343l-3.468-3.468a1.125 1.125 0 00-1.591 0l-1.022 1.022a.75.75 0 01-1.06 0l-4.242-4.242a.75.75 0 010-1.06l1.022-1.022a1.125 1.125 0 000-1.591L6.914 4.086A2.25 2.25 0 005.571 3.5H4.2a2.25 2.25 0 00-2.25 2.25v1.5z" />
+    </svg>
+);

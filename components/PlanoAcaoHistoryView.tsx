@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { ArrowDownTrayIcon, ClipboardDocumentCheckIcon, FireIcon } from './icons';
 
@@ -102,7 +104,9 @@ export const PlanoAcaoHistoryView: React.FC = () => {
             data[factor] = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
         });
 
-        actions.forEach(action => {
+        // FIX: Add explicit type to `action` parameter to prevent TS from inferring it as `unknown`
+        // when `actions` state is populated from localStorage (JSON.parse results in `any`).
+        actions.forEach((action: TrackedAction) => {
             if(data[action.planFactor]) {
                 data[action.planFactor][action.status as ActionStatus]++;
                 data[action.planFactor]['Total']++;
@@ -110,8 +114,6 @@ export const PlanoAcaoHistoryView: React.FC = () => {
         });
 
         const totals: Record<ActionStatus | 'Total', number> = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
-        // FIX: The original loop using `Object.values(data)` had type inference issues.
-        // Refactoring to iterate over `allFactors` (the keys of `data`) ensures `factorData` is correctly typed, resolving the indexing error.
         allFactors.forEach(factor => {
             const factorData = data[factor];
             if (factorData) {
@@ -122,14 +124,7 @@ export const PlanoAcaoHistoryView: React.FC = () => {
             }
         });
 
-
-        const totalsByStatus: Record<ActionStatus | 'Total', number> = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
-        Object.values(data).forEach(factorData => {
-            statuses.forEach(status => totalsByStatus[status] += factorData[status]);
-            totalsByStatus['Total'] += factorData['Total'];
-        });
-
-        return { factors: data, totals: totalsByStatus, factorsList: allFactors, statuses };
+        return { factors: data, totals: totals, factorsList: allFactors, statuses };
     }, [actions]);
 
     const maxCount = useMemo(() => {

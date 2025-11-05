@@ -14,7 +14,8 @@ import {
     EnvelopeIcon,
     QuestionMarkCircleIcon,
     CogIcon,
-    XIcon
+    XIcon,
+    UserGroupIcon
 } from './icons';
 import { ActiveView } from '../App';
 
@@ -36,7 +37,7 @@ const secondaryNavigation = [
     { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
     { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
     { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
-    { name: 'Contato', view: 'contact', icon: EnvelopeIcon },
+    { name: 'Equipe de Apoio', view: 'support_team', icon: UserGroupIcon },
     { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
     { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];

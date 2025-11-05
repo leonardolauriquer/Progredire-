@@ -148,11 +148,11 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
             const resultString = await runActionPlanGeneration(factorName, segmentDescription);
             const plan: GeneratedPlan = JSON.parse(resultString);
             setGeneratedPlan(plan);
-            const newActions: ActionItem[] = plan.suggestedActions.actions.map((a, i) => ({
+            const newActions: ActionItem[] = plan.suggestedActions?.actions?.map((a, i) => ({
                 id: Date.now() + i,
                 title: a.actionTitle,
                 description: a.actionDescription,
-            }));
+            })) || [];
             setCurrentActions(prev => [...prev, ...newActions]);
             const newStatuses: Record<number, ActionStatus> = {};
             newActions.forEach(action => {
@@ -329,8 +329,8 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
 
                     {generatedPlan && (
                         <div className="space-y-6">
-                            <PlanSection icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />} title={generatedPlan.diagnosis.title}><p>{generatedPlan.diagnosis.content}</p></PlanSection>
-                            <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective.title}><p>{generatedPlan.strategicObjective.content}</p></PlanSection>
+                            <PlanSection icon={<MagnifyingGlassIcon className="w-6 h-6 text-blue-600" />} title={generatedPlan.diagnosis?.title || 'Diagnóstico da Situação'}><p>{generatedPlan.diagnosis?.content}</p></PlanSection>
+                            <PlanSection icon={<FlagIcon className="w-6 h-6 text-green-600" />} title={generatedPlan.strategicObjective?.title || 'Objetivo Estratégico'}><p>{generatedPlan.strategicObjective?.content}</p></PlanSection>
                         </div>
                     )}
                     
@@ -386,9 +386,9 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                     </div>
 
                     {generatedPlan && (
-                        <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-indigo-500" />} title={generatedPlan.kpis.title}>
+                        <PlanSection icon={<ClipboardDocumentCheckIcon className="w-6 h-6 text-indigo-500" />} title={generatedPlan.kpis?.title || 'Indicadores de Sucesso (KPIs)'}>
                             <ul className="list-disc list-inside space-y-1">
-                                {generatedPlan.kpis.indicators.map((kpi, index) => <li key={index}>{kpi}</li>)}
+                                {generatedPlan.kpis?.indicators?.map((kpi, index) => <li key={index}>{kpi}</li>)}
                             </ul>
                         </PlanSection>
                     )}
@@ -447,7 +447,7 @@ const ActionForm: React.FC<{
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                     placeholder="Título da ação"
-                    className="w-full p-2 border border-slate-300 rounded-md"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
                     required
                 />
             </div>
@@ -458,11 +458,11 @@ const ActionForm: React.FC<{
                     value={description}
                     onChange={e => setDescription(e.target.value)}
                     placeholder="Descrição da ação"
-                    className="w-full p-2 border border-slate-300 rounded-md h-20 resize-none"
+                    className="w-full p-2 bg-white border border-slate-300 rounded-md h-20 resize-none text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
                 />
             </div>
             <div className="flex gap-2 justify-end">
-                <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50">Cancelar</button>
+                <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50 text-slate-700">Cancelar</button>
                 <button type="submit" className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar Ação</button>
             </div>
         </form>

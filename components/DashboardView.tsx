@@ -445,11 +445,11 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
         
         if (aiInsight) {
             html += `<h2>Insights Estratégicos com IA</h2>`;
-            html += `<div><h3>${aiInsight.summary.title}</h3><p>${aiInsight.summary.content}</p></div>`;
-            html += `<div><h3>${aiInsight.strengths.title}</h3><ul>${aiInsight.strengths.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.attentionPoints.title}</h3><ul>${aiInsight.attentionPoints.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.recommendations.title}</h3>${aiInsight.recommendations.points.map(p => `<h4>${p.forFactor}</h4><ul>${p.actions.map(a => `<li>${a}</li>`).join('')}</ul>`).join('')}</div>`;
-            html += `<div><h3>${aiInsight.nextSteps.title}</h3><p>${aiInsight.nextSteps.content}</p></div>`;
+            html += `<div><h3>${aiInsight.summary?.title}</h3><p>${aiInsight.summary?.content}</p></div>`;
+            html += `<div><h3>${aiInsight.strengths?.title}</h3><ul>${aiInsight.strengths?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.attentionPoints?.title}</h3><ul>${aiInsight.attentionPoints?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.recommendations?.title}</h3>${aiInsight.recommendations?.points?.map(p => `<h4>${p.forFactor}</h4><ul>${p.actions?.map(a => `<li>${a}</li>`).join('')}</ul>`).join('')}</div>`;
+            html += `<div><h3>${aiInsight.nextSteps?.title}</h3><p>${aiInsight.nextSteps?.content}</p></div>`;
         }
         
         exportToExcel(html, 'Relatorio_Dashboard_Progredire');
@@ -604,24 +604,24 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
                 {aiInsight ? (
                     <div id="ai-report-content" className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary.title}</h3>
-                            <p className="text-sm text-slate-600">{aiInsight.summary.content}</p>
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary?.title || 'Sumário Executivo'}</h3>
+                            <p className="text-sm text-slate-600">{aiInsight.summary?.content}</p>
                         </div>
                         <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths.title}</h3>
-                            <ul className="space-y-2 text-sm">{aiInsight.strengths.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths?.title || 'Principais Pontos Fortes'}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.strengths?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
                         </div>
                         <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints.title}</h3>
-                            <ul className="space-y-2 text-sm">{aiInsight.attentionPoints.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints?.title || 'Principais Pontos de Atenção'}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.attentionPoints?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
                         </div>
                         <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations.title}</h3>
-                            <div className="space-y-3 text-sm">{aiInsight.recommendations.points.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-slate-600 mt-1">{p.actions.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations?.title || 'Recomendações Estratégicas'}</h3>
+                            <div className="space-y-3 text-sm">{aiInsight.recommendations?.points?.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-slate-600 mt-1">{p.actions?.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
                         </div>
                         <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps.title}</h3>
-                            <p className="text-sm text-slate-600">{aiInsight.nextSteps.content}</p>
+                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps?.title || 'Próximos Passos'}</h3>
+                            <p className="text-sm text-slate-600">{aiInsight.nextSteps?.content}</p>
                         </div>
                     </div>
                 ) : (data.participationRate > 0 && <p className="text-center text-sm text-slate-500">Clique no botão acima para gerar uma análise estratégica completa dos dados atuais.</p>)}

@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -435,10 +437,10 @@ export const EvolutionView: React.FC = () => {
 
         if (aiInsight) {
             html += `<h2>Análise da Evolução com IA</h2>`;
-            html += `<div><h3>${aiInsight.generalAnalysis.title}</h3><p>${aiInsight.generalAnalysis.content}</p></div>`;
-            html += `<div><h3>${aiInsight.majorAdvances.title}</h3><ul>${aiInsight.majorAdvances.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.attentionPoints.title}</h3><ul>${aiInsight.attentionPoints.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.strategicRecommendation.title}</h3><p>${aiInsight.strategicRecommendation.content}</p></div>`;
+            html += `<div><h3>${aiInsight.generalAnalysis?.title}</h3><p>${aiInsight.generalAnalysis?.content}</p></div>`;
+            html += `<div><h3>${aiInsight.majorAdvances?.title}</h3><ul>${aiInsight.majorAdvances?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.attentionPoints?.title}</h3><ul>${aiInsight.attentionPoints?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.strategicRecommendation?.title}</h3><p>${aiInsight.strategicRecommendation?.content}</p></div>`;
         }
 
         exportToExcel(html, 'Relatorio_Evolucao_Progredire');
@@ -618,20 +620,20 @@ export const EvolutionView: React.FC = () => {
                 {aiInsight && (
                     <div id="ai-evolution-analysis-content" className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
                         <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📈</span>{aiInsight.generalAnalysis.title}</h3>
-                           <p className="text-sm text-slate-600">{aiInsight.generalAnalysis.content}</p>
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📈</span>{aiInsight.generalAnalysis?.title || 'Análise Geral da Trajetória'}</h3>
+                           <p className="text-sm text-slate-600">{aiInsight.generalAnalysis?.content}</p>
                        </div>
                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.majorAdvances.title}</h3>
-                           <ul className="space-y-2 text-sm">{aiInsight.majorAdvances.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.majorAdvances?.title || 'Maiores Avanços'}</h3>
+                           <ul className="space-y-2 text-sm">{aiInsight.majorAdvances?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
                        </div>
                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints.title}</h3>
-                           <ul className="space-y-2 text-sm">{aiInsight.attentionPoints.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints?.title || 'Principais Pontos de Atenção'}</h3>
+                           <ul className="space-y-2 text-sm">{aiInsight.attentionPoints?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
                        </div>
                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🎯</span>{aiInsight.strategicRecommendation.title}</h3>
-                           <p className="text-sm text-slate-600">{aiInsight.strategicRecommendation.content}</p>
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🎯</span>{aiInsight.strategicRecommendation?.title || 'Recomendação Estratégica'}</h3>
+                           <p className="text-sm text-slate-600">{aiInsight.strategicRecommendation?.content}</p>
                        </div>
                    </div>
                 )}

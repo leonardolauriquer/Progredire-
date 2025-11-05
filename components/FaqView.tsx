@@ -37,7 +37,7 @@ const faqData = [
     },
     {
         question: "Como posso entrar em contato com a equipe Progredire+?",
-        answer: "Você pode nos contatar facilmente através da página 'Contato', disponível no menu. Lá você encontrará um formulário para nos enviar uma mensagem diretamente, além de nosso e-mail e outras informações de contato."
+        answer: "Você pode encontrar as informações de contato da nossa equipe, como e-mail e telefone, na página 'Equipe de Apoio', disponível no menu. A equipe de Staff está disponível para um bate-papo confidencial sobre qualquer questão."
     },
     {
         question: "O Progredire+ substitui um terapeuta ou profissional de saúde mental?",
