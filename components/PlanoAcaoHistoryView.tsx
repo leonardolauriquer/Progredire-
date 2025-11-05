@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowDownTrayIcon, ClipboardDocumentCheckIcon } from './icons';
+import { ArrowDownTrayIcon, ClipboardDocumentCheckIcon, FireIcon } from './icons';
 
 // --- Types ---
 type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
@@ -20,6 +21,8 @@ const initialActions: TrackedAction[] = [
     { id: 4, actionTitle: "Agendar happy hours mensais para integração", responsible: "Equipe de Gestores", planFactor: "Relacionamentos e Suporte Social", status: "A Fazer" },
     { id: 5, actionTitle: "Mapear e documentar responsabilidades do time de Marketing", responsible: "João Pereira (Líder Mkt)", planFactor: "Clareza de Papéis", status: "Em Andamento" },
     { id: 6, actionTitle: "Conduzir pesquisa de pulso sobre Liderança", responsible: "Beatriz Lima (RH)", planFactor: "Liderança e Comunicação", status: "Concluído" },
+    { id: 7, actionTitle: "Revisar metas de vendas do Q3", responsible: "Marcos Andrade (Dir. Vendas)", planFactor: "Carga de Trabalho", status: "A Fazer" },
+    { id: 8, actionTitle: "Oferecer workshops de comunicação não-violenta", responsible: "Beatriz Lima (RH)", planFactor: "Relacionamentos e Suporte Social", status: "Em Andamento" },
 ];
 
 const LOCAL_STORAGE_KEY = 'progredire-tracked-actions';
@@ -90,6 +93,53 @@ export const PlanoAcaoHistoryView: React.FC = () => {
         });
     }, [actions, statusFilter, responsibleFilter]);
 
+    const heatmapData = useMemo(() => {
+        const statuses: ActionStatus[] = ['A Fazer', 'Em Andamento', 'Concluído'];
+        const data: Record<string, Record<ActionStatus | 'Total', number>> = {};
+        const allFactors = [...new Set(actions.map(a => a.planFactor))];
+
+        allFactors.forEach(factor => {
+            data[factor] = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
+        });
+
+        actions.forEach(action => {
+            if(data[action.planFactor]) {
+                data[action.planFactor][action.status]++;
+                data[action.planFactor]['Total']++;
+            }
+        });
+
+        const totals: Record<ActionStatus | 'Total', number> = { 'A Fazer': 0, 'Em Andamento': 0, 'Concluído': 0, 'Total': 0 };
+        Object.values(data).forEach(factorData => {
+            statuses.forEach(status => totals[status] += factorData[status]);
+            totals['Total'] += factorData['Total'];
+        });
+
+        return { factors: data, totals, factorsList: allFactors, statuses };
+    }, [actions]);
+
+    const maxCount = useMemo(() => {
+        // FIX: Correctly filter out the 'Total' count before finding the max value for the heatmap.
+        // The original code incorrectly tried to filter an array of values by a key, which caused a type error.
+        // This version uses object destructuring to get only the status counts, excluding 'Total'.
+        const counts = Object.values(heatmapData.factors).flatMap(factorData => {
+            const { Total, ...statusCounts } = factorData;
+            return Object.values(statusCounts);
+        });
+        return Math.max(...counts, 1);
+    }, [heatmapData]);
+
+    const getHeatmapColor = (count: number) => {
+        if (count === 0) return 'bg-slate-50 text-slate-600';
+        const intensity = Math.min(count / (maxCount / 1.5), 1); // Adjust divisor for better color spread
+        if (intensity > 0.8) return 'bg-blue-700 text-white';
+        if (intensity > 0.6) return 'bg-blue-600 text-white';
+        if (intensity > 0.4) return 'bg-blue-400 text-slate-800';
+        if (intensity > 0.2) return 'bg-blue-200 text-slate-800';
+        return 'bg-blue-100 text-slate-800';
+    };
+
+
     const handleStatusChange = (id: number, newStatus: ActionStatus) => {
         const updatedActions = actions.map(action => 
             action.id === id ? { ...action, status: newStatus } : action
@@ -122,6 +172,48 @@ export const PlanoAcaoHistoryView: React.FC = () => {
                 <p className="text-slate-600 mt-1 max-w-3xl">
                     Centralize e gerencie todas as ações em andamento na organização.
                 </p>
+            </div>
+
+            <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg border border-slate-200">
+                <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+                    <FireIcon className="w-6 h-6 mr-2 text-orange-500"/>
+                    Mapa de Calor das Ações
+                </h2>
+                <div className="overflow-x-auto">
+                     <table className="min-w-full border-collapse border border-slate-200">
+                        <thead className="bg-slate-100">
+                            <tr>
+                                <th scope="col" className="p-2 border border-slate-200 text-left text-sm font-medium text-slate-600">Fator de Risco</th>
+                                {heatmapData.statuses.map(status => (
+                                    <th key={status} scope="col" className="p-2 border border-slate-200 text-center text-sm font-medium text-slate-600">{status}</th>
+                                ))}
+                                <th scope="col" className="p-2 border border-slate-200 text-center text-sm font-medium text-slate-600">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {heatmapData.factorsList.map(factor => (
+                                <tr key={factor}>
+                                    <th scope="row" className="p-2 border border-slate-200 text-left text-sm font-medium text-slate-700">{factor}</th>
+                                    {heatmapData.statuses.map(status => (
+                                        <td key={status} className={`p-2 border border-slate-200 text-center font-bold text-sm ${getHeatmapColor(heatmapData.factors[factor][status])}`}>
+                                            {heatmapData.factors[factor][status]}
+                                        </td>
+                                    ))}
+                                    <td className="p-2 border border-slate-200 text-center bg-slate-100 font-bold text-sm text-slate-700">{heatmapData.factors[factor]['Total']}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                        <tfoot>
+                            <tr className="bg-slate-200">
+                                <th scope="row" className="p-2 border border-slate-300 text-left text-sm font-bold text-slate-800">Total Geral</th>
+                                {heatmapData.statuses.map(status => (
+                                    <td key={status} className="p-2 border border-slate-300 text-center font-bold text-sm text-slate-800">{heatmapData.totals[status]}</td>
+                                ))}
+                                <td className="p-2 border border-slate-300 text-center font-bold text-sm text-slate-800">{heatmapData.totals['Total']}</td>
+                            </tr>
+                        </tfoot>
+                     </table>
+                </div>
             </div>
 
             <div className="bg-white p-4 md:p-6 rounded-2xl shadow-lg border border-slate-200">
