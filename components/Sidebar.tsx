@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon } from './icons';
 // FIX: Import ActiveView from App to ensure type consistency across components.
 import { ActiveView } from '../App';
 
@@ -15,8 +15,9 @@ interface SidebarProps {
 
 const navigation = [
   { name: 'Início', view: 'home', icon: HomeIcon },
+  { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-  { name: 'Análise', view: 'corporate_survey', icon: PencilSquareIcon },
+  { name: 'Diagnóstico Corp.', view: 'corporate_survey', icon: PencilSquareIcon },
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
   { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
   { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },

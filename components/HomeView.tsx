@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -101,17 +100,23 @@ export const HomeView: React.FC<HomeViewProps> = ({ setActiveView }) => {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <ActionCard
+                icon={BrainIcon}
+                title="Reflexão Pessoal"
+                description="Descreva um sentimento ou desafio e receba uma nova perspectiva da IA para guiar sua auto-reflexão."
+                onClick={() => setActiveView('personal_reflection')}
+            />
             <ActionCard
                 icon={PencilSquareIcon}
-                title="Análise Organizacional"
-                description="Preencha o questionário de riscos psicossociais e receba uma análise preliminar para entender o cenário da sua equipe."
+                title="Diagnóstico Corporativo"
+                description="Preencha o questionário de riscos e receba uma análise preliminar para entender o cenário da sua equipe."
                 onClick={() => setActiveView('corporate_survey')}
             />
             <ActionCard
                 icon={ChartBarIcon}
                 title="Dashboard Organizacional"
-                description="Explore dados agregados, compare resultados e gere relatórios estratégicos com IA para aprimorar o ambiente de trabalho."
+                description="Explore dados agregados e gere relatórios estratégicos com IA para aprimorar o ambiente de trabalho."
                 onClick={() => setActiveView('dashboard')}
             />
         </div>

@@ -150,22 +150,72 @@ Sua tarefa é gerar um pensamento ou insight curto, inspirador e reflexivo para 
 - A resposta deve ser em português do Brasil.
 `;
 
+const evolutionResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        generalAnalysis: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para a análise geral. Ex: 'Análise Geral da Trajetória'." },
+                content: { type: Type.STRING, description: "Parágrafo resumindo a tendência da 'Saúde Geral'." },
+            },
+        },
+        majorAdvances: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para os pontos de avanço. Ex: 'Maiores Avanços'." },
+                points: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            factor: { type: Type.STRING, description: "Nome do fator que melhorou significativamente." },
+                            description: { type: Type.STRING, description: "Descrição do que a melhora representa." },
+                        },
+                    },
+                },
+            },
+        },
+        attentionPoints: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para os pontos de atenção. Ex: 'Principais Pontos de Atenção'." },
+                points: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            factor: { type: Type.STRING, description: "Nome do fator que piorou ou está em nível crítico." },
+                            description: { type: Type.STRING, description: "Descrição do impacto potencial deste ponto." },
+                        },
+                    },
+                },
+            },
+        },
+        strategicRecommendation: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING, description: "Título para a recomendação. Ex: 'Recomendação Estratégica'." },
+                content: { type: Type.STRING, description: "Recomendação final e acionável para a liderança." },
+            },
+        },
+    },
+};
+
 const systemInstructionEvolution = `
-Você é um consultor de RH e especialista em psicologia organizacional. Sua tarefa é analisar uma série de dados históricos sobre múltiplos indicadores de risco psicossocial e fornecer um relatório de evolução completo.
+Você é um consultor de RH e especialista em psicologia organizacional. Sua tarefa é analisar uma série de dados históricos sobre múltiplos indicadores de risco psicossocial e preencher o schema JSON fornecido com um relatório de evolução.
 
-O usuário fornecerá a evolução da "Saúde Geral" e de 10 fatores de risco individuais, incluindo pontuações iniciais e finais.
+O usuário fornecerá a evolução dos indicadores, incluindo pontuações iniciais e finais. Sua análise deve focar na MUDANÇA (melhora ou piora) ao longo do tempo.
 
-Estruture sua resposta da seguinte forma:
-1.  **Título:** Crie um título claro como "Relatório de Evolução Organizacional".
-2.  **Análise Geral:** Com base na tendência da "Saúde Geral", forneça um parágrafo resumindo a trajetória da organização no período. A empresa está melhorando, piorando ou estagnada? Mencione a variação total da saúde geral.
-3.  **Maiores Avanços:** Identifique os 2 ou 3 fatores de risco que tiveram a melhora mais significativa. Para cada um, descreva o que essa melhora representa em termos práticos para os colaboradores.
-4.  **Principais Pontos de Atenção:** Identifique os 2 ou 3 fatores de risco que mais pioraram ou que, mesmo estáveis, permanecem em níveis críticos. Explique o impacto potencial desses pontos para a organização.
-5.  **Recomendação Estratégica Holística:** Com base na análise completa, forneça uma recomendação estratégica final. O que a liderança deve focar nos próximos meses? Sugira uma ação prioritária.
+Análise para o JSON:
+- **generalAnalysis**: Crie um título como "Análise Geral da Trajetória". No conteúdo, resuma a tendência da "Saúde Geral". A empresa está melhorando, piorando ou estagnada? Baseie-se na variação entre a pontuação inicial e final.
+- **majorAdvances**: Crie um título como "Maiores Avanços". Identifique os 2-3 fatores que tiveram a melhora mais significativa (maior aumento). Descreva o que essa melhora representa na prática.
+- **attentionPoints**: Crie um título como "Principais Pontos de Atenção". Identifique os 2-3 fatores que mais pioraram ou que, mesmo estáveis, permanecem em níveis críticos (baixas pontuações finais). Explique o impacto potencial.
+- **strategicRecommendation**: Crie um título como "Recomendação Estratégica". Com base na análise completa, forneça uma recomendação clara e acionável. O que a liderança deve focar nos próximos meses?
 
-**REGRAS:**
+REGRAS:
 - Mantenha um tom de consultor: objetivo, analítico e propositivo.
-- Use os nomes dos fatores de risco fornecidos.
-- A resposta deve ser concisa e focada nos pontos solicitados.
+- Preencha todos os campos do schema JSON.
 - A resposta deve ser em português do Brasil.
 `;
 
@@ -231,6 +281,25 @@ export async function runDashboardAnalysis(dashboardData: string): Promise<strin
 }
 
 export async function runEvolutionAnalysis(evolutionData: string): Promise<string> {
-    const prompt = `Aqui estão os dados da evolução de um indicador. Por favor, analise-os e gere um relatório de tendência conforme as instruções:\n\n${evolutionData}`;
-    return callGemini(prompt, systemInstructionEvolution);
+    const prompt = `Aqui estão os dados da evolução dos indicadores de saúde organizacional. Por favor, analise-os e gere um relatório de tendência conforme as instruções, preenchendo o schema JSON:\n\n${evolutionData}`;
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                systemInstruction: systemInstructionEvolution,
+                responseMimeType: "application/json",
+                responseSchema: evolutionResponseSchema,
+            }
+        });
+
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API for evolution analysis:", error);
+        if (error instanceof Error) {
+            throw new Error(`Failed to get analysis from AI: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred while communicating with the AI.");
+    }
 }

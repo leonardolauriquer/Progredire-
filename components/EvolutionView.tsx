@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -24,6 +23,13 @@ type EvolutionData = {
     endScore: number;
     change: number;
 };
+
+interface EvolutionInsightData {
+    generalAnalysis: { title: string; content: string };
+    majorAdvances: { title: string; points: { factor: string; description: string }[] };
+    attentionPoints: { title: string; points: { factor: string; description: string }[] };
+    strategicRecommendation: { title: string; content: string };
+}
 
 // Calculates evolution data for all factors
 const calculateAllFactorsEvolution = (): Record<string, EvolutionData> => {
@@ -132,7 +138,7 @@ const FactorEvolutionCard: React.FC<{ factorName: string; data: EvolutionData }>
 
 
 export const EvolutionView: React.FC = () => {
-    const [aiInsight, setAiInsight] = useState<string>('');
+    const [aiInsight, setAiInsight] = useState<EvolutionInsightData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -141,7 +147,7 @@ export const EvolutionView: React.FC = () => {
     const handleGenerateInsight = useCallback(async () => {
         setIsLoading(true);
         setError(null);
-        setAiInsight('');
+        setAiInsight(null);
 
         const generalData = evolutionData.geral;
         if (!generalData || generalData.labels.length === 0) {
@@ -152,16 +158,14 @@ export const EvolutionView: React.FC = () => {
 
         let promptData = `Análise do período de ${generalData.labels[0]} a ${generalData.labels[generalData.labels.length - 1]}:\n\n`;
         
-        // FIX: Replaced Object.entries with Object.keys to ensure correct type inference for 'data'.
-        // This resolves the error where properties 'startScore' and 'endScore' were not found on type 'unknown'.
         Object.keys(evolutionData).forEach((factorId) => {
             const data = evolutionData[factorId];
             promptData += `- ${factorIdToName[factorId]}:\n  - Pontuação Inicial: ${data.startScore}\n  - Pontuação Final: ${data.endScore}\n\n`;
         });
 
         try {
-            const result = await runEvolutionAnalysis(promptData);
-            setAiInsight(result);
+            const resultString = await runEvolutionAnalysis(promptData);
+            setAiInsight(JSON.parse(resultString));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
         } finally {
@@ -197,17 +201,30 @@ export const EvolutionView: React.FC = () => {
                     </div>
                 )}
                 {aiInsight && (
-                     <div 
-                        className="prose prose-slate max-w-none bg-slate-50/70 border border-slate-200 p-4 rounded-xl mt-4"
-                        dangerouslySetInnerHTML={{ __html: aiInsight.replace(/\n/g, '<br />') }}
-                     />
+                    <div className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
+                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📈</span>{aiInsight.generalAnalysis.title}</h3>
+                           <p className="text-sm text-slate-600">{aiInsight.generalAnalysis.content}</p>
+                       </div>
+                       <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.majorAdvances.title}</h3>
+                           <ul className="space-y-2 text-sm">{aiInsight.majorAdvances.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                       </div>
+                       <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints.title}</h3>
+                           <ul className="space-y-2 text-sm">{aiInsight.attentionPoints.points.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                       </div>
+                       <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
+                           <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🎯</span>{aiInsight.strategicRecommendation.title}</h3>
+                           <p className="text-sm text-slate-600">{aiInsight.strategicRecommendation.content}</p>
+                       </div>
+                   </div>
                 )}
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
                 <h2 className="text-xl font-semibold text-slate-800 mb-4">Evolução por Dimensão de Risco</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {/* FIX: Replaced Object.entries with Object.keys to ensure correct type inference for the 'data' prop passed to FactorEvolutionCard. */}
                     {Object.keys(evolutionData).map((factorId) => {
                         if (factorId === 'geral') return null;
                         const data = evolutionData[factorId];

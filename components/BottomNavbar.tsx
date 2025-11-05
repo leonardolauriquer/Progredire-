@@ -1,7 +1,6 @@
 
-
 import React from 'react';
-import { HomeIcon, ChartBarIcon, PencilSquareIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon } from './icons';
+import { HomeIcon, ChartBarIcon, PencilSquareIcon, BrainIcon, ArrowTrendingUpIcon } from './icons';
 import { ActiveView } from '../App';
 
 interface BottomNavbarProps {
@@ -12,10 +11,10 @@ interface BottomNavbarProps {
 
 const navigation = [
     { name: 'Início', view: 'home', icon: HomeIcon },
+    { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-    { name: 'Análise', view: 'corporate_survey', icon: PencilSquareIcon },
+    { name: 'Diagnóstico', view: 'corporate_survey', icon: PencilSquareIcon },
     { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
-    { name: 'Plano Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
 ];
 
 const NavItem: React.FC<{

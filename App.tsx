@@ -10,8 +10,9 @@ import { BottomNavbar } from './components/BottomNavbar';
 import { EvolutionView } from './components/EvolutionView';
 import { PlanoAcaoView } from './components/PlanoAcaoView';
 import { SettingsView } from './components/SettingsView';
+import { AnalysisView } from './components/AnalysisView';
 
-export type ActiveView = 'home' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ActiveView>('home');
@@ -20,6 +21,8 @@ const App: React.FC = () => {
     switch (activeView) {
       case 'home':
         return <HomeView setActiveView={setActiveView} />;
+      case 'personal_reflection':
+        return <AnalysisView />;
       case 'dashboard':
         return <DashboardView />;
       case 'corporate_survey':
