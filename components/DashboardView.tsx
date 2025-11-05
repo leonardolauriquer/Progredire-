@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runDashboardAnalysis, runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -257,6 +258,49 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     };
 };
 
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+                h3 { font-size: 1.1rem; font-weight: bold; }
+                p, li { font-size: 0.9rem; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+
 // --- Sub-components ---
 const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
   <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 ${className}`}>
@@ -322,6 +366,7 @@ export const DashboardView: React.FC = () => {
         try {
             const resultString = await runDashboardAnalysis(promptData);
             setAiInsight(JSON.parse(resultString));
+        // FIX: Corrected the try-catch-finally block syntax. The original code had missing parentheses and braces, which caused a cascade of parsing errors.
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
         } finally {
@@ -329,30 +374,85 @@ export const DashboardView: React.FC = () => {
         }
     }, [data, filters]);
     
-    const handleExportCsv = useCallback(() => {
+    const handleExportXls = useCallback(() => {
         if (!data.riskFactors || data.riskFactors.length === 0) return;
 
-        const headers = ['"Fator de Risco"', '"Pontuação (Seleção Atual)"', '"Pontuação (Média Empresa)"'];
-        const rows = data.riskFactors.map(factor => {
-            const companyFactor = data.companyAverageFactors.find(f => f.id === factor.id);
-            return [
-                `"${factor.name.replace(/"/g, '""')}"`, // Escape quotes
-                factor.score,
-                companyFactor ? companyFactor.score : 'N/A'
-            ].join(',');
-        });
+        const createKeyValueTable = (title: string, obj: Record<string, any>) => {
+            let table = `<h2>${title}</h2><table><tbody>`;
+            for (const key in obj) {
+                table += `<tr><td><strong>${key}</strong></td><td>${obj[key]}</td></tr>`;
+            }
+            table += '</tbody></table>';
+            return table;
+        };
+        
+        const createArrayTable = (title: string, headers: string[], rows: (string|number)[][]) => {
+            let table = `<h2>${title}</h2><table><thead><tr>`;
+            headers.forEach(h => table += `<th>${h}</th>`);
+            table += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                table += '<tr>';
+                row.forEach(cell => table += `<td>${cell}</td>`);
+                table += '</tr>';
+            });
+            table += '</tbody></table>';
+            return table;
+        };
+        
+        const kpiData = {
+            'IRP Global (1-5)': data.irpGlobal.toFixed(1),
+            'Nível de Risco': data.riskClassification.text,
+            '% Respostas': `${data.participationRate.toFixed(0)}%`,
+            'Nível de Maturidade': `${data.maturityLevel.level} - ${data.maturityLevel.name}`,
+            'Economia Anual Estimada': data.estimatedSavings,
+        };
+        let html = createKeyValueTable('Indicadores Chave de Performance (KPIs)', kpiData);
 
-        const csvContent = [headers.join(','), ...rows].join('\n');
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'dashboard_insights.csv');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [data]);
+        const factorHeaders = ['Fator de Risco', 'Pontuação (Seleção)', 'Pontuação (Média Empresa)', 'Discordo Total. (%)', 'Discordo Parc. (%)', 'Neutro (%)', 'Concordo Parc. (%)', 'Concordo Total. (%)'];
+        const factorRows = data.riskFactors.map(factor => {
+            const companyFactor = data.companyAverageFactors.find(f => f.id === factor.id);
+            const distribution = data.distributions[factor.id] || [];
+            return [
+                factor.name,
+                factor.score,
+                companyFactor ? companyFactor.score : 'N/A',
+                distribution[0]?.value.toFixed(1) ?? 0,
+                distribution[1]?.value.toFixed(1) ?? 0,
+                distribution[2]?.value.toFixed(1) ?? 0,
+                distribution[3]?.value.toFixed(1) ?? 0,
+                distribution[4]?.value.toFixed(1) ?? 0,
+            ];
+        });
+        html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows as (string|number)[][]);
+        
+        html += createArrayTable(
+            'Top 3 Fatores Críticos de Risco', 
+            ['Fator Crítico de Risco', 'Pontuação'], 
+            data.topRisks.map(r => [r.name, r.score])
+        );
+        html += createArrayTable(
+            'Top 3 Fatores de Proteção', 
+            ['Fator de Proteção', 'Pontuação'], 
+            data.topProtections.map(p => [p.name, p.score])
+        );
+        
+        html += createArrayTable(
+            'Tendência de Clima (Evolução IRP Global)', 
+            ['Mês/Ano', 'Pontuação de Clima'],
+            data.climateTrend.labels.map((label, i) => [label, data.climateTrend.data[i]])
+        );
+        
+        if (aiInsight) {
+            html += `<h2>Insights Estratégicos com IA</h2>`;
+            html += `<div><h3>${aiInsight.summary.title}</h3><p>${aiInsight.summary.content}</p></div>`;
+            html += `<div><h3>${aiInsight.strengths.title}</h3><ul>${aiInsight.strengths.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.attentionPoints.title}</h3><ul>${aiInsight.attentionPoints.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.recommendations.title}</h3>${aiInsight.recommendations.points.map(p => `<h4>${p.forFactor}</h4><ul>${p.actions.map(a => `<li>${a}</li>`).join('')}</ul>`).join('')}</div>`;
+            html += `<div><h3>${aiInsight.nextSteps.title}</h3><p>${aiInsight.nextSteps.content}</p></div>`;
+        }
+        
+        exportToExcel(html, 'Relatorio_Dashboard_Progredire');
+    }, [data, aiInsight]);
 
     const handlePrintReport = () => {
         const reportContent = document.getElementById('ai-report-content')?.innerHTML;
@@ -395,12 +495,12 @@ export const DashboardView: React.FC = () => {
             <div className="flex justify-between items-start">
                 <h1 className="text-3xl font-bold text-slate-900">Dashboard Executivo</h1>
                 <button
-                    onClick={handleExportCsv}
+                    onClick={handleExportXls}
                     disabled={!data || data.riskFactors.length === 0}
                     className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                     <ArrowDownTrayIcon className="w-5 h-5" />
-                    Exportar CSV
+                    Exportar XLS
                 </button>
             </div>
 

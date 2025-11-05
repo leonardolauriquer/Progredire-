@@ -52,6 +52,48 @@ const getPeriodKey = (date: Date): string => {
     return `${year}-${String(month).padStart(2, '0')}`;
 };
 
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+                h3 { font-size: 1.1rem; font-weight: bold; }
+                p, li { font-size: 0.9rem; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 const calculateMultiSectorEvolution = (
     periodRange: PeriodRange,
     selectedSectors: string[],
@@ -355,26 +397,51 @@ export const EvolutionView: React.FC = () => {
         }
     }, [allFactorsEvolutionData]);
     
-    const handleExportChartCsv = useCallback(() => {
+    const handleExportXls = useCallback(() => {
         if (!chartEvolutionData || chartEvolutionData.labels.length === 0) return;
 
-        const headers = ['"Mês"', ...chartEvolutionData.datasets.map(ds => `"${ds.label.replace(/"/g, '""')}"`)];
-        const rows = chartEvolutionData.labels.map((label, index) => {
-            const rowData = chartEvolutionData.datasets.map(ds => ds.data[index] ?? '');
-            return [`"${label}"`, ...rowData].join(',');
-        });
+        const createArrayTable = (title: string, headers: string[], rows: (string|number|null)[][]) => {
+            let table = `<h2>${title}</h2><table><thead><tr>`;
+            headers.forEach(h => table += `<th>${h}</th>`);
+            table += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                table += '<tr>';
+                row.forEach(cell => table += `<td>${cell ?? ''}</td>`);
+                table += '</tr>';
+            });
+            table += '</tbody></table>';
+            return table;
+        };
 
-        const csvContent = [headers.join(','), ...rows].join('\n');
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `evolucao_${selectedFactorId}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [chartEvolutionData, selectedFactorId]);
+        let html = '';
+        
+        const chartHeaders = ['Mês', ...chartEvolutionData.datasets.map(ds => ds.label)];
+        const chartRows = chartEvolutionData.labels.map((label, index) => {
+            return [label, ...chartEvolutionData.datasets.map(ds => ds.data[index] ?? null)];
+        });
+        html += createArrayTable(`Evolução - ${factorIdToName[selectedFactorId]}`, chartHeaders, chartRows);
+
+        const moversHeaders = ['Fator de Risco', 'Pontuação Inicial', 'Pontuação Final', 'Variação (%)'];
+        const topMoversRows = topMovers.map(([id, data]) => [
+            factorIdToName[id], data.startScore, data.endScore, data.change.toFixed(1)
+        ]);
+        html += createArrayTable('Maiores Avanços (Período Completo)', moversHeaders, topMoversRows as (string|number)[][]);
+        
+        const bottomMoversRows = bottomMovers.map(([id, data]) => [
+            factorIdToName[id], data.startScore, data.endScore, data.change.toFixed(1)
+        ]);
+        html += createArrayTable('Principais Pontos de Atenção (Período Completo)', moversHeaders, bottomMoversRows as (string|number)[][]);
+
+        if (aiInsight) {
+            html += `<h2>Análise da Evolução com IA</h2>`;
+            html += `<div><h3>${aiInsight.generalAnalysis.title}</h3><p>${aiInsight.generalAnalysis.content}</p></div>`;
+            html += `<div><h3>${aiInsight.majorAdvances.title}</h3><ul>${aiInsight.majorAdvances.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.attentionPoints.title}</h3><ul>${aiInsight.attentionPoints.points.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h3>${aiInsight.strategicRecommendation.title}</h3><p>${aiInsight.strategicRecommendation.content}</p></div>`;
+        }
+
+        exportToExcel(html, 'Relatorio_Evolucao_Progredire');
+    }, [chartEvolutionData, selectedFactorId, topMovers, bottomMovers, aiInsight]);
 
     const handlePrintAnalysis = () => {
         const analysisContent = document.getElementById('ai-evolution-analysis-content')?.innerHTML;
@@ -428,12 +495,12 @@ export const EvolutionView: React.FC = () => {
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                     <h2 className="text-xl font-semibold text-slate-800">Gráfico de Evolução</h2>
                     <button
-                        onClick={handleExportChartCsv}
+                        onClick={handleExportXls}
                         disabled={!chartEvolutionData || chartEvolutionData.labels.length === 0}
                         className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                         <ArrowDownTrayIcon className="w-5 h-5" />
-                        Exportar CSV do Gráfico
+                        Exportar Dados (XLS)
                     </button>
                 </div>
 

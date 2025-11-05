@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
-import { PrinterIcon } from './icons';
+import { ArrowDownTrayIcon } from './icons';
 
 // --- Types & Data ---
 
@@ -203,6 +203,46 @@ const calculateCompanyData = () => {
     return { maturityLevel, topRisks, mostAffectedSectors };
 };
 
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; width: 100%; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; vertical-align: top; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 // --- Sub-components ---
 
 const InfoCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
@@ -229,8 +269,51 @@ export const PlanoAcaoView: React.FC = () => {
     const { maturityLevel, topRisks, mostAffectedSectors } = useMemo(() => calculateCompanyData(), []);
     const currentPlan = actionPlans[maturityLevel.level as keyof typeof actionPlans];
 
-    const handlePrintPlan = () => {
-        window.print();
+    const handleExportXls = () => {
+        if (!currentPlan) return;
+        
+        const createKeyValueTable = (title: string, obj: Record<string, any>) => {
+            let table = `<h2>${title}</h2><table><tbody>`;
+            for (const key in obj) {
+                table += `<tr><td><strong>${key}</strong></td><td>${obj[key]}</td></tr>`;
+            }
+            table += '</tbody></table>';
+            return table;
+        };
+
+        const createArrayTable = (title: string, headers: string[], rows: (string|number)[][]) => {
+            let table = `<h2>${title}</h2><table><thead><tr>`;
+            headers.forEach(h => table += `<th>${h}</th>`);
+            table += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                table += '<tr>';
+                row.forEach(cell => table += `<td>${cell}</td>`);
+                table += '</tr>';
+            });
+            table += '</tbody></table>';
+            return table;
+        };
+        
+        let html = `<h1>Plano de Ação Direcionado - Progredire+</h1>`;
+
+        const summaryData = {
+            'Nível de Maturidade Geral': currentPlan.level,
+            'Dimensões Mais Críticas': topRisks.map(r => r.name).join(', '),
+            'Setores Mais Afetados': mostAffectedSectors.map(s => `${s.sector} (IRP: ${s.score.toFixed(1)})`).join(', ')
+        };
+        html += createKeyValueTable('Resumo do Diagnóstico', summaryData);
+
+        const planHeaders = ['Seção do Plano', 'Detalhes'];
+        const planRows = [
+            ['Diagnóstico', currentPlan.diagnosis],
+            ['Objetivo Estratégico', currentPlan.strategicObjective],
+            ['Foco de Atuação', currentPlan.focus],
+            ['Ações Sugeridas', `<ul>${currentPlan.suggestedActions.map(a => `<li>${a}</li>`).join('')}</ul>`],
+            ['Indicadores de Resultado', `<ul>${currentPlan.resultIndicators.map(i => `<li>${i}</li>`).join('')}</ul>`]
+        ];
+        html += createArrayTable('Plano de Ação Detalhado', planHeaders, planRows as (string|number)[][]);
+        
+        exportToExcel(html, 'Plano_de_Acao_Progredire');
     };
 
     if (!currentPlan) {
@@ -244,26 +327,6 @@ export const PlanoAcaoView: React.FC = () => {
 
     return (
         <>
-            <style>{`
-                @media print {
-                    body > #root > aside,
-                    body > #root > .md\\:pl-64 > header,
-                    body > #root > nav,
-                    .no-print {
-                        display: none !important;
-                    }
-                    body > #root > .md\\:pl-64 {
-                        padding-left: 0 !important;
-                    }
-                    main {
-                        padding: 1rem !important;
-                    }
-                    .printable-area {
-                        box-shadow: none !important;
-                        border: none !important;
-                    }
-                }
-            `}</style>
             <div className="space-y-6">
                  <div className="flex justify-between items-start">
                     <div>
@@ -273,11 +336,11 @@ export const PlanoAcaoView: React.FC = () => {
                         </p>
                     </div>
                     <button
-                        onClick={handlePrintPlan}
+                        onClick={handleExportXls}
                         className="no-print ml-4 flex-shrink-0 flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     >
-                        <PrinterIcon className="w-5 h-5" />
-                        Imprimir Plano
+                        <ArrowDownTrayIcon className="w-5 h-5" />
+                        Exportar Plano (XLS)
                     </button>
                 </div>
 
