@@ -1,12 +1,11 @@
 
-
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { BrainIcon, PencilSquareIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, NexusTechLogo, AuraDigitalLogo, ShieldCheckIcon } from './icons';
 import { ActiveView } from '../App';
 
-interface HomeViewProps {
+interface CompanyHomeViewProps {
   // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
   setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
   onNavigateToDashboard: (filters?: Record<string, string>) => void;
@@ -35,7 +34,7 @@ const ActionCard: React.FC<{
   </button>
 );
 
-export const HomeView: React.FC<HomeViewProps> = ({ setActiveView, onNavigateToDashboard }) => {
+export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView, onNavigateToDashboard }) => {
     const [insight, setInsight] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);

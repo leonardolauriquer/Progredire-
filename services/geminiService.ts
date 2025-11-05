@@ -150,6 +150,19 @@ Sua tarefa é gerar um pensamento ou insight curto, inspirador e reflexivo para 
 - A resposta deve ser em português do Brasil.
 `;
 
+const systemInstructionFeelingInsight = `
+Você é um assistente de IA focado em bem-estar e inteligência emocional.
+Sua tarefa é gerar uma mensagem curta, empática e encorajadora baseada no sentimento que o usuário selecionou.
+
+REGRAS:
+- A resposta deve ser um único parágrafo, com no máximo 2 frases.
+- Mantenha um tom positivo, gentil e de apoio.
+- Valide o sentimento do usuário e ofereça uma pequena reflexão ou palavra de encorajamento.
+- NÃO use saudações como "Olá!". Vá direto ao ponto.
+- A resposta deve ser em português do Brasil.
+`;
+
+
 const evolutionResponseSchema = {
     type: Type.OBJECT,
     properties: {
@@ -312,6 +325,11 @@ async function callGemini(userInput: string, instruction: string): Promise<strin
 
 export async function getDailyInsight(): Promise<string> {
     return callGemini("Por favor, gere um insight para o dia.", systemInstructionDailyInsight);
+}
+
+export async function getInsightForFeeling(feeling: string): Promise<string> {
+    const prompt = `Gere uma mensagem para alguém que está se sentindo: ${feeling}`;
+    return callGemini(prompt, systemInstructionFeelingInsight);
 }
 
 export async function runAnalysis(userInput: string): Promise<string> {

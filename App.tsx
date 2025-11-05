@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { HomeView } from './components/HomeView';
+import { CompanyHomeView } from './components/HomeView';
 import { CorporateSurveyView } from './components/CorporateSurveyView';
 import { DashboardView } from './components/DashboardView';
 import { FaqView } from './components/FaqView';
@@ -15,6 +15,7 @@ import { PlanoAcaoHistoryView } from './components/PlanoAcaoHistoryView';
 import { CampaignView } from './components/CampaignView';
 import { SupportTeamView } from './components/SupportTeamView';
 import { LoginView } from './components/LoginView';
+import { CollaboratorHomeView } from './components/CollaboratorHomeView';
 
 export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team';
 export type UserRole = 'company' | 'collaborator';
@@ -41,7 +42,10 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeView) {
       case 'home':
-        return <HomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'collaborator') {
+          return <CollaboratorHomeView setActiveView={setActiveView} />;
+        }
+        return <CompanyHomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
       case 'personal_reflection':
         return <AnalysisView />;
       case 'dashboard':
@@ -63,7 +67,10 @@ const App: React.FC = () => {
       case 'support_team':
         return <SupportTeamView />;
       default:
-        return <HomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'collaborator') {
+          return <CollaboratorHomeView setActiveView={setActiveView} />;
+        }
+        return <CompanyHomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
     }
   };
   
