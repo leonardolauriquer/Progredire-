@@ -1,11 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
-import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon } from './icons';
+import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
 import { ActiveView } from '../App';
 
 // --- Types ---
-type CampaignStatus = 'Em Andamento' | 'Concluída' | 'Agendada';
+type CampaignStatus = 'Em Andamento' | 'Concluída' | 'Agendada' | 'Pendente';
 interface Campaign {
     id: number;
     name: string;
@@ -27,7 +27,7 @@ interface CampaignViewProps {
 const initialCampaigns: Campaign[] = [
     { id: 1, name: "Diagnóstico Q3 - Tecnologia", description: "Avaliação trimestral da equipe de tecnologia.", status: "Em Andamento", targetAudience: "Diretoria de Tecnologia", adherence: 65, startDate: "2024-07-15", endDate: "2024-08-15", emailMessage: "...", filters: {diretoria: 'Tecnologia'}},
     { id: 2, name: "Pesquisa de Clima - Vendas & Mkt", description: "Análise do clima e engajamento das equipes comerciais.", status: "Concluída", targetAudience: "Diretoria de Vendas & Mkt", adherence: 92, startDate: "2024-05-01", endDate: "2024-05-30", emailMessage: "...", filters: {diretoria: 'Vendas & Mkt'}},
-    { id: 3, name: "Diagnóstico Anual Geral", description: "Pesquisa de clima para toda a empresa.", status: "Agendada", targetAudience: "Toda a empresa", adherence: 0, startDate: "2024-09-01", endDate: "2024-09-30", emailMessage: "...", filters: {}},
+    { id: 3, name: "Diagnóstico Anual Geral", description: "Pesquisa de clima para toda a empresa.", status: "Pendente", targetAudience: "Toda a empresa", adherence: 0, startDate: "2024-09-01", endDate: "2024-09-30", emailMessage: "...", filters: {}},
 ];
 
 const defaultEmailMessage = `Olá, [Nome do Colaborador],
@@ -50,12 +50,14 @@ const CampaignCard: React.FC<{
     campaign: Campaign;
     onViewReport: (filters: Record<string, string>) => void;
     onTakeSurvey: () => void;
-}> = ({ campaign, onViewReport, onTakeSurvey }) => {
+    onApprove: (campaignId: number) => void;
+}> = ({ campaign, onViewReport, onTakeSurvey, onApprove }) => {
     const getStatusStyles = (status: CampaignStatus) => {
         switch (status) {
             case 'Em Andamento': return 'bg-blue-100 text-blue-800';
             case 'Concluída': return 'bg-green-100 text-green-800';
             case 'Agendada': return 'bg-yellow-100 text-yellow-800';
+            case 'Pendente': return 'bg-orange-100 text-orange-800';
         }
     };
 
@@ -85,19 +87,38 @@ const CampaignCard: React.FC<{
                 </div>
             </div>
             <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-slate-200">
-                {campaign.status === 'Concluída' ? (
-                     <button onClick={() => onViewReport(campaign.filters)} className="w-full flex items-center justify-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300">
-                        <EyeIcon className="w-4 h-4"/> Ver Relatório
-                    </button>
-                ) : (
+                {campaign.status === 'Pendente' && (
+                    <div className="w-full text-center">
+                        <button
+                            onClick={() => onApprove(campaign.id)}
+                            className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md"
+                        >
+                            <ShieldCheckIcon className="w-4 h-4"/>
+                            Aprovar Campanha
+                        </button>
+                        <p className="text-xs text-slate-500 mt-2">Aguardando aprovação da Staff.</p>
+                    </div>
+                )}
+                {campaign.status === 'Agendada' && (
+                     <>
+                        <button onClick={onTakeSurvey} className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300">Responder Pesquisa</button>
+                        <button onClick={() => onViewReport(campaign.filters)} className="flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300">
+                            <EyeIcon className="w-4 h-4"/> Ver Relatório
+                        </button>
+                    </>
+                )}
+                {campaign.status === 'Em Andamento' && (
                     <>
                         <button className="text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md">Enviar Lembrete</button>
                         <button onClick={onTakeSurvey} className="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300">Responder Pesquisa</button>
                         <button onClick={() => onViewReport(campaign.filters)} className="flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300"><EyeIcon className="w-4 h-4"/> Ver Relatório</button>
-                        {campaign.status === 'Em Andamento' && (
-                             <button className="text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md">Encerrar Campanha</button>
-                        )}
+                        <button className="text-xs font-semibold text-red-700 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-md">Encerrar Campanha</button>
                     </>
+                )}
+                {campaign.status === 'Concluída' && (
+                     <button onClick={() => onViewReport(campaign.filters)} className="w-full flex items-center justify-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md border border-slate-300">
+                        <EyeIcon className="w-4 h-4"/> Ver Relatório
+                    </button>
                 )}
             </div>
         </div>
@@ -138,7 +159,7 @@ const CreateCampaignModal: React.FC<{
             id: Date.now(),
             name: campaignData.name || 'Nova Campanha',
             description: campaignData.description || '',
-            status: 'Agendada',
+            status: 'Pendente',
             targetAudience: campaignData.targetAudience || 'Toda a empresa',
             adherence: 0,
             startDate: campaignData.startDate || new Date().toISOString().split('T')[0],
@@ -247,6 +268,26 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
         setCampaigns(prev => [campaign, ...prev]);
     };
 
+    const handleApproveCampaign = (campaignId: number) => {
+        setCampaigns(prevCampaigns => {
+            const campaignToUpdate = prevCampaigns.find(c => c.id === campaignId);
+            if (!campaignToUpdate) return prevCampaigns;
+            
+            const today = new Date();
+            const startDate = new Date(campaignToUpdate.startDate);
+            today.setHours(0, 0, 0, 0);
+            startDate.setHours(0, 0, 0, 0);
+
+            const newStatus = startDate <= today ? 'Em Andamento' : 'Agendada';
+
+            return prevCampaigns.map(c => 
+                c.id === campaignId 
+                    ? { ...c, status: newStatus } 
+                    : c
+            );
+        });
+    };
+
     const { activeCampaigns, completedCampaigns } = useMemo(() => {
         const active: Campaign[] = [];
         const completed: Campaign[] = [];
@@ -286,6 +327,7 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
                                 campaign={campaign}
                                 onViewReport={navigateToDashboard}
                                 onTakeSurvey={() => setActiveView('corporate_survey')}
+                                onApprove={handleApproveCampaign}
                             />
                         ))}
                     </div>
@@ -311,6 +353,7 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
                                 campaign={campaign}
                                 onViewReport={navigateToDashboard}
                                 onTakeSurvey={() => setActiveView('corporate_survey')}
+                                onApprove={handleApproveCampaign}
                             />
                         ))}
                     </div>

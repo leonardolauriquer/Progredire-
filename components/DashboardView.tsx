@@ -37,6 +37,8 @@ type DashboardData = {
   estimatedSavings: string;
   roiScenarios: { scenario: string; value: number }[];
   leadersInDevelopment: number;
+  absenteeismRate: number;
+  presenteeismRate: number;
 };
 
 interface AiInsightData {
@@ -206,6 +208,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
             sectorRiskDistribution: {high: 0, moderate: 0, low: 0}, climateTrend: {labels: [], data: []},
             leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
             estimatedSavings: 'R$0', roiScenarios: [], leadersInDevelopment: 0,
+            absenteeismRate: 0, presenteeismRate: 0,
         };
     }
 
@@ -214,6 +217,13 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const riskClassification = irpGlobal >= 3.5 ? { text: 'Baixo / Saudável', color: 'bg-green-500' }
                            : irpGlobal >= 2.5 ? { text: 'Risco Moderado', color: 'bg-yellow-500' }
                            : { text: 'Risco Alto', color: 'bg-red-500' };
+
+    // Linear interpolation based on IRP Global (1.0 to 5.0)
+    // Absenteeism: Ranges from 10% (at IRP 1.0) down to 2% (at IRP 5.0)
+    const absenteeismRate = 10 - 2 * (irpGlobal - 1);
+    // Presenteeism: Ranges from 30% (at IRP 1.0) down to 8% (at IRP 5.0)
+    const presenteeismRate = 30 - 5.5 * (irpGlobal - 1);
+
 
     const sortedRisks = [...riskFactors].sort((a, b) => a.score - b.score);
     const topRisks = sortedRisks.slice(0, 3);
@@ -256,6 +266,8 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
             { scenario: '30%', value: 300000 }, { scenario: '40%', value: 400000 },
         ],
         leadersInDevelopment: 68,
+        absenteeismRate,
+        presenteeismRate,
     };
 };
 
@@ -406,6 +418,8 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
             '% Respostas': `${data.participationRate.toFixed(0)}%`,
             'Nível de Maturidade': `${data.maturityLevel.level} - ${data.maturityLevel.name}`,
             'Economia Anual Estimada': data.estimatedSavings,
+            'Absenteísmo Estimado (%)': data.absenteeismRate.toFixed(1),
+            'Presenteísmo Estimado (%)': data.presenteeismRate.toFixed(1),
         };
         let html = createKeyValueTable('Indicadores Chave de Performance (KPIs)', kpiData);
 
@@ -520,11 +534,13 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
             </div>
             
             <DashboardSection title="Visão Geral">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                     <KpiCard title="IRP Global (1-5)"><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
                     <KpiCard title="% Respostas (Meta ≥80%)">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {TOTAL_EMPLOYEES}</span></KpiCard>
                     <KpiCard title="ROI Estimado (25%)">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
                     <KpiCard title="Economia Estimada (Anual)">{data.estimatedSavings}</KpiCard>
+                    <KpiCard title="Absenteísmo Estimado">{data.absenteeismRate.toFixed(1)}%</KpiCard>
+                    <KpiCard title="Presenteísmo Estimado">{data.presenteeismRate.toFixed(1)}%</KpiCard>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow border border-slate-200">
