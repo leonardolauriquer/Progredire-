@@ -9,27 +9,39 @@ const faqData = [
     },
     {
         question: "Como funciona a Análise Psico-Social?",
-        answer: "Na seção 'Nova Análise', você descreve uma situação ou sentimento. Nossa IA, treinada com princípios de psicologia e sociologia, analisa seu texto e fornece uma resposta estruturada que inclui um resumo empático, uma análise dos fatores em jogo, pontos para reflexão e sugestões práticas, sempre com um tom de apoio e sem julgamentos."
+        answer: "Na seção 'Reflexão Pessoal', você descreve uma situação ou sentimento. Nossa IA, treinada com princípios de psicologia e sociologia, analisa seu texto e fornece uma resposta estruturada que inclui um resumo empático, uma análise dos fatores em jogo, pontos para reflexão e sugestões práticas, sempre com um tom de apoio e sem julgamentos."
     },
     {
         question: "Meus dados estão seguros e confidenciais?",
-        answer: "Sim. A confidencialidade é nossa prioridade. Na 'Análise Psico-Social', as informações que você insere não são armazenadas. No 'Questionário Psicossocial', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
+        answer: "Sim. A confidencialidade é nossa prioridade. Na 'Reflexão Pessoal', as informações que você insere não são armazenadas. No 'Questionário Psicossocial', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
     },
     {
-        question: "Quem deve usar o Questionário Psicossocial?",
-        answer: "O 'Questionário Psicossocial' foi desenhado para equipes de RH, lideranças e consultores organizacionais. Ele permite a aplicação de um questionário padronizado sobre riscos psicossociais e, em seguida, a visualização dos dados agregados no 'Dashboard', ajudando a identificar pontos de atenção e a planejar ações estratégicas para melhorar o bem-estar no ambiente de trabalho."
+        question: "O que são as 'Campanhas'?",
+        answer: "As Campanhas permitem que você crie e gerencie o envio do 'Questionário Psicossocial' para públicos específicos da sua organização. Você pode definir o nome, a descrição, o período e segmentar os participantes por diretoria, setor, etc. É uma forma de realizar diagnósticos focados e acompanhar a adesão em tempo real."
     },
     {
-        question: "Como funciona a nova tela de Evolução Organizacional?",
-        answer: "A tela 'Evolução' permite visualizar o histórico dos indicadores de saúde organizacional. Ela exibe um gráfico de linha que mostra a tendência da pontuação geral ou de fatores de risco específicos ao longo do tempo. Você pode selecionar um fator no filtro para uma análise detalhada e usar o botão 'Analisar Tendência com IA' para receber um relatório automático sobre a evolução, suas possíveis causas e recomendações."
+        question: "Como os insights do Dashboard são gerados?",
+        answer: "Após a coleta das respostas de uma campanha, os dados são processados e exibidos em gráficos interativos no Dashboard. Ao clicar em 'Gerar Relatório Estratégico', os dados consolidados (pontuações, fatores de risco, comparações) são enviados para a IA, que atua como um consultor de RH, gerando uma análise com sumário, pontos fortes, pontos de atenção e recomendações para a liderança."
+    },
+    {
+        question: "Como funciona a tela de Evolução Organizacional?",
+        answer: "A tela 'Evolução' permite visualizar o histórico dos indicadores de saúde organizacional. Ela exibe gráficos que mostram a tendência da pontuação geral ou de fatores de risco específicos ao longo do tempo. Você pode comparar a evolução entre diferentes setores e usar o botão 'Analisar Evolução' para receber um relatório automático da IA sobre a trajetória, suas possíveis causas e recomendações."
+    },
+    {
+        question: "Para que serve a tela 'Plano de Ação'?",
+        answer: "É uma ferramenta para transformar os insights do Dashboard em ações concretas. Após filtrar um público-alvo e identificar um fator de risco crítico, você pode usar a IA para gerar um plano estratégico completo, com diagnóstico, objetivos, ações sugeridas e KPIs. Você também tem a flexibilidade de adicionar e gerenciar suas próprias ações manualmente, usando a IA como uma assistente para sugestões."
+    },
+    {
+        question: "Como funciona o 'Acompanhamento' dos planos de ação?",
+        answer: "A tela de 'Acompanhamento' é um painel central para gerenciar todas as iniciativas em andamento. Ela consolida as ações de diferentes planos, permitindo que você filtre por status ou responsável. O 'Mapa de Calor' oferece uma visão rápida de quais fatores de risco concentram mais ações, ajudando a priorizar esforços."
+    },
+    {
+        question: "Como posso entrar em contato com a equipe Progredire+?",
+        answer: "Você pode nos contatar facilmente através da página 'Contato', disponível no menu. Lá você encontrará um formulário para nos enviar uma mensagem diretamente, além de nosso e-mail e outras informações de contato."
     },
     {
         question: "O Progredire+ substitui um terapeuta ou profissional de saúde mental?",
-        answer: "Não. É muito importante entender que o Progredire+ é uma ferramenta de apoio à reflexão e autoconhecimento. Ele não fornece diagnósticos médicos ou psicológicos e não substitui, de forma alguma, o aconselhamento, diagnóstico ou tratamento de um profissional de saúde mental qualificado."
-    },
-    {
-        question: "Como são gerados os insights do Dashboard?",
-        answer: "Após a coleta das respostas do diagnóstico, os dados são processados e exibidos em gráficos interativos. Ao clicar em 'Gerar Insights', os dados consolidados do dashboard (pontuações, fatores de risco, comparações) são enviados para a IA, que atua como um consultor de RH, gerando um relatório estratégico com sumário, pontos fortes, pontos de atenção e recomendações para a liderança."
+        answer: "Não. É muito importante entender que o Progredire+ é uma ferramenta de apoio à reflexão e gestão organizacional. Ele não fornece diagnósticos médicos ou psicológicos e não substitui, de forma alguma, o aconselhamento, diagnóstico ou tratamento de um profissional de saúde mental qualificado."
     }
 ];
 
@@ -62,7 +74,7 @@ const FaqItem: React.FC<{
 };
 
 export const FaqView: React.FC = () => {
-    const [openIndex, setOpenIndex] = useState<number | null>(null);
+    const [openIndex, setOpenIndex] = useState<number | null>(0);
 
     const handleItemClick = (index: number) => {
         setOpenIndex(openIndex === index ? null : index);
