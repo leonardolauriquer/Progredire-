@@ -1,33 +1,56 @@
 
-import React from 'react';
-import { LogoIcon, BuildingOfficeIcon, UserIcon } from './icons';
+
+import React, { useState } from 'react';
+import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon } from './icons';
 import { UserRole } from '../App';
+import { authService, AuthData } from '../services/authService';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface LoginViewProps {
-  onLogin: (role: UserRole) => void;
+  onLogin: (authData: AuthData) => void;
 }
 
-const LoginCard: React.FC<{
+const LoginButton: React.FC<{
   icon: React.ElementType;
   title: string;
   description: string;
   onClick: () => void;
-}> = ({ icon: Icon, title, description, onClick }) => (
+  isLoading: boolean;
+}> = ({ icon: Icon, title, description, onClick, isLoading }) => (
     <button
         onClick={onClick}
-        className="w-full text-left p-6 bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-[--color-primary-300] transition-all duration-300 flex items-center space-x-6"
+        disabled={isLoading}
+        className="w-full text-left p-6 bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-[--color-primary-300] transition-all duration-300 flex items-center space-x-6 disabled:opacity-70 disabled:cursor-not-allowed"
     >
         <div className="flex-shrink-0 bg-blue-50 p-4 rounded-full">
-            <Icon className="h-8 w-8 text-blue-600" />
+            {isLoading ? <LoadingSpinner /> : <Icon className="h-8 w-8 text-blue-600" />}
         </div>
         <div>
-            <h3 className="text-xl font-bold text-[--color-card-foreground]">{title}</h3>
+            <h3 className="text-xl font-bold text-[--color-card-foreground]">
+                {isLoading ? 'Autenticando...' : title}
+            </h3>
             <p className="text-[--color-card-muted-foreground] mt-1">{description}</p>
         </div>
     </button>
 );
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
+  const [isLoading, setIsLoading] = useState<false | UserRole>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLoginAttempt = async (role: UserRole) => {
+    setIsLoading(role);
+    setError(null);
+    try {
+      const authData = await authService.login(role);
+      onLogin(authData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[--color-background] text-[--color-foreground] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md mx-auto text-center">
@@ -43,19 +66,28 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         </p>
 
         <div className="space-y-6">
-            <LoginCard 
+            <LoginButton 
                 icon={BuildingOfficeIcon}
                 title="Acessar como Empresa"
                 description="Visualize dashboards, gerencie campanhas e crie planos de ação."
-                onClick={() => onLogin('company')}
+                onClick={() => handleLoginAttempt('company')}
+                isLoading={isLoading === 'company'}
             />
-            <LoginCard 
+            <LoginButton 
                 icon={UserIcon}
                 title="Acessar como Colaborador"
                 description="Responda pesquisas e acesse ferramentas de reflexão pessoal."
-                onClick={() => onLogin('collaborator')}
+                onClick={() => handleLoginAttempt('collaborator')}
+                isLoading={isLoading === 'collaborator'}
             />
         </div>
+        
+        {error && (
+            <div className="mt-6 bg-red-100 border border-red-200 text-red-700 p-3 rounded-lg flex items-center justify-center text-sm" role="alert">
+              <ExclamationCircleIcon className="w-5 h-5 mr-2" />
+              {error}
+            </div>
+        )}
 
         <footer className="mt-12">
              <p className="text-sm text-slate-500">

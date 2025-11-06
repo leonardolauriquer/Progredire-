@@ -1,6 +1,6 @@
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { CompanyHomeView } from './components/HomeView';
@@ -17,23 +17,37 @@ import { CampaignView } from './components/CampaignView';
 import { SupportTeamView } from './components/SupportTeamView';
 import { LoginView } from './components/LoginView';
 import { CollaboratorHomeView } from './components/CollaboratorHomeView';
+import { AuthData, authService } from './services/authService';
 
 export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team';
 export type UserRole = 'company' | 'collaborator';
 
 const App: React.FC = () => {
-  const [user, setUser] = useState<{ role: UserRole | null }>({ role: null });
+  const [user, setUser] = useState<AuthData | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Record<string, string> | undefined>(undefined);
 
-  const handleLogin = (role: UserRole) => {
-    setUser({ role });
+  useEffect(() => {
+    const checkAuth = () => {
+      const authData = authService.getAuth();
+      if (authData) {
+        setUser(authData);
+      }
+      setIsAuthLoading(false);
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = (authData: AuthData) => {
+    setUser(authData);
     setActiveView('home'); // Reset to home on login
   };
 
   const handleLogout = () => {
-    setUser({ role: null });
+    authService.logout();
+    setUser(null);
   };
 
   const handleNavigateToDashboard = (filters?: Record<string, string>) => {
@@ -42,6 +56,7 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    if (!user) return null;
     switch (activeView) {
       case 'home':
         if (user.role === 'collaborator') {
@@ -76,7 +91,12 @@ const App: React.FC = () => {
     }
   };
   
-  if (!user.role) {
+  if (isAuthLoading) {
+    // You can replace this with a proper loading spinner component
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  }
+  
+  if (!user) {
     return <LoginView onLogin={handleLogin} />;
   }
 

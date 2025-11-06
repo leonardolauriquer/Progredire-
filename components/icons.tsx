@@ -127,6 +127,12 @@ export const ExclamationTriangleIcon: React.FC<React.SVGProps<SVGSVGElement>> = 
     </svg>
 );
 
+export const ExclamationCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+    </svg>
+);
+
 export const InstagramIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
       <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.011 3.584-.069 4.85c-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.011-3.584.069-4.85c.149-3.225 1.664-4.771 4.919-4.919C8.416 2.175 8.796 2.163 12 2.163zm0 1.441c-3.193 0-3.563.012-4.788.068-2.923.134-4.142 1.358-4.28 4.28C2.863 9.236 2.85 9.605 2.85 12c0 2.395.013 2.764.068 3.988.138 2.923 1.357 4.142 4.28 4.28 1.225.056 1.595.068 4.788.068s3.563-.012 4.788-.068c2.923-.134 4.142-1.358 4.28-4.28.055-1.224.068-1.593.068-3.988s-.013-2.764-.068-3.988c-.138-2.923-1.357-4.142-4.28-4.28C15.563 3.615 15.193 3.604 12 3.604z" />

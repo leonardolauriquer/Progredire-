@@ -1,46 +1,13 @@
 
-
-
-
-import React, { useState, useMemo, useCallback } from 'react';
-import { runDashboardAnalysis, runEvolutionAnalysis } from '../services/geminiService';
+import React, { useState, useEffect, useCallback } from 'react';
+import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
+import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon } from './icons';
-import { mockResponses, mockFilters, dimensions } from './dashboardMockData';
+import { mockFilters } from './dashboardMockData';
 import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart } from './Charts';
 
-// --- Helper Functions & Types ---
-type RiskFactor = { id: string; name: string; score: number };
-type ResponseDistribution = { name: string; value: number; color: string; }[];
-type MaturityLevel = {
-    level: string;
-    name: string;
-    description: string;
-};
-type DashboardData = {
-  geralScore: number;
-  irpGlobal: number;
-  riskClassification: { text: string; color: string; };
-  participationRate: number;
-  topRisks: RiskFactor[];
-  topProtections: RiskFactor[];
-  maturityLevel: MaturityLevel;
-  riskFactors: RiskFactor[];
-  companyAverageFactors: RiskFactor[];
-  distributions: Record<string, ResponseDistribution>;
-  sectorRiskDistribution: {high: number, moderate: number, low: number};
-  climateTrend: {labels: string[], data: number[]};
-  leadershipScore: number;
-  safetyScore: number;
-  workLifeBalanceScore: number;
-  // Mocked data
-  estimatedSavings: string;
-  roiScenarios: { scenario: string; value: number }[];
-  leadersInDevelopment: number;
-  absenteeismRate: number;
-  presenteeismRate: number;
-};
-
+// --- Types ---
 interface AiInsightData {
     summary: { title: string; content: string };
     strengths: { title: string; points: { factor: string; description: string }[] };
@@ -48,228 +15,6 @@ interface AiInsightData {
     recommendations: { title: string; points: { forFactor: string; actions: string[] }[] };
     nextSteps: { title: string; content: string };
 }
-
-const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
-const likertToScore: Record<string, number> = {
-  [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
-};
-const allDimensionIds = Object.keys(dimensions);
-const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
-
-const maturityLevels: Record<string, {name: string, description: string}> = {
-    'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
-    'M2': { name: 'Consciente', description: 'Reconhece riscos, mas sem plano estruturado (40-60% em risco moderado/alto).' },
-    'M3': { name: 'Estruturada', description: 'Políticas em implantação (30-40% em risco moderado).' },
-    'M4': { name: 'Preventiva', description: 'Gestão ativa do clima (10-30% em risco moderado).' },
-    'M5': { name: 'Estratégica', description: 'Cultura de bem-estar consolidada (>80% dos fatores em risco baixo).' },
-};
-
-const getMaturityLevel = (riskFactors: RiskFactor[]): MaturityLevel => {
-    if (riskFactors.length === 0) {
-        return { level: 'N/A', name: 'Dados Insuficientes', description: 'Não há dados para calcular.' };
-    }
-    let highCount = 0, moderateCount = 0, lowCount = 0;
-    riskFactors.forEach(factor => {
-        const score_1_5 = (factor.score / 100) * 4 + 1;
-        if (score_1_5 <= 2.4) highCount++;
-        else if (score_1_5 <= 3.4) moderateCount++;
-        else lowCount++;
-    });
-    const total = riskFactors.length;
-    const highPercent = (highCount / total) * 100;
-    const moderatePercent = (moderateCount / total) * 100;
-    const lowPercent = (lowCount / total) * 100;
-    if (highPercent > 60) return { level: 'M1', ...maturityLevels['M1'] };
-    if (lowPercent > 80) return { level: 'M5', ...maturityLevels['M5'] };
-    if ((highPercent + moderatePercent) >= 40 && (highPercent + moderatePercent) <= 60) return { level: 'M2', ...maturityLevels['M2'] };
-    if (moderatePercent >= 30 && moderatePercent <= 40) return { level: 'M3', ...maturityLevels['M3'] };
-    if (moderatePercent >= 10 && moderatePercent < 30) return { level: 'M4', ...maturityLevels['M4'] };
-    if ((highPercent + moderatePercent) > 30) return { level: 'M2', ...maturityLevels['M2'] };
-    return { level: 'M4', ...maturityLevels['M4'] }; // Fallback
-};
-
-const calculateDataForResponses = (responses: typeof mockResponses) => {
-    if (responses.length === 0) {
-        return {
-            riskFactors: allDimensionIds.map(id => ({ id, name: dimensions[id].name, score: 0 })),
-            distributions: Object.fromEntries(allDimensionIds.map(id => [id, []]))
-        };
-    }
-
-    const totalDimensionScores: Record<string, number> = {};
-    const dimensionCounts: Record<string, number> = {};
-    const distributions: Record<string, Record<string, number>> = {};
-    const customMetricScores = { workLifeBalance: { total: 0, count: 0 } };
-
-    allDimensionIds.forEach(id => {
-        distributions[id] = Object.fromEntries(likertOptions.map(opt => [opt, 0]));
-    });
-
-    responses.forEach(r => {
-        // Custom metric for work-life balance (q1, q5, q39)
-        const wlbQuestions = ['q1', 'q5', 'q39'];
-        let wlbScore = 0; let wlbCount = 0;
-        wlbQuestions.forEach(qId => {
-            const answer = r.answers[qId];
-            if (answer && likertToScore[answer]) {
-                wlbScore += likertToScore[answer];
-                wlbCount++;
-            }
-        });
-        if (wlbCount > 0) {
-            customMetricScores.workLifeBalance.total += wlbScore / wlbCount;
-            customMetricScores.workLifeBalance.count++;
-        }
-
-        // Standard dimensions
-        allDimensionIds.forEach(dimId => {
-            const dimQuestions = dimensions[dimId].questions;
-            let totalScoreForDim = 0; let questionCountForDim = 0;
-            dimQuestions.forEach(qId => {
-                const answer = r.answers[qId];
-                if (answer) {
-                    totalScoreForDim += likertToScore[answer] || 0;
-                    questionCountForDim++;
-                    if (distributions[dimId] && answer in distributions[dimId]) distributions[dimId][answer]++;
-                }
-            });
-            if (questionCountForDim > 0) {
-                totalDimensionScores[dimId] = (totalDimensionScores[dimId] || 0) + (totalScoreForDim / questionCountForDim);
-                dimensionCounts[dimId] = (dimensionCounts[dimId] || 0) + 1;
-            }
-        });
-    });
-
-    const riskFactors: RiskFactor[] = allDimensionIds.map(id => {
-        const averageScore = (totalDimensionScores[id] || 0) / (dimensionCounts[id] || 1);
-        return { id, name: dimensions[id].name, score: Math.round((averageScore - 1) / 4 * 100) };
-    });
-
-    const workLifeBalanceScore = customMetricScores.workLifeBalance.count > 0 ? (customMetricScores.workLifeBalance.total / customMetricScores.workLifeBalance.count) : 0;
-
-    const formattedDistributions = Object.fromEntries(
-        Object.entries(distributions).map(([dimId, dist]) => {
-            const total = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
-            return [dimId, [
-                { name: 'DT', value: (dist[likertOptions[0]] / total) * 100, color: '#ef4444' },
-                { name: 'DP', value: (dist[likertOptions[1]] / total) * 100, color: '#f97316' },
-                { name: 'N', value: (dist[likertOptions[2]] / total) * 100, color: '#eab308' },
-                { name: 'CP', value: (dist[likertOptions[3]] / total) * 100, color: '#84cc16' },
-                { name: 'CT', value: (dist[likertOptions[4]] / total) * 100, color: '#22c55e' },
-            ]];
-        })
-    );
-    return { riskFactors, distributions: formattedDistributions, workLifeBalanceScore };
-};
-
-// Calculate evolution for the main climate trend chart
-const calculateClimateTrend = (): {labels: string[], data: number[]} => {
-    const monthlyData: Record<string, { totalScore: number; count: number }> = {};
-    mockResponses.forEach(res => {
-        const date = new Date(res.timestamp);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthlyData[monthKey]) monthlyData[monthKey] = { totalScore: 0, count: 0 };
-        
-        let totalResponseScore = 0, totalQuestionCount = 0;
-        Object.values(dimensions).flatMap(d => d.questions).forEach(qId => {
-            const answer = res.answers[qId];
-            if (answer) {
-                totalResponseScore += likertToScore[answer] || 0;
-                totalQuestionCount++;
-            }
-        });
-        if (totalQuestionCount > 0) {
-            monthlyData[monthKey].totalScore += totalResponseScore / totalQuestionCount;
-            monthlyData[monthKey].count++;
-        }
-    });
-    const sortedMonths = Object.keys(monthlyData).sort();
-    const labels = sortedMonths.map(key => `${key.split('-')[1]}/${key.split('-')[0].slice(2)}`);
-    const data = sortedMonths.map(key => {
-        const avgScore = monthlyData[key].totalScore / monthlyData[key].count;
-        return Math.round((avgScore - 1) / 4 * 100);
-    });
-    return { labels, data };
-};
-
-const calculateDashboardData = (filters: Record<string, string>): DashboardData => {
-    const filteredResponses = mockResponses.filter(r => 
-        Object.entries(filters).every(([key, value]) => !value || r.segmentation[key] === value)
-    );
-    
-    const companyData = calculateDataForResponses(mockResponses);
-    const { riskFactors, distributions, workLifeBalanceScore } = calculateDataForResponses(filteredResponses);
-    
-    if (filteredResponses.length === 0) {
-        return {
-            geralScore: 0, irpGlobal: 0, riskClassification: { text: 'N/A', color: 'bg-slate-500' },
-            participationRate: 0, topRisks: [], topProtections: [], maturityLevel: { level: 'N/A', name: 'Dados Insuficientes', description: '' },
-            riskFactors: [], companyAverageFactors: companyData.riskFactors, distributions: {},
-            sectorRiskDistribution: {high: 0, moderate: 0, low: 0}, climateTrend: {labels: [], data: []},
-            leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
-            estimatedSavings: 'R$0', roiScenarios: [], leadersInDevelopment: 0,
-            absenteeismRate: 0, presenteeismRate: 0,
-        };
-    }
-
-    const geralScore = Math.round(riskFactors.reduce((acc, curr) => acc + curr.score, 0) / riskFactors.length);
-    const irpGlobal = (geralScore / 100) * 4 + 1;
-    const riskClassification = irpGlobal >= 3.5 ? { text: 'Baixo / Saudável', color: 'bg-green-500' }
-                           : irpGlobal >= 2.5 ? { text: 'Risco Moderado', color: 'bg-yellow-500' }
-                           : { text: 'Risco Alto', color: 'bg-red-500' };
-
-    // Linear interpolation based on IRP Global (1.0 to 5.0)
-    // Absenteeism: Ranges from 10% (at IRP 1.0) down to 2% (at IRP 5.0)
-    const absenteeismRate = 10 - 2 * (irpGlobal - 1);
-    // Presenteeism: Ranges from 30% (at IRP 1.0) down to 8% (at IRP 5.0)
-    const presenteeismRate = 30 - 5.5 * (irpGlobal - 1);
-
-
-    const sortedRisks = [...riskFactors].sort((a, b) => a.score - b.score);
-    const topRisks = sortedRisks.slice(0, 3);
-    const topProtections = sortedRisks.slice(-3).reverse();
-
-    const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
-    let highCount = 0, moderateCount = 0, lowCount = 0;
-    sectors.forEach(sector => {
-        const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
-        if (sectorResponses.length > 0) {
-            const { riskFactors: sectorFactors } = calculateDataForResponses(sectorResponses);
-            const sectorScore = sectorFactors.reduce((acc, f) => acc + f.score, 0) / sectorFactors.length;
-            const sectorIRP = (sectorScore / 100) * 4 + 1;
-            if (sectorIRP < 2.5) highCount++;
-            else if (sectorIRP < 3.5) moderateCount++;
-            else lowCount++;
-        }
-    });
-    const totalSectors = sectors.length || 1;
-    const sectorRiskDistribution = {
-        high: (highCount / totalSectors) * 100,
-        moderate: (moderateCount / totalSectors) * 100,
-        low: (lowCount / totalSectors) * 100,
-    };
-
-    return { 
-        geralScore, irpGlobal, riskClassification,
-        participationRate: (filteredResponses.length / TOTAL_EMPLOYEES) * 100,
-        topRisks, topProtections,
-        maturityLevel: getMaturityLevel(riskFactors),
-        riskFactors, companyAverageFactors: companyData.riskFactors, distributions,
-        sectorRiskDistribution,
-        climateTrend: calculateClimateTrend(),
-        leadershipScore: ((riskFactors.find(f => f.id === 'd7_lideranca')?.score ?? 0) / 100 * 4 + 1),
-        safetyScore: ((riskFactors.find(f => f.id === 'd9_seguranca')?.score ?? 0) / 100 * 4 + 1),
-        workLifeBalanceScore,
-        estimatedSavings: 'R$120.000',
-        roiScenarios: [
-            { scenario: '15%', value: 150000 }, { scenario: '25%', value: 250000 },
-            { scenario: '30%', value: 300000 }, { scenario: '40%', value: 400000 },
-        ],
-        leadersInDevelopment: 68,
-        absenteeismRate,
-        presenteeismRate,
-    };
-};
 
 const exportToExcel = (htmlContent: string, filename: string) => {
     const template = `
@@ -359,19 +104,43 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
 export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }> = ({ initialFilters }) => {
     const [filters, setFilters] = useState<Record<string, string>>(initialFilters || {});
     const [aiInsight, setAiInsight] = useState<AiInsightData | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedFactorForDistribution, setSelectedFactorForDistribution] = useState<string>('d1_carga');
+    const [isInsightLoading, setIsInsightLoading] = useState(false);
+    const [insightError, setInsightError] = useState<string | null>(null);
 
-    const data = useMemo(() => calculateDashboardData(filters), [filters]);
+    // New state for data fetching
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [isDataLoading, setIsDataLoading] = useState(true);
+    const [dataError, setDataError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsDataLoading(true);
+            setDataError(null);
+            setData(null);
+            setAiInsight(null);
+
+            try {
+                const result = await getDashboardData(filters);
+                setData(result);
+            } catch (err) {
+                setDataError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
+            } finally {
+                setIsDataLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [filters]);
+
 
     const handleFilterChange = (id: string, value: string) => {
         setFilters(prev => ({ ...prev, [id]: value }));
-        setAiInsight(null);
     };
 
     const handleGenerateInsight = useCallback(async () => {
-        setIsLoading(true); setError(null); setAiInsight(null);
+        if (!data) return;
+
+        setIsInsightLoading(true); setInsightError(null); setAiInsight(null);
         let promptData = `Dados do Dashboard para Análise:\n- Filtros Ativos: ${Object.values(filters).filter(Boolean).join(', ') || 'Nenhum'}\n- IRP Global: ${data.irpGlobal.toFixed(1)}/5.0\n- Nível de Risco: ${data.riskClassification.text}\n- Nível de Maturidade: ${data.maturityLevel.level} - ${data.maturityLevel.name}\n\nPontuações por Fator de Risco (de 0 a 100):\n`;
         data.riskFactors.forEach(rf => {
             promptData += `- ${rf.name}: ${rf.score}\n`;
@@ -379,16 +148,15 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
         try {
             const resultString = await runDashboardAnalysis(promptData);
             setAiInsight(JSON.parse(resultString));
-        // FIX: Corrected the try-catch-finally block syntax. The original code had missing parentheses and braces, which caused a cascade of parsing errors.
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+            setInsightError(err instanceof Error ? err.message : 'An unexpected error occurred.');
         } finally {
-            setIsLoading(false);
+            setIsInsightLoading(false);
         }
     }, [data, filters]);
     
     const handleExportXls = useCallback(() => {
-        if (!data.riskFactors || data.riskFactors.length === 0) return;
+        if (!data || !data.riskFactors || data.riskFactors.length === 0) return;
 
         const createKeyValueTable = (title: string, obj: Record<string, any>) => {
             let table = `<h2>${title}</h2><table><tbody>`;
@@ -503,6 +271,27 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
         }, 500); // Wait for styles to load
     };
 
+    if (isDataLoading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-96">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-slate-500">Carregando dados do dashboard...</p>
+            </div>
+        );
+    }
+
+    if (dataError) {
+        return (
+             <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-6 rounded-md" role="alert">
+                <p className="font-bold text-lg">Falha ao carregar o dashboard</p>
+                <p className="mt-2">{dataError}</p>
+            </div>
+        );
+    }
+
+    if (!data) {
+        return <div className="text-center text-slate-500 py-20">Nenhum dado encontrado para os filtros selecionados.</div>;
+    }
 
     return (
     <>
@@ -536,7 +325,7 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
             <DashboardSection title="Visão Geral">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                     <KpiCard title="IRP Global (1-5)"><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
-                    <KpiCard title="% Respostas (Meta ≥80%)">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {TOTAL_EMPLOYEES}</span></KpiCard>
+                    <KpiCard title="% Respostas (Meta ≥80%)">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {80}</span></KpiCard>
                     <KpiCard title="ROI Estimado (25%)">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
                     <KpiCard title="Economia Estimada (Anual)">{data.estimatedSavings}</KpiCard>
                     <KpiCard title="Absenteísmo Estimado">{data.absenteeismRate.toFixed(1)}%</KpiCard>
@@ -603,8 +392,8 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
             
             <DashboardSection title="Insights Estratégicos com IA">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
-                     <button onClick={handleGenerateInsight} disabled={isLoading || data.participationRate === 0} className="flex-grow flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">
-                            {isLoading ? <><LoadingSpinner /> Gerando Relatório...</> : <><SparklesIcon className="w-5 h-5" /> Gerar Relatório Estratégico</>}
+                     <button onClick={handleGenerateInsight} disabled={isInsightLoading || data.participationRate === 0} className="flex-grow flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">
+                            {isInsightLoading ? <><LoadingSpinner /> Gerando Relatório...</> : <><SparklesIcon className="w-5 h-5" /> Gerar Relatório Estratégico</>}
                         </button>
                     {aiInsight && (
                         <button
@@ -616,7 +405,7 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
                         </button>
                     )}
                 </div>
-                {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{error}</p></div>}
+                {insightError && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{insightError}</p></div>}
                 {aiInsight ? (
                     <div id="ai-report-content" className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
