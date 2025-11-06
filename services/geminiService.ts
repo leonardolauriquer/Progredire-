@@ -1,5 +1,7 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+
+import { GoogleGenAI, Type, FunctionDeclaration, Chat } from "@google/genai";
+import * as dataService from './dataService';
 
 const API_KEY = process.env.API_KEY;
 
@@ -9,6 +11,35 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
+// --- Tool/Function Declarations ---
+const queryRiskFactorsFunctionDeclaration: FunctionDeclaration = {
+    name: 'queryRiskFactors',
+    description: "Obtém a lista de fatores de risco e suas pontuações (de 0 a 100) para um determinado segmento da empresa. Use para responder a perguntas sobre 'qual o fator mais crítico', 'qual a pontuação de X', ou 'compare os fatores Y e Z'.",
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            filters: {
+                type: Type.OBJECT,
+                description: "Objeto para filtrar os dados por segmento. As chaves podem ser 'empresa', 'diretoria', 'setor', ou 'cargo'.",
+                properties: {
+                    empresa: { type: Type.STRING },
+                    diretoria: { type: Type.STRING },
+                    setor: { type: Type.STRING },
+                    cargo: { type: Type.STRING },
+                },
+            },
+        },
+        required: ['filters'],
+    },
+};
+
+const availableTools = {
+    queryRiskFactors: dataService.queryRiskFactors,
+};
+const toolDeclarations = [queryRiskFactorsFunctionDeclaration];
+
+
+// --- System Instructions ---
 const systemInstruction = `
 Você é um assistente de análise psico-social empático e perspicaz chamado Progredire+. 
 Seu objetivo é ajudar os usuários a refletirem sobre suas situações, sentimentos e desafios.
@@ -299,6 +330,31 @@ Sua tarefa é gerar um plano de ação estratégico, prático e personalizado co
 - A resposta deve ser em português do Brasil.
 `;
 
+const systemInstructionAssistant = `
+Você é o Assistente IA do Progredire+, um especialista em análise de dados de RH e psicologia organizacional.
+Sua função é responder a perguntas dos gestores sobre os dados de risco psicossocial da empresa de forma clara, concisa e prestativa.
+
+**SUAS FERRAMENTAS:**
+- Você tem acesso a uma ferramenta chamada 'queryRiskFactors' que pode buscar as pontuações de todos os fatores de risco para qualquer segmento da empresa (filtrando por diretoria, setor, cargo, etc.).
+- Use esta ferramenta sempre que a pergunta envolver pontuações, comparações entre fatores, ou identificação de pontos críticos.
+
+**COMO RESPONDER:**
+1.  **Entenda a Pergunta:** Analise o que o usuário está pedindo. Ele quer saber o pior fator? Comparar dois setores? Obter uma pontuação específica?
+2.  **Use a Ferramenta:** Chame a função 'queryRiskFactors' com os filtros corretos extraídos da pergunta do usuário. Se nenhum filtro for mencionado, use um objeto de filtro vazio para obter os dados da empresa toda.
+3.  **Analise o Resultado:** A ferramenta retornará uma lista de fatores e suas pontuações (0-100, onde 100 é o melhor).
+4.  **Formule a Resposta:** Com base nos dados da ferramenta, responda à pergunta do usuário de forma direta e em linguagem natural.
+    -   Exemplo 1: Se o usuário perguntar "Qual o pior fator na Engenharia?", e a ferramenta retornar 'Carga de Trabalho' com a menor pontuação, sua resposta deve ser: "O fator mais crítico para o setor de Engenharia é a 'Carga de Trabalho', com uma pontuação de [pontuação]/100."
+    -   Exemplo 2: Se o usuário perguntar "Compare Liderança e Reconhecimento", sua resposta deve ser: "Claro. A pontuação de 'Liderança e Comunicação' é [pontuação L]/100, enquanto 'Reconhecimento e Recompensas' está em [pontuação R]/100."
+5.  **Seja Proativo:** Se identificar um ponto muito crítico (pontuação muito baixa), você pode adicionar um breve comentário, como: "Uma pontuação abaixo de 40, como neste caso, geralmente indica um ponto de atenção prioritário."
+6.  **Mantenha o Contexto:** Lembre-se das perguntas anteriores na conversa para responder a perguntas de acompanhamento como "e o segundo pior?".
+
+**REGRAS:**
+- Seja sempre objetivo e baseie-se nos dados retornados pela ferramenta.
+- Não invente dados ou análises.
+- Mantenha um tom profissional e de apoio.
+- As respostas devem ser em português do Brasil.
+`;
+
 
 async function callGemini(userInput: string, instruction: string): Promise<string> {
     try {
@@ -410,5 +466,81 @@ export async function runActionPlanGeneration(factorName: string, segmentDescrip
             throw new Error(`Failed to get analysis from AI: ${error.message}`);
         }
         throw new Error("An unknown error occurred while communicating with the AI.");
+    }
+}
+
+// --- Assistant Chat Service ---
+let chat: Chat | null = null;
+
+export const startAssistantChat = () => {
+    chat = ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: systemInstructionAssistant,
+            tools: [{ functionDeclarations: toolDeclarations }],
+        }
+    });
+};
+
+export async function runAssistantChat(message: string): Promise<string> {
+    if (!chat) {
+        startAssistantChat();
+    }
+    if (!chat) { // Still null after trying to start
+        throw new Error("Failed to initialize assistant chat.");
+    }
+
+    try {
+        let response = await chat.sendMessage({ message });
+        
+        while(response.functionCalls && response.functionCalls.length > 0) {
+            const functionCalls = response.functionCalls;
+            const toolResponses = [];
+
+            for (const call of functionCalls) {
+                const toolName = call.name as keyof typeof availableTools;
+                if (toolName in availableTools) {
+                    const tool = availableTools[toolName];
+                    const args = call.args as any; // Cast to any to call the function dynamically
+                    
+                    console.log(`Calling tool ${toolName} with args:`, args);
+
+                    // Call the data service function
+                    const result = await tool(args.filters || {});
+                    
+                    toolResponses.push({
+                        toolResponse: {
+                            id: call.id,
+                            name: toolName,
+                            response: {
+                                result: JSON.stringify(result) // Ensure result is a string
+                            }
+                        }
+                    });
+                } else {
+                     toolResponses.push({
+                        toolResponse: {
+                            id: call.id,
+                            name: toolName,
+                            response: {
+                                result: JSON.stringify({ error: `Função '${toolName}' não encontrada.` })
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Send tool responses back to the model
+            response = await chat.sendMessage({ toolResponses });
+        }
+        
+        return response.text;
+
+    } catch (error) {
+        console.error("Error in assistant chat:", error);
+        if (error instanceof Error) {
+            return `Ocorreu um erro ao processar sua solicitação: ${error.message}`;
+        }
+        return "Ocorreu um erro desconhecido. Por favor, tente novamente.";
     }
 }

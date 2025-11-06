@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useMemo } from 'react';
 import { 
     HomeIcon, 
@@ -13,36 +15,42 @@ import {
     QuestionMarkCircleIcon,
     CogIcon,
     XIcon,
-    UserGroupIcon
+    UserGroupIcon,
+    LightBulbIcon,
+    ChatBubbleOvalLeftEllipsisIcon,
+    BookOpenIcon
 } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface BottomNavbarProps {
     activeView: ActiveView;
-    setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+    setActiveView: (view: ActiveView) => void;
     onNavigateToDashboard: (filters?: Record<string, string>) => void;
     userRole: UserRole;
 }
 
 const allNavItems = [
     { name: 'Início', view: 'home', icon: HomeIcon },
+    { name: 'Assistente', view: 'assistant', icon: ChatBubbleOvalLeftEllipsisIcon },
     { name: 'Reflexão', view: 'personal_reflection', icon: BrainIcon },
+    { name: 'Diário', view: 'journal', icon: BookOpenIcon },
     { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
     { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
     { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
     { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
     { name: 'Plano Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
     { name: 'Acompanhar', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
+    { name: 'Iniciativas', view: 'initiatives', icon: LightBulbIcon },
     { name: 'Equipe Apoio', view: 'support_team', icon: UserGroupIcon },
     { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
     { name: 'Ajustes', view: 'settings', icon: CogIcon },
 ];
 
-const companyViews: ActiveView[] = ['home', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
-const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team', 'faq', 'settings'];
+const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
+const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
 
-const companyPrimaryViews: ActiveView[] = ['home', 'dashboard', 'campaigns', 'plano_acao'];
-const collaboratorPrimaryViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'support_team'];
+const companyPrimaryViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns'];
+const collaboratorPrimaryViews: ActiveView[] = ['home', 'personal_reflection', 'journal', 'corporate_survey'];
 
 const NavItem: React.FC<{
     item: typeof allNavItems[0];
@@ -63,7 +71,7 @@ const NavItem: React.FC<{
 const MoreMenu: React.FC<{
     onClose: () => void;
     activeView: ActiveView;
-    setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+    setActiveView: (view: ActiveView) => void;
     secondaryNavigation: typeof allNavItems;
 }> = ({ onClose, activeView, setActiveView, secondaryNavigation }) => {
     

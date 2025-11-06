@@ -1,8 +1,12 @@
 
+
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { runCorporateSurveyAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon } from './icons';
+import { SparklesIcon, ShieldCheckIcon } from './icons';
+import { saveCollaboratorSurvey } from '../services/dataService';
+import { ActiveView } from '../App';
 
 // FIX: Define explicit types for survey questions and topics to resolve TypeScript inference errors.
 // This ensures that the optional 'type' property is recognized on all question objects.
@@ -15,6 +19,10 @@ interface SurveyQuestion {
 interface SurveyTopic {
     title: string;
     questions: SurveyQuestion[];
+}
+
+interface CorporateSurveyViewProps {
+  setActiveView: (view: ActiveView) => void;
 }
 
 const corporateFields = [
@@ -138,12 +146,13 @@ const surveyStructure: SurveyTopic[] = [
 
 const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
 
-export const CorporateSurveyView: React.FC = () => {
+export const CorporateSurveyView: React.FC<CorporateSurveyViewProps> = ({ setActiveView }) => {
     const [corporateData, setCorporateData] = useState<Record<string, string>>({});
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [analysisResult, setAnalysisResult] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
     const handleDataChange = (id: string, value: string) => {
         setCorporateData(prev => ({ ...prev, [id]: value }));
@@ -189,12 +198,40 @@ export const CorporateSurveyView: React.FC = () => {
         try {
             const result = await runCorporateSurveyAnalysis(formattedData);
             setAnalysisResult(result);
+            await saveCollaboratorSurvey(answers);
+            setIsSubmitted(true);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.');
         } finally {
             setIsLoading(false);
         }
     }, [corporateData, answers, allFieldsCompleted, isLoading]);
+
+    if (isSubmitted) {
+        return (
+            <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 space-y-6 text-center">
+                <ShieldCheckIcon className="w-16 h-16 text-green-500 mx-auto"/>
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Obrigado por sua participação!</h2>
+                <p className="text-slate-600">Suas respostas foram registradas de forma 100% confidencial. A sua evolução pessoal foi atualizada.</p>
+                {analysisResult && (
+                    <div className="bg-slate-50/70 border border-slate-200 p-6 rounded-xl text-left">
+                        <h3 className="text-xl font-semibold text-slate-800 mb-3">Análise Preliminar Individual</h3>
+                        <div 
+                            className="prose prose-slate max-w-none" 
+                            dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}
+                        />
+                    </div>
+                )}
+                 <button 
+                    onClick={() => setActiveView('history')} 
+                    className="mt-4 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700"
+                >
+                    Ver Minha Evolução
+                </button>
+            </div>
+        )
+    }
+
 
     return (
         <>
@@ -298,16 +335,6 @@ export const CorporateSurveyView: React.FC = () => {
                     <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
                         <p className="font-bold">Ocorreu um erro</p>
                         <p>{error}</p>
-                    </div>
-                )}
-
-                {analysisResult && (
-                    <div className="bg-slate-50/70 border border-slate-200 p-6 rounded-xl">
-                        <h3 className="text-xl font-semibold text-slate-800 mb-3">Análise Preliminar Individual</h3>
-                        <div 
-                            className="prose prose-slate max-w-none" 
-                            dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}
-                        />
                     </div>
                 )}
             </div>

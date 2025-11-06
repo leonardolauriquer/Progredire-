@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 // --- Gauge Chart ---
@@ -210,7 +211,7 @@ export const DistributionChart: React.FC<{ data: DistributionData[] }> = ({ data
 };
 
 // --- Line Chart (Multi & Single Line compatible) ---
-type SingleLineChartData = { labels: string[]; data: number[] };
+type SingleLineChartData = { labels: string[]; data: (number | null)[] };
 type MultiLineChartData = {
     labels: string[];
     datasets: {
@@ -219,7 +220,12 @@ type MultiLineChartData = {
         color: string;
     }[];
 };
-type LineChartProps = { chartData: SingleLineChartData | MultiLineChartData };
+type LineChartProps = {
+    chartData: SingleLineChartData | MultiLineChartData;
+    yMin?: number;
+    yMax?: number;
+    yAxisLabels?: number[];
+};
 
 const createPathWithGaps = (
     data: (number | null)[],
@@ -246,7 +252,7 @@ const createPathWithGaps = (
     return path;
 };
 
-export const LineChart: React.FC<LineChartProps> = ({ chartData }) => {
+export const LineChart: React.FC<LineChartProps> = ({ chartData, yMin: yMinProp, yMax: yMaxProp, yAxisLabels: yAxisLabelsProp }) => {
     const width = 600;
     const height = 300;
     const padding = 40;
@@ -258,9 +264,14 @@ export const LineChart: React.FC<LineChartProps> = ({ chartData }) => {
     if (!labels || labels.length < 2 || datasets.every(ds => ds.data.filter(d => d !== null).length < 2)) {
         return <div className="text-center text-slate-500 h-[300px] flex items-center justify-center">Dados insuficientes para exibir a evolução.</div>;
     }
+    
+    const allDataPoints = datasets.flatMap(ds => ds.data).filter((d): d is number => d !== null);
+    const dataMax = allDataPoints.length > 0 ? Math.max(...allDataPoints) : 100;
+    const dataMin = allDataPoints.length > 0 ? Math.min(...allDataPoints) : 0;
 
-    const yMax = 100;
-    const yMin = 0;
+    const yMax = yMaxProp ?? dataMax;
+    const yMin = yMinProp ?? (dataMin >= 0 ? 0 : dataMin);
+    const yAxisLabels = yAxisLabelsProp ?? [0, 25, 50, 75, 100];
     
     const xPoint = (i: number) => padding + (i / (labels.length - 1)) * (width - 2 * padding);
     const yPoint = (value: number) => height - padding - ((value - yMin) / (yMax - yMin)) * (height - 2 * padding);
@@ -270,7 +281,7 @@ export const LineChart: React.FC<LineChartProps> = ({ chartData }) => {
             <div className="overflow-x-auto">
                 <svg viewBox={`0 0 ${width} ${height}`} className="min-w-[600px]">
                     {/* Y-axis lines and labels */}
-                    {[0, 25, 50, 75, 100].map(val => (
+                    {yAxisLabels.map(val => (
                         <g key={val}>
                             <line
                                 x1={padding}

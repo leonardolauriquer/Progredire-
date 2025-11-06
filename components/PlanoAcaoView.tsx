@@ -1,15 +1,25 @@
-import React, { useState, useMemo, useCallback } from 'react';
+
+
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
 import { runActionPlanGeneration } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon, ArchiveBoxIcon, PlusCircleIcon, PencilIcon, TrashIcon } from './icons';
+import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon, ArchiveBoxIcon, PlusCircleIcon, PencilIcon, TrashIcon, PaperAirplaneIcon } from './icons';
 import { ActiveView } from '../App';
+import { Modal } from './Modal';
+import { publishInitiative } from '../services/dataService';
 
 // --- Types & Data ---
 
 type RiskFactor = { id: string; name: string; score: number };
 type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
-type ActionItem = { id: number; title: string; description: string };
+type ActionItem = {
+    id: number;
+    title: string;
+    description: string;
+    responsible?: string;
+    dueDate?: string;
+};
 interface GeneratedPlan {
     diagnosis: { title: string; content: string };
     strategicObjective: { title: string; content: string };
@@ -17,8 +27,11 @@ interface GeneratedPlan {
     kpis: { title: string; indicators: string[] };
 }
 interface PlanoAcaoViewProps {
-  setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+  setActiveView: (view: ActiveView) => void;
+  initialContext?: { filters: Record<string, string>; factorId: string } | null;
 }
+
+const mockEmployees = ['Ana Silva', 'Bruno Costa', 'Carla Dias', 'Daniel Fogaça', 'Elisa Martins'];
 
 const likertToScore: Record<string, string> = {
   'Discordo totalmente': '1', 'Discordo parcialmente': '2', 'Neutro / Indiferente': '3', 'Concordo parcialmente': '4', 'Concordo totalmente': '5',
@@ -86,11 +99,10 @@ const exportToExcel = (htmlContent: string, filename: string) => {
     link.setAttribute('download', `${filename}.xls`);
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
 };
 
 // --- Main Component ---
-export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) => {
+export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView, initialContext }) => {
     const [filters, setFilters] = useState<Record<string, string>>({});
     const [selectedFactorId, setSelectedFactorId] = useState<string>('');
     const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
@@ -99,13 +111,33 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [editingAction, setEditingAction] = useState<ActionItem | null>(null);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+    const [announcement, setAnnouncement] = useState("");
+
+    useEffect(() => {
+        if (initialContext) {
+            setFilters(initialContext.filters);
+            setSelectedFactorId(initialContext.factorId);
+        } else {
+            // Reset if navigating without context
+            setFilters({});
+            setSelectedFactorId('');
+        }
+         // Clear previous plan state when context changes
+        setGeneratedPlan(null);
+        setCurrentActions([]);
+        setActionStatuses({});
+        setError(null);
+    }, [initialContext]);
+
 
     const criticalFactors = useMemo(() => {
         const filteredResponses = mockResponses.filter(r => 
-            Object.entries(filters).every(([key, value]) => !value || r.segmentation[key] === value)
+            Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
         );
-        if (filteredResponses.length === 0) return [];
-        const { riskFactors } = calculateDataForResponses(filteredResponses);
+        if (filteredResponses.length === 0 && Object.keys(filters).length > 0) return [];
+        const dataResponses = filteredResponses.length > 0 ? filteredResponses : mockResponses; // Show all if no filter
+        const { riskFactors } = calculateDataForResponses(dataResponses);
         return [...riskFactors].sort((a, b) => a.score - b.score).slice(0, 5);
     }, [filters]);
 
@@ -152,6 +184,8 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                 id: Date.now() + i,
                 title: a.actionTitle,
                 description: a.actionDescription,
+                responsible: '',
+                dueDate: '',
             })) || [];
             setCurrentActions(prev => [...prev, ...newActions]);
             const newStatuses: Record<number, ActionStatus> = {};
@@ -166,7 +200,7 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
         }
     }, [selectedFactorId, filters]);
     
-    const handleAddOrUpdateAction = (action: {title: string, description: string}) => {
+    const handleAddOrUpdateAction = (action: Omit<ActionItem, 'id'>) => {
         if (editingAction && 'id' in editingAction && editingAction.id) { // Update
             setCurrentActions(prev => prev.map(a => a.id === editingAction.id ? {...a, ...action} : a));
         } else { // Add
@@ -192,37 +226,67 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
         setActionStatuses(prev => ({ ...prev, [id]: status }));
     };
 
-    const handleArchivePlan = () => {
-        if (currentActions.length === 0 || !window.confirm('Deseja finalizar e arquivar este plano? Você não poderá mais editá-lo.')) return;
-        
-        const planToArchive = generatedPlan || {
+    const buildArchivedPlan = () => {
+         const planToArchive = generatedPlan || {
             diagnosis: { title: 'Diagnóstico da Situação', content: 'Este é um plano de ação criado manualmente, focado nas ações definidas abaixo.' },
             strategicObjective: { title: 'Objetivo Estratégico', content: `Melhorar o fator de risco "${dimensions[selectedFactorId]?.name}" para o público-alvo selecionado.` },
             suggestedActions: { title: 'Ações Sugeridas', actions: [] },
             kpis: { title: 'Indicadores de Sucesso (KPIs)', indicators: ['Execução e conclusão das ações propostas.'] },
         };
 
-        const history = JSON.parse(localStorage.getItem('progredire-action-plan-history') || '[]');
-        const archivedPlan = {
+        return {
             id: Date.now(),
             date: new Date().toISOString(),
             factor: dimensions[selectedFactorId]?.name,
             segment: Object.values(filters).filter(Boolean).join(', ') || 'Toda a empresa',
             progress: progress,
-            plan: {
-                ...planToArchive,
-                suggestedActions: {
-                    ...planToArchive.suggestedActions,
-                    actions: currentActions.map(a => ({ actionTitle: a.title, actionDescription: a.description }))
-                }
-            },
+            plan: planToArchive,
             statuses: actionStatuses,
+            actions: currentActions
         };
+    };
+
+    const resetState = () => {
+        setFilters({});
+        setSelectedFactorId('');
+        setGeneratedPlan(null);
+        setCurrentActions([]);
+        setActionStatuses({});
+        setAnnouncement("");
+        setIsPublishModalOpen(false);
+    };
+
+    const handleArchivePlan = () => {
+        if (currentActions.length === 0 || !window.confirm('Deseja finalizar e arquivar este plano? Você não poderá mais editá-lo.')) return;
+        
+        const archivedPlan = buildArchivedPlan();
+        const history = JSON.parse(localStorage.getItem('progredire-action-plan-history') || '[]');
         history.push(archivedPlan);
         localStorage.setItem('progredire-action-plan-history', JSON.stringify(history));
 
-        handleFactorSelect('');
+        resetState();
         alert('Plano arquivado com sucesso!');
+        setActiveView('action_tracking');
+    };
+
+    const handlePublishPlan = async () => {
+        if (!announcement.trim()) {
+            alert("Por favor, escreva uma mensagem de anúncio.");
+            return;
+        }
+        
+        const archivedPlan = buildArchivedPlan();
+        
+        // 1. Publish to initiatives wall
+        await publishInitiative(archivedPlan, announcement);
+
+        // 2. Archive the plan
+        const history = JSON.parse(localStorage.getItem('progredire-action-plan-history') || '[]');
+        history.push(archivedPlan);
+        localStorage.setItem('progredire-action-plan-history', JSON.stringify(history));
+
+        resetState();
+        alert('Plano publicado e arquivado com sucesso!');
         setActiveView('action_tracking');
     };
     
@@ -241,9 +305,9 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
         html += `<h2>${planData.diagnosis.title}</h2><p>${planData.diagnosis.content}</p>`;
         html += `<h2>${planData.strategicObjective.title}</h2><p>${planData.strategicObjective.content}</p>`;
 
-        let actionsTable = `<h2>${planData.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Status</th></tr></thead><tbody>`;
+        let actionsTable = `<h2>${planData.suggestedActions.title}</h2><table><thead><tr><th>Ação</th><th>Descrição</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr></thead><tbody>`;
         currentActions.forEach(action => {
-            actionsTable += `<tr><td>${action.title}</td><td>${action.description}</td><td>${actionStatuses[action.id] || 'A Fazer'}</td></tr>`;
+            actionsTable += `<tr><td>${action.title}</td><td>${action.description}</td><td>${action.responsible || ''}</td><td>${action.dueDate ? new Date(action.dueDate).toLocaleDateString() : ''}</td><td>${actionStatuses[action.id] || 'A Fazer'}</td></tr>`;
         });
         actionsTable += '</tbody></table>';
         html += actionsTable;
@@ -341,21 +405,25 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                         </h3>
                         <div className="pl-9 space-y-4">
                             {currentActions.length > 0 ? currentActions.map(action => (
-                                <div key={action.id} className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                                <div key={action.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold text-slate-700">{action.title}</p>
-                                            <p className="text-sm text-slate-600 mt-1 mb-3">{action.description}</p>
+                                        <div className="flex-grow">
+                                            <p className="font-semibold text-slate-800">{action.title}</p>
+                                            <p className="text-sm text-slate-600 mt-1">{action.description}</p>
+                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-3">
+                                                {action.responsible && <span><strong>Responsável:</strong> {action.responsible}</span>}
+                                                {action.dueDate && <span><strong>Prazo:</strong> {new Date(action.dueDate).toLocaleDateString()}</span>}
+                                            </div>
                                         </div>
                                         <div className="flex gap-2 flex-shrink-0 ml-2">
                                             <button onClick={() => setEditingAction(action)} className="text-slate-400 hover:text-blue-600"><PencilIcon className="w-4 h-4" /></button>
                                             <button onClick={() => handleDeleteAction(action.id)} className="text-slate-400 hover:text-red-600"><TrashIcon className="w-4 h-4" /></button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4 text-xs">
+                                     <div className="flex items-center gap-4 text-xs mt-3 pt-3 border-t border-slate-200">
                                         <span className="font-medium text-slate-500">Status:</span>
                                         {(['A Fazer', 'Em Andamento', 'Concluído'] as ActionStatus[]).map(status => (
-                                            <label key={status} className="flex items-center gap-1 cursor-pointer">
+                                            <label key={status} className="flex items-center gap-1.5 cursor-pointer">
                                                 <input type="radio" name={`status-${action.id}`} value={status} checked={actionStatuses[action.id] === status} onChange={() => handleStatusChange(action.id, status)} className="h-4 w-4 border-slate-300 text-blue-600 focus:ring-blue-500"/>
                                                 {status}
                                             </label>
@@ -371,7 +439,7 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                             )}
 
                              <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-200 mt-4">
-                                <button onClick={() => setEditingAction({id: 0, title: '', description: ''})} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <button onClick={() => setEditingAction({id: 0, title: '', description: '', responsible: '', dueDate: ''})} className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 py-2 px-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <PlusCircleIcon className="w-5 h-5"/> Adicionar Ação Manualmente
                                 </button>
                                  <button
@@ -394,15 +462,35 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView }) =
                     )}
 
                     {currentActions.length > 0 && (
-                        <div className="pt-6 border-t border-slate-200 flex justify-end">
+                        <div className="pt-6 border-t border-slate-200 flex flex-wrap justify-end gap-3">
                             <button onClick={handleArchivePlan} className="flex items-center gap-2 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-slate-800">
                                 <ArchiveBoxIcon className="w-5 h-5" />
-                                Finalizar e Arquivar Plano
+                                Finalizar e Arquivar
+                            </button>
+                             <button onClick={() => setIsPublishModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">
+                                <PaperAirplaneIcon className="w-5 h-5" />
+                                Finalizar e Publicar
                             </button>
                         </div>
                     )}
                 </div>
             )}
+            <Modal isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} title="Publicar Iniciativa">
+                <div className="space-y-4">
+                    <h3 className="font-semibold text-slate-800">Mensagem de Anúncio</h3>
+                    <p className="text-sm text-slate-500">Escreva uma mensagem para os colaboradores. Explique por que esta iniciativa é importante. Ela será exibida no Mural de Iniciativas.</p>
+                    <textarea 
+                        value={announcement}
+                        onChange={(e) => setAnnouncement(e.target.value)}
+                        placeholder="Ex: Com base no feedback da última pesquisa, estamos lançando esta iniciativa para..."
+                        className="w-full p-2 bg-slate-50 border border-slate-300 rounded-md h-24 resize-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button onClick={() => setIsPublishModalOpen(false)} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50 text-slate-700">Cancelar</button>
+                        <button onClick={handlePublishPlan} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Publicar Iniciativa</button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };
@@ -420,25 +508,25 @@ const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: Re
 );
 
 const ActionForm: React.FC<{
-    action: ActionItem | {title: string, description: string};
-    onSave: (action: {title: string, description: string}) => void;
+    action: Partial<ActionItem>;
+    onSave: (action: Omit<ActionItem, 'id'>) => void;
     onCancel: () => void;
 }> = ({ action, onSave, onCancel }) => {
-    const [title, setTitle] = useState(action.title);
-    const [description, setDescription] = useState(action.description);
+    const [title, setTitle] = useState(action.title || '');
+    const [description, setDescription] = useState(action.description || '');
+    const [responsible, setResponsible] = useState(action.responsible || '');
+    const [dueDate, setDueDate] = useState(action.dueDate || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (title.trim()) {
-            onSave({ title, description });
-            setTitle('');
-            setDescription('');
+            onSave({ title, description, responsible, dueDate });
         }
     };
     
     return (
-        <form onSubmit={handleSubmit} className="bg-slate-100 p-4 rounded-lg border border-slate-300 space-y-3">
-            <h4 className="font-semibold text-slate-700">{'id' in action && action.id ? 'Editar Ação' : 'Adicionar Nova Ação'}</h4>
+        <form onSubmit={handleSubmit} className="bg-slate-100 p-4 rounded-lg border border-slate-300 space-y-4">
+            <h4 className="font-semibold text-slate-700">{action.id ? 'Editar Ação' : 'Adicionar Nova Ação'}</h4>
             <div>
                 <label htmlFor="action-title" className="sr-only">Título</label>
                 <input
@@ -460,6 +548,30 @@ const ActionForm: React.FC<{
                     placeholder="Descrição da ação"
                     className="w-full p-2 bg-white border border-slate-300 rounded-md h-20 resize-none text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
                 />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="action-responsible" className="block text-sm font-medium text-slate-600 mb-1">Responsável</label>
+                    <select
+                        id="action-responsible"
+                        value={responsible}
+                        onChange={e => setResponsible(e.target.value)}
+                        className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">Ninguém</option>
+                        {mockEmployees.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label htmlFor="action-dueDate" className="block text-sm font-medium text-slate-600 mb-1">Prazo</label>
+                    <input
+                        id="action-dueDate"
+                        type="date"
+                        value={dueDate}
+                        onChange={e => setDueDate(e.target.value)}
+                        className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
             </div>
             <div className="flex gap-2 justify-end">
                 <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50 text-slate-700">Cancelar</button>

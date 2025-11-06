@@ -1,9 +1,11 @@
 
+
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon } from './icons';
+import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
 import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart } from './Charts';
 
@@ -14,6 +16,11 @@ interface AiInsightData {
     attentionPoints: { title: string; points: { factor: string; description: string }[] };
     recommendations: { title: string; points: { forFactor: string; actions: string[] }[] };
     nextSteps: { title: string; content: string };
+}
+
+interface DashboardViewProps {
+  initialFilters?: Record<string, string>;
+  onNavigateToActionPlan: (context: { filters: Record<string, string>, factorId: string }) => void;
 }
 
 const exportToExcel = (htmlContent: string, filename: string) => {
@@ -67,7 +74,13 @@ const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: 
   </div>
 );
 
-const RankingCard: React.FC<{title: string, items: RiskFactor[], icon: React.ElementType, iconClass: string}> = ({title, items, icon: Icon, iconClass}) => (
+const RankingCard: React.FC<{
+    title: string, 
+    items: RiskFactor[], 
+    icon: React.ElementType, 
+    iconClass: string,
+    onActionClick?: (factorId: string) => void
+}> = ({title, items, icon: Icon, iconClass, onActionClick}) => (
     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
         <h3 className="text-md font-semibold text-slate-800 mb-3">{title}</h3>
         <ul className="space-y-2">
@@ -76,6 +89,15 @@ const RankingCard: React.FC<{title: string, items: RiskFactor[], icon: React.Ele
                     <Icon className={`w-5 h-5 mr-2 flex-shrink-0 ${iconClass}`} />
                     <span className="text-slate-700 flex-grow">{item.name}</span>
                     <span className="font-bold text-slate-800">{item.score}<span className="font-normal text-slate-500">/100</span></span>
+                     {onActionClick && (
+                        <button 
+                            onClick={() => onActionClick(item.id)} 
+                            title="Criar Plano de Ação"
+                            className="ml-2 p-1 text-slate-400 hover:text-blue-600 rounded-full hover:bg-slate-100 transition-colors"
+                        >
+                            <ClipboardDocumentListIcon className="w-5 h-5"/>
+                        </button>
+                    )}
                 </li>
             ))}
         </ul>
@@ -101,7 +123,7 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
 };
 
 // --- Main Component ---
-export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }> = ({ initialFilters }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, onNavigateToActionPlan }) => {
     const [filters, setFilters] = useState<Record<string, string>>(initialFilters || {});
     const [aiInsight, setAiInsight] = useState<AiInsightData | null>(null);
     const [isInsightLoading, setIsInsightLoading] = useState(false);
@@ -338,7 +360,13 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
                         <MaturityProgressBar level={data.maturityLevel.level} />
                     </div>
                     <div className="lg:col-span-1">
-                        <RankingCard title="Top 3 Fatores Críticos de Risco" items={data.topRisks} icon={ExclamationTriangleIcon} iconClass="text-red-500" />
+                        <RankingCard 
+                            title="Top 3 Fatores Críticos de Risco" 
+                            items={data.topRisks} 
+                            icon={ExclamationTriangleIcon} 
+                            iconClass="text-red-500" 
+                            onActionClick={(factorId) => onNavigateToActionPlan({ filters, factorId })}
+                        />
                     </div>
                     <div className="lg:col-span-1">
                          <RankingCard title="Top 3 Fatores de Proteção" items={data.topProtections} icon={ShieldCheckIcon} iconClass="text-green-500" />
@@ -359,7 +387,7 @@ export const DashboardView: React.FC<{ initialFilters?: Record<string, string> }
                         </div>
                          <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
                             <h3 className="text-md font-semibold text-slate-800 mb-2">Tendência de Clima (Evolução IRP Global)</h3>
-                            <LineChart chartData={data.climateTrend} />
+                            <LineChart chartData={data.climateTrend} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">

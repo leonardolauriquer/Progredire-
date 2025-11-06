@@ -4,6 +4,7 @@
 
 
 
+
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -587,7 +588,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     </div>
                 )}
                 
-                <LineChart chartData={chartEvolutionData} />
+                <LineChart chartData={chartEvolutionData} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
             </div>
 
              <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">

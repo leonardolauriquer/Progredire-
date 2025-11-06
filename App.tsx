@@ -7,8 +7,7 @@ import { CompanyHomeView } from './components/HomeView';
 import { CorporateSurveyView } from './components/CorporateSurveyView';
 import { DashboardView } from './components/DashboardView';
 import { FaqView } from './components/FaqView';
-import { BottomNavbar } from './components/BottomNavbar';
-import { EvolutionView } from './components/EvolutionView';
+import { CompanyEvolutionView } from './components/CompanyEvolutionView';
 import { PlanoAcaoView } from './components/PlanoAcaoView';
 import { SettingsView } from './components/SettingsView';
 import { AnalysisView } from './components/AnalysisView';
@@ -18,8 +17,13 @@ import { SupportTeamView } from './components/SupportTeamView';
 import { LoginView } from './components/LoginView';
 import { CollaboratorHomeView } from './components/CollaboratorHomeView';
 import { AuthData, authService } from './services/authService';
+import { CollaboratorEvolutionView } from './components/CollaboratorEvolutionView';
+import { InitiativesView } from './components/InitiativesView';
+import { AssistantView } from './components/AssistantView';
+import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
+import { JournalView } from './components/JournalView';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal';
 export type UserRole = 'company' | 'collaborator';
 
 const App: React.FC = () => {
@@ -27,13 +31,24 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('home');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  
+  // State for contextual navigation
   const [dashboardFilters, setDashboardFilters] = useState<Record<string, string> | undefined>(undefined);
+  const [actionPlanContext, setActionPlanContext] = useState<{ filters: Record<string, string>; factorId: string } | null>(null);
+
 
   useEffect(() => {
     const checkAuth = () => {
       const authData = authService.getAuth();
       if (authData) {
         setUser(authData);
+        // Generate notifications only for authenticated company users
+        if (authData.role === 'company') {
+            const fetchedNotifications = generateAndFetchNotifications();
+            setNotifications(fetchedNotifications);
+        }
       }
       setIsAuthLoading(false);
     };
@@ -50,44 +65,85 @@ const App: React.FC = () => {
     setUser(null);
   };
 
+  const handleDirectNavigation = (view: ActiveView) => {
+    // Clear all contexts for a clean navigation
+    setDashboardFilters(undefined);
+    setActionPlanContext(null);
+    setActiveView(view);
+  };
+
   const handleNavigateToDashboard = (filters?: Record<string, string>) => {
     setDashboardFilters(filters);
+    setActionPlanContext(null); // Clear other context
     setActiveView('dashboard');
   };
+  
+  const handleNavigateToActionPlan = (context: { filters: Record<string, string>; factorId: string }) => {
+    setActionPlanContext(context);
+    setDashboardFilters(undefined); // Clear other context
+    setActiveView('plano_acao');
+  };
+
+  const handleMarkNotificationsAsRead = () => {
+    const updatedNotifications = markAllAsRead();
+    setNotifications(updatedNotifications);
+  };
+
+  const handleNotificationClick = (link?: { view: ActiveView; context?: any }) => {
+    if (!link) return;
+    
+    if (link.view === 'dashboard' && link.context) {
+        handleNavigateToDashboard(link.context);
+    } else if (link.view === 'plano_acao' && link.context) {
+        handleNavigateToActionPlan(link.context);
+    } else {
+        handleDirectNavigation(link.view);
+    }
+  };
+
 
   const renderContent = () => {
     if (!user) return null;
     switch (activeView) {
       case 'home':
         if (user.role === 'collaborator') {
-          return <CollaboratorHomeView setActiveView={setActiveView} />;
+          return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         }
-        return <CompanyHomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
+        return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
       case 'personal_reflection':
         return <AnalysisView />;
       case 'dashboard':
-        return <DashboardView key={JSON.stringify(dashboardFilters)} initialFilters={dashboardFilters} />;
+        return <DashboardView key={JSON.stringify(dashboardFilters)} initialFilters={dashboardFilters} onNavigateToActionPlan={handleNavigateToActionPlan} />;
       case 'corporate_survey':
-        return <CorporateSurveyView />;
+        return <CorporateSurveyView setActiveView={handleDirectNavigation} />;
       case 'faq':
         return <FaqView userRole={user.role} />;
       case 'history':
-        return <EvolutionView />;
+        if (user.role === 'collaborator') {
+            return <CollaboratorEvolutionView setActiveView={handleDirectNavigation} />;
+        }
+        return <CompanyEvolutionView />;
       case 'plano_acao':
-        return <PlanoAcaoView setActiveView={setActiveView} />;
+        return <PlanoAcaoView setActiveView={handleDirectNavigation} initialContext={actionPlanContext} />;
       case 'action_tracking':
         return <PlanoAcaoHistoryView />;
       case 'campaigns':
-        return <CampaignView setActiveView={setActiveView} navigateToDashboard={handleNavigateToDashboard} />;
+        return <CampaignView setActiveView={handleDirectNavigation} navigateToDashboard={handleNavigateToDashboard} />;
       case 'settings':
         return <SettingsView />;
       case 'support_team':
         return <SupportTeamView />;
+      case 'initiatives':
+        return <InitiativesView />;
+      case 'assistant':
+        return <AssistantView />;
+      case 'journal':
+        return <JournalView />;
       default:
         if (user.role === 'collaborator') {
-          return <CollaboratorHomeView setActiveView={setActiveView} />;
+          return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         }
-        return <CompanyHomeView setActiveView={setActiveView} onNavigateToDashboard={handleNavigateToDashboard} />;
+        return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
     }
   };
   
@@ -104,25 +160,33 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[--color-background] text-[--color-foreground]">
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
-        onNavigateToDashboard={handleNavigateToDashboard}
+        setActiveView={(view) => {
+            handleDirectNavigation(view);
+            setIsMobileSidebarOpen(false);
+        }}
+        onNavigateToDashboard={(filters) => {
+            handleNavigateToDashboard(filters);
+            setIsMobileSidebarOpen(false);
+        }}
         userRole={user.role}
         onLogout={handleLogout}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
-      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} transition-all duration-300 flex flex-col min-h-screen pb-20 md:pb-0`}>
-        <Header />
+      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} transition-all duration-300 flex flex-col min-h-screen`}>
+        <Header 
+            onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
+            notifications={notifications}
+            onMarkAllRead={handleMarkNotificationsAsRead}
+            onNotificationClick={handleNotificationClick}
+            userRole={user.role}
+        />
         <main className="flex-grow p-4 sm:p-6 lg:p-8">
             {renderContent()}
         </main>
       </div>
-      <BottomNavbar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        onNavigateToDashboard={handleNavigateToDashboard}
-        userRole={user.role}
-      />
     </div>
   );
 };

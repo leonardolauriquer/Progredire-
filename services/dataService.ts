@@ -1,4 +1,5 @@
 
+
 import { authService } from './authService';
 import { mockResponses, mockFilters, dimensions } from '../components/dashboardMockData';
 
@@ -32,6 +33,22 @@ export type DashboardData = {
   absenteeismRate: number;
   presenteeismRate: number;
 };
+export interface CollaboratorEvolutionEntry {
+    timestamp: number;
+    scores: Record<string, number>; // key is dimension id, value is score 0-100
+    generalScore: number;
+}
+export interface PublishedInitiative {
+    id: number;
+    publishedDate: string;
+    factor: string;
+    segment: string;
+    objective: string;
+    announcement: string;
+    actions: { title: string; description: string; }[];
+    status: 'Em Andamento' | 'Concluído';
+    supportCount: number;
+}
 
 
 // --- Calculation Logic (Moved from DashboardView) ---
@@ -41,6 +58,8 @@ const likertToScore: Record<string, number> = {
 };
 const allDimensionIds = Object.keys(dimensions);
 const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
+const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
+const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
     'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
@@ -178,7 +197,7 @@ const calculateClimateTrend = (): {labels: string[], data: number[]} => {
 
 const calculateDashboardData = (filters: Record<string, string>): DashboardData => {
     const filteredResponses = mockResponses.filter(r => 
-        Object.entries(filters).every(([key, value]) => !value || r.segmentation[key] === value)
+        Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
     );
     
     const companyData = calculateDataForResponses(mockResponses);
@@ -276,4 +295,146 @@ export const getDashboardData = (filters: Record<string, string>): Promise<Dashb
       }
     }, 1500); // 1.5 second delay
   });
+};
+
+
+// --- Collaborator Data Service Functions ---
+
+export const saveCollaboratorSurvey = async (answers: Record<string, string>): Promise<void> => {
+    return new Promise((resolve) => {
+        const newEntry: CollaboratorEvolutionEntry = {
+            timestamp: Date.now(),
+            scores: {},
+            generalScore: 0,
+        };
+
+        let totalScoreSum = 0;
+        let totalDimensionCount = 0;
+
+        allDimensionIds.forEach(dimId => {
+            const dimQuestions = dimensions[dimId].questions;
+            let totalScoreForDim = 0;
+            let questionCountForDim = 0;
+            dimQuestions.forEach(qId => {
+                const answer = answers[qId];
+                if (answer) {
+                    totalScoreForDim += likertToScore[answer] || 0;
+                    questionCountForDim++;
+                }
+            });
+            if (questionCountForDim > 0) {
+                const averageScore = totalScoreForDim / questionCountForDim;
+                const normalizedScore = Math.round(((averageScore - 1) / 4) * 100);
+                newEntry.scores[dimId] = normalizedScore;
+                totalScoreSum += normalizedScore;
+                totalDimensionCount++;
+            }
+        });
+        
+        if (totalDimensionCount > 0) {
+            newEntry.generalScore = Math.round(totalScoreSum / totalDimensionCount);
+        }
+
+        try {
+            const existingDataString = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
+            const existingData: CollaboratorEvolutionEntry[] = existingDataString ? JSON.parse(existingDataString) : [];
+            existingData.push(newEntry);
+            localStorage.setItem(COLLABORATOR_EVOLUTION_KEY, JSON.stringify(existingData));
+        } catch (e) {
+            console.error("Failed to save collaborator evolution data", e);
+        }
+        resolve();
+    });
+};
+
+export const getCollaboratorEvolutionData = async (): Promise<CollaboratorEvolutionEntry[]> => {
+    return new Promise((resolve) => {
+        try {
+            const dataString = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
+            const data: CollaboratorEvolutionEntry[] = dataString ? JSON.parse(dataString) : [];
+            data.sort((a, b) => a.timestamp - b.timestamp); // Ensure it's sorted by date
+            resolve(data);
+        } catch (e) {
+            console.error("Failed to get collaborator evolution data", e);
+            resolve([]);
+        }
+    });
+};
+
+// --- Initiatives Service Functions ---
+
+export const publishInitiative = async (archivedPlan: any, announcement: string): Promise<void> => {
+    return new Promise((resolve) => {
+        const newInitiative: PublishedInitiative = {
+            id: archivedPlan.id,
+            publishedDate: new Date().toISOString(),
+            factor: archivedPlan.factor,
+            segment: archivedPlan.segment,
+            objective: archivedPlan.plan.strategicObjective.content,
+            announcement,
+            actions: archivedPlan.actions.map((a: any) => ({ title: a.title, description: a.description })),
+            status: archivedPlan.progress < 100 ? 'Em Andamento' : 'Concluído',
+            supportCount: 0,
+        };
+
+        try {
+            const existingDataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
+            const existingData: PublishedInitiative[] = existingDataString ? JSON.parse(existingDataString) : [];
+            existingData.unshift(newInitiative); // Add to the top
+            localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(existingData));
+        } catch (e) {
+            console.error("Failed to publish initiative", e);
+        }
+        resolve();
+    });
+};
+
+export const getPublishedInitiatives = async (): Promise<PublishedInitiative[]> => {
+     return new Promise((resolve) => {
+        try {
+            const dataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
+            const data: PublishedInitiative[] = dataString ? JSON.parse(dataString) : [];
+            resolve(data);
+        } catch (e) {
+            console.error("Failed to get published initiatives", e);
+            resolve([]);
+        }
+    });
+};
+
+export const recordInitiativeSupport = async (initiativeId: number): Promise<PublishedInitiative[]> => {
+    return new Promise((resolve) => {
+        try {
+            const dataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
+            let initiatives: PublishedInitiative[] = dataString ? JSON.parse(dataString) : [];
+            initiatives = initiatives.map(init => {
+                if (init.id === initiativeId) {
+                    return { ...init, supportCount: init.supportCount + 1 };
+                }
+                return init;
+            });
+            localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(initiatives));
+            resolve(initiatives);
+        } catch (e) {
+            console.error("Failed to record support", e);
+            resolve([]);
+        }
+    });
+};
+
+
+// --- AI Assistant Tool Functions ---
+
+export const queryRiskFactors = async (filters: Record<string, string>): Promise<{ factor: string; score: number }[]> => {
+    console.log("DataService: Querying risk factors with filters:", filters);
+    const filteredResponses = mockResponses.filter(r => 
+        Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
+    );
+    
+    // If filter results in no data, use all data as a fallback.
+    const dataToProcess = filteredResponses.length > 0 ? filteredResponses : mockResponses;
+    
+    const { riskFactors } = calculateDataForResponses(dataToProcess);
+    
+    return riskFactors.map(rf => ({ factor: rf.name, score: rf.score }));
 };

@@ -1,12 +1,15 @@
 
+
+
 import React, { useState, useCallback } from 'react';
 import { getInsightForFeeling, getDailyInsight } from '../services/geminiService';
+import { addJournalEntry } from '../services/journalService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { BrainIcon, PencilSquareIcon, SparklesIcon, CalendarDaysIcon, PaperAirplaneIcon } from './icons';
 import { ActiveView } from '../App';
 
 interface CollaboratorHomeViewProps {
-  setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+  setActiveView: (view: ActiveView) => void;
 }
 
 const feelings = [
@@ -56,23 +59,27 @@ const mockCampaigns: Campaign[] = [
 
 export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setActiveView }) => {
     // State for feeling tracker
-    const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
+    const [selectedFeeling, setSelectedFeeling] = useState<{label: string, emoji: string} | null>(null);
     const [feelingInsight, setFeelingInsight] = useState<string>('');
     const [isFeelingLoading, setIsFeelingLoading] = useState<boolean>(false);
     const [feelingError, setFeelingError] = useState<string | null>(null);
+    const [note, setNote] = useState('');
+    const [isSaved, setIsSaved] = useState(false);
     
     // State for daily reflection
     const [dailyInsight, setDailyInsight] = useState<string>('');
     const [isDailyInsightLoading, setIsDailyInsightLoading] = useState<boolean>(false);
     const [dailyInsightError, setDailyInsightError] = useState<string | null>(null);
 
-    const handleFeelingSelect = useCallback(async (feeling: string) => {
+    const handleFeelingSelect = useCallback(async (feeling: {label: string, emoji: string}) => {
         setSelectedFeeling(feeling);
         setIsFeelingLoading(true);
         setFeelingError(null);
         setFeelingInsight('');
+        setNote('');
+        setIsSaved(false);
         try {
-            const result = await getInsightForFeeling(feeling);
+            const result = await getInsightForFeeling(feeling.label);
             setFeelingInsight(result);
         } catch (err) {
             setFeelingError(err instanceof Error ? err.message : 'An unexpected error occurred.');
@@ -80,6 +87,23 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
             setIsFeelingLoading(false);
         }
     }, []);
+
+    const handleSaveToJournal = useCallback(async () => {
+        if (!selectedFeeling) return;
+        await addJournalEntry({
+            feeling: selectedFeeling.label,
+            emoji: selectedFeeling.emoji,
+            note: note,
+        });
+        setIsSaved(true);
+        setTimeout(() => {
+            // Reset form after saving to allow another entry
+            setSelectedFeeling(null);
+            setFeelingInsight('');
+            setNote('');
+            setIsSaved(false);
+        }, 2000); // Reset after 2 seconds
+    }, [selectedFeeling, note]);
 
     const handleGenerateDailyInsight = useCallback(async () => {
         setIsDailyInsightLoading(true);
@@ -125,41 +149,62 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
             <h2 className="text-xl font-semibold text-slate-800 text-center mb-6">Como você está se sentindo?</h2>
             
             <div className="flex flex-wrap justify-center gap-3 md:gap-4">
-                {feelings.map(({ label, emoji }) => (
+                {feelings.map((feeling) => (
                     <button
-                        key={label}
-                        onClick={() => handleFeelingSelect(label)}
+                        key={feeling.label}
+                        onClick={() => handleFeelingSelect(feeling)}
                         disabled={isFeelingLoading}
                         className={`flex flex-col items-center justify-center w-24 h-24 md:w-28 md:h-28 p-2 rounded-2xl border-2 transition-all duration-200
-                            ${selectedFeeling === label 
+                            ${selectedFeeling?.label === feeling.label 
                                 ? 'bg-blue-100 border-blue-500 scale-105' 
                                 : 'bg-slate-50 border-transparent hover:bg-slate-100 hover:border-slate-300'
                             }`}
                     >
-                        <span className="text-3xl md:text-4xl">{emoji}</span>
-                        <span className="text-sm font-medium text-slate-700 mt-2">{label}</span>
+                        <span className="text-3xl md:text-4xl">{feeling.emoji}</span>
+                        <span className="text-sm font-medium text-slate-700 mt-2">{feeling.label}</span>
                     </button>
                 ))}
             </div>
 
             <div className="mt-6 min-h-[6rem] flex items-center justify-center">
-                {isFeelingLoading && (
+                {isFeelingLoading ? (
                     <div className="flex items-center text-slate-500">
                         <LoadingSpinner />
                         <span className="ml-2">Gerando uma mensagem para você...</span>
                     </div>
-                )}
-                {feelingError && (
+                ) : feelingError ? (
                     <div className="text-red-600 bg-red-100 p-3 rounded-md text-sm text-center">{feelingError}</div>
-                )}
-                {feelingInsight && !isFeelingLoading && (
-                    <blockquote className="bg-slate-50/70 border-l-4 border-blue-500 p-4 text-left w-full">
-                         <p className="text-slate-700 italic">
-                            <SparklesIcon className="w-5 h-5 inline-block mr-2 text-blue-500" />
-                            {feelingInsight}
-                        </p>
-                    </blockquote>
-                )}
+                ) : feelingInsight ? (
+                     <div className="w-full space-y-4">
+                        <blockquote className="bg-slate-50/70 border-l-4 border-blue-500 p-4 text-left">
+                             <p className="text-slate-700 italic">
+                                <SparklesIcon className="w-5 h-5 inline-block mr-2 text-blue-500" />
+                                {feelingInsight}
+                            </p>
+                        </blockquote>
+                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 transition-all duration-300">
+                            <label htmlFor="journal-note" className="block text-sm font-medium text-slate-700 mb-2">Adicionar uma nota ao seu diário (privado):</label>
+                            <textarea
+                                id="journal-note"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                placeholder={`Por que você está se sentindo ${selectedFeeling?.label.toLowerCase()}?`}
+                                className="w-full p-2 bg-white border border-slate-300 rounded-md h-20 resize-none focus:ring-2 focus:ring-blue-500"
+                                rows={3}
+                                disabled={isSaved}
+                            />
+                            <div className="flex justify-end mt-2">
+                                <button
+                                    onClick={handleSaveToJournal}
+                                    disabled={isSaved}
+                                    className="px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-green-600 disabled:cursor-not-allowed"
+                                >
+                                    {isSaved ? "Salvo com Sucesso!" : "Salvar no Diário"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
             </div>
         </div>
         

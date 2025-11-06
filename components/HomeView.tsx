@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -6,8 +7,7 @@ import { BrainIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, Nex
 import { ActiveView } from '../App';
 
 interface CompanyHomeViewProps {
-  // FIX: Updated prop type to match React.Dispatch<React.SetStateAction<...>> for compatibility with useState setter.
-  setActiveView: React.Dispatch<React.SetStateAction<ActiveView>>;
+  setActiveView: (view: ActiveView) => void;
   onNavigateToDashboard: (filters?: Record<string, string>) => void;
 }
 

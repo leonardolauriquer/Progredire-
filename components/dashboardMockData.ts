@@ -1,6 +1,20 @@
 // --- MOCK DATA ---
 // This data simulates responses from a backend/database.
 
+export type CampaignStatus = 'Em Andamento' | 'Concluída' | 'Agendada' | 'Pendente';
+export interface Campaign {
+    id: number;
+    name: string;
+    description: string;
+    status: CampaignStatus;
+    targetAudience: string;
+    adherence: number;
+    startDate: string;
+    endDate: string;
+    emailMessage: string;
+    filters: Record<string, string>;
+}
+
 type Segmentation = {
     empresa: string;
     diretoria: string;
@@ -102,4 +116,10 @@ export const mockFilters = [
     { id: 'diretoria', label: 'Diretoria', options: ['Tecnologia', 'Vendas & Mkt', 'Operações'] },
     { id: 'setor', label: 'Setor / Área', options: ['Engenharia', 'Marketing', 'RH', 'Vendas'] },
     { id: 'cargo', label: 'Cargo', options: ['Desenvolvedor', 'Analista', 'Especialista', 'Executivo de Contas'] },
+];
+
+export const initialCampaigns: Campaign[] = [
+    { id: 1, name: "Diagnóstico Q3 - Tecnologia", description: "Avaliação trimestral da equipe de tecnologia.", status: "Em Andamento", targetAudience: "Diretoria de Tecnologia", adherence: 65, startDate: "2024-07-15", endDate: "2024-08-15", emailMessage: "...", filters: {diretoria: 'Tecnologia'}},
+    { id: 2, name: "Pesquisa de Clima - Vendas & Mkt", description: "Análise do clima e engajamento das equipes comerciais.", status: "Concluída", targetAudience: "Diretoria de Vendas & Mkt", adherence: 92, startDate: "2024-05-01", endDate: "2024-05-30", emailMessage: "...", filters: {diretoria: 'Vendas & Mkt'}},
+    { id: 3, name: "Diagnóstico Anual Geral", description: "Pesquisa de clima para toda a empresa.", status: "Pendente", targetAudience: "Toda a empresa", adherence: 0, startDate: "2024-09-01", endDate: "2024-09-30", emailMessage: "...", filters: {}},
 ];
