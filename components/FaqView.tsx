@@ -1,19 +1,18 @@
 
-import React, { useState } from 'react';
-import { ChevronDownIcon } from './icons';
 
-const faqData = [
+import React, { useState, useMemo } from 'react';
+import { ChevronDownIcon } from './icons';
+import { UserRole } from '../App';
+
+// Data for Company Role
+const companyFaqData = [
     {
         question: "O que é o Progredire+?",
-        answer: "Progredire+ é uma aplicação de software projetada para auxiliar na análise e reflexão sobre questões psicossociais. Utilizando inteligência artificial, a ferramenta oferece insights baseados em descrições de situações, sentimentos e desafios, além de fornecer um dashboard para análise de diagnósticos organizacionais."
+        answer: "Progredire+ é uma aplicação de software projetada para auxiliar na análise e gestão de riscos psicossociais. Utilizando inteligência artificial, a ferramenta fornece um dashboard para diagnósticos organizacionais, facilita a criação de planos de ação e acompanha a evolução do clima ao longo do tempo."
     },
     {
-        question: "Como funciona a Análise Psico-Social?",
-        answer: "Na seção 'Reflexão Pessoal', você descreve uma situação ou sentimento. Nossa IA, treinada com princípios de psicologia e sociologia, analisa seu texto e fornece uma resposta estruturada que inclui um resumo empático, uma análise dos fatores em jogo, pontos para reflexão e sugestões práticas, sempre com um tom de apoio e sem julgamentos."
-    },
-    {
-        question: "Meus dados estão seguros e confidenciais?",
-        answer: "Sim. A confidencialidade é nossa prioridade. Na 'Reflexão Pessoal', as informações que você insere não são armazenadas. No 'Questionário Psicossocial', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
+        question: "Os dados da empresa e dos colaboradores estão seguros?",
+        answer: "Sim. A confidencialidade é nossa prioridade. No 'Questionário Psicossocial', os dados são anonimizados e agregados para a análise do dashboard, garantindo que nenhuma resposta individual possa ser identificada."
     },
     {
         question: "O que são as 'Campanhas'?",
@@ -40,10 +39,42 @@ const faqData = [
         answer: "Você pode encontrar as informações de contato da nossa equipe, como e-mail e telefone, na página 'Equipe de Apoio', disponível no menu. A equipe de Staff está disponível para um bate-papo confidencial sobre qualquer questão."
     },
     {
-        question: "O Progredire+ substitui um terapeuta ou profissional de saúde mental?",
-        answer: "Não. É muito importante entender que o Progredire+ é uma ferramenta de apoio à reflexão e gestão organizacional. Ele não fornece diagnósticos médicos ou psicológicos e não substitui, de forma alguma, o aconselhamento, diagnóstico ou tratamento de um profissional de saúde mental qualificado."
+        question: "O Progredire+ substitui uma consultoria de RH?",
+        answer: "O Progredire+ é uma ferramenta poderosa de diagnóstico e gestão que complementa o trabalho do RH, mas não substitui a expertise de consultores e profissionais da área. Ele automatiza a coleta e análise de dados, fornecendo insights para que a equipe de RH possa tomar decisões mais estratégicas."
     }
 ];
+
+// Data for Collaborator Role
+const collaboratorFaqData = [
+     {
+        question: "O que é o Progredire+?",
+        answer: "Progredire+ é uma ferramenta de bem-estar que ajuda você a refletir sobre seus sentimentos e a participar de pesquisas confidenciais da sua empresa para melhorar o ambiente de trabalho."
+    },
+    {
+        question: "Minhas respostas são anônimas?",
+        answer: "Sim, sua confidencialidade é 100% garantida. Suas respostas ao 'Questionário Psicossocial' são agrupadas com as de outros colegas e se tornam dados anônimos. Sua liderança ou o RH nunca terão acesso às suas respostas individuais."
+    },
+     {
+        question: "Como funciona a 'Reflexão Pessoal'?",
+        answer: "Na seção 'Reflexão Pessoal', você descreve uma situação ou sentimento. Nossa IA analisa seu texto e fornece uma resposta para te ajudar a refletir, com um resumo empático, pontos de vista e sugestões. Nenhuma informação que você escreve nesta seção é salva ou compartilhada."
+    },
+    {
+        question: "O que é o 'Questionário Psicossocial'?",
+        answer: "É uma pesquisa confidencial que sua empresa pode enviar para entender melhor o ambiente de trabalho. Suas respostas honestas ajudam a identificar pontos fortes e oportunidades de melhoria para todos."
+    },
+    {
+        question: "Preciso de ajuda com uma questão pessoal. O que devo fazer?",
+        answer: "Na seção 'Equipe de Apoio', você encontrará uma lista de profissionais de saúde e bem-estar, como psicólogos e médicos, além dos contatos da equipe Staff da Progredire+. Você pode agendar um bate-papo confidencial com eles."
+    },
+    {
+        question: "O Progredire+ substitui um terapeuta?",
+        answer: "Não. É muito importante entender que o Progredire+ é uma ferramenta de apoio à reflexão. Ele não fornece diagnósticos médicos ou psicológicos e não substitui, de forma alguma, o aconselhamento ou tratamento de um profissional de saúde mental qualificado."
+    }
+];
+
+interface FaqViewProps {
+  userRole: UserRole | null;
+}
 
 const FaqItem: React.FC<{
     item: { question: string; answer: string };
@@ -73,8 +104,12 @@ const FaqItem: React.FC<{
     );
 };
 
-export const FaqView: React.FC = () => {
+export const FaqView: React.FC<FaqViewProps> = ({ userRole }) => {
     const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+    const faqData = useMemo(() => {
+        return userRole === 'company' ? companyFaqData : collaboratorFaqData;
+    }, [userRole]);
 
     const handleItemClick = (index: number) => {
         setOpenIndex(openIndex === index ? null : index);

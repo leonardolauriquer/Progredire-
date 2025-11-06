@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -53,7 +54,7 @@ const App: React.FC = () => {
       case 'corporate_survey':
         return <CorporateSurveyView />;
       case 'faq':
-        return <FaqView />;
+        return <FaqView userRole={user.role} />;
       case 'history':
         return <EvolutionView />;
       case 'plano_acao':

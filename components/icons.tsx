@@ -8,14 +8,13 @@ export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth="2" 
+    strokeWidth="2.5" 
     strokeLinecap="round" 
     strokeLinejoin="round" 
     {...props}
   >
-    <path d="M12 2a10 10 0 1 0 10 10" />
-    <path d="M12 18a6 6 0 1 0 0-12v12z" />
-    <path d="M12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" />
+    <path d="M3 17l6-6 4 4 8-8" />
+    <polyline points="15 7 21 7 21 13" />
   </svg>
 );
 
