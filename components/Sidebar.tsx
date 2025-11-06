@@ -1,6 +1,7 @@
 
+
 import React, { useMemo } from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
@@ -9,6 +10,8 @@ interface SidebarProps {
   onNavigateToDashboard: (filters?: Record<string, string>) => void;
   userRole: UserRole;
   onLogout: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const allNavigation = [
@@ -32,23 +35,25 @@ const NavItem: React.FC<{
   item: typeof allNavigation[0];
   isActive: boolean;
   onClick: () => void;
-}> = ({ item, isActive, onClick }) => (
+  isCollapsed: boolean;
+}> = ({ item, isActive, onClick, isCollapsed }) => (
   <li>
     <button
       onClick={onClick}
-      className={`w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
+      title={isCollapsed ? item.name : undefined}
+      className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
         isActive
           ? 'bg-blue-50 text-blue-600'
           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-      }`}
+      } ${isCollapsed ? 'justify-center' : 'px-3'}`}
     >
-      <item.icon className="h-5 w-5 mr-3" />
-      <span>{item.name}</span>
+      <item.icon className={`h-5 w-5 shrink-0 ${!isCollapsed && 'mr-3'}`} />
+      {!isCollapsed && <span>{item.name}</span>}
     </button>
   </li>
 );
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onNavigateToDashboard, userRole, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onNavigateToDashboard, userRole, onLogout, isCollapsed, onToggleCollapse }) => {
   
   const navigation = useMemo(() => {
     const allowedViews = userRole === 'company' ? companyViews : collaboratorViews;
@@ -61,15 +66,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onN
 
   return (
     <aside
-      className="fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-200 z-30 hidden md:flex flex-col"
+      className={`fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-30 hidden md:flex flex-col transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}
     >
         {/* Sidebar Header */}
-        <div className="flex items-center h-16 px-4 border-b border-slate-200 flex-shrink-0">
-          <div className="flex items-center space-x-3">
+        <div className={`flex items-center h-16 px-4 border-b border-slate-200 flex-shrink-0 ${isCollapsed ? 'justify-center' : ''}`}>
+          <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
               <LogoIcon className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-slate-800 tracking-tight">
-                Progredire<span className="text-blue-600">+</span>
-              </span>
+              {!isCollapsed && (
+                <span className="text-2xl font-bold text-slate-800 tracking-tight whitespace-nowrap">
+                  Progredire<span className="text-blue-600">+</span>
+                </span>
+              )}
           </div>
         </div>
 
@@ -81,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onN
                     key={item.name}
                     item={item as any}
                     isActive={activeView === item.view}
+                    isCollapsed={isCollapsed}
                     onClick={() => {
                         if (item.view === 'dashboard') {
                             onNavigateToDashboard();
@@ -93,15 +101,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, onN
             </ul>
         </nav>
 
-        {/* Logout */}
+        {/* Sidebar Footer */}
         <div className="px-4 py-4 border-t border-slate-200 flex-shrink-0">
-            <button
-            onClick={onLogout}
-            className="w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200"
-            >
-            <ArrowLeftOnRectangleIcon className="h-5 w-5 mr-3" />
-            <span>Sair</span>
-            </button>
+            <ul className="space-y-1">
+                <li>
+                    <button
+                        onClick={onToggleCollapse}
+                        title={isCollapsed ? "Expandir" : "Minimizar"}
+                        className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200 ${isCollapsed ? 'justify-center' : 'px-3'}`}
+                    >
+                        <ChevronDoubleLeftIcon className={`h-5 w-5 shrink-0 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''} ${!isCollapsed ? 'mr-3' : ''}`} />
+                        {!isCollapsed && <span>Minimizar</span>}
+                    </button>
+                </li>
+                <li>
+                    <button
+                        onClick={onLogout}
+                        title="Sair"
+                        className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200 ${isCollapsed ? 'justify-center' : 'px-3'}`}
+                    >
+                        <ArrowLeftOnRectangleIcon className={`h-5 w-5 shrink-0 ${!isCollapsed ? 'mr-3' : ''}`} />
+                        {!isCollapsed && <span>Sair</span>}
+                    </button>
+                </li>
+            </ul>
         </div>
     </aside>
   );

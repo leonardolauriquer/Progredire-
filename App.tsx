@@ -24,6 +24,7 @@ export type UserRole = 'company' | 'collaborator';
 const App: React.FC = () => {
   const [user, setUser] = useState<{ role: UserRole | null }>({ role: null });
   const [activeView, setActiveView] = useState<ActiveView>('home');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [dashboardFilters, setDashboardFilters] = useState<Record<string, string> | undefined>(undefined);
 
   const handleLogin = (role: UserRole) => {
@@ -87,8 +88,10 @@ const App: React.FC = () => {
         onNavigateToDashboard={handleNavigateToDashboard}
         userRole={user.role}
         onLogout={handleLogout}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(prev => !prev)}
       />
-      <div className="md:pl-64 flex flex-col min-h-screen pb-20 md:pb-0">
+      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} transition-all duration-300 flex flex-col min-h-screen pb-20 md:pb-0`}>
         <Header />
         <main className="flex-grow p-4 sm:p-6 lg:p-8">
             {renderContent()}
