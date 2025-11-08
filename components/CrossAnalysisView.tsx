@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { getDashboardData, CrossAnalysisData } from '../services/dataService';
 import { QuestionMarkCircleIcon, ChevronDownIcon } from './icons';
 // FIX: Replaced ColumnChart with PotentialAnalysisChart as it expects the correct data type.
-import { LineChart, BubbleScatterChart, PotentialAnalysisChart, HeatmapChart } from './Charts';
+import { LineChart, BubbleScatterChart, PotentialAnalysisChart, HeatmapChart, ActionsImpactChart } from './Charts';
 
 // --- Helper Components ---
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
@@ -116,8 +116,8 @@ export const CrossAnalysisView: React.FC = () => {
                     <PotentialAnalysisChart data={data.presenteeismVsRoi} />
                 </AnalysisSection>
                 
-                <AnalysisSection title="Impacto das Ações vs. IRP (Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. O eixo X mostra a melhoria no IRP após a ação, e o eixo Y, o número de ações no plano. O tamanho da bolha indica o progresso do plano.">
-                    <BubbleScatterChart data={data.actionsVsImpact} xAxisLabel="Melhora no IRP (Pontos)" yAxisLabel="Número de Ações no Plano" />
+                <AnalysisSection title="Impacto das Ações vs. IRP (Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. A altura da barra mostra a melhoria no IRP (Impacto). A cor da barra indica o progresso do plano de ação.">
+                    <ActionsImpactChart data={data.actionsVsImpact} yAxisLabel="Melhora no IRP (Pontos)" />
                 </AnalysisSection>
             </div>
 

@@ -4,7 +4,7 @@ import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
-import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, BubbleScatterChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart } from './Charts';
+import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart, ActionsImpactChart } from './Charts';
 
 // --- Types ---
 interface AiInsightData {
@@ -506,8 +506,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                         <PotentialAnalysisChart data={data.crossAnalysis.presenteeismVsRoi} />
                     </AnalysisCard>
                     
-                    <AnalysisCard title="Ações × Impacto (IRP - Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. O eixo X mostra a melhoria no IRP após a ação, e o eixo Y, o número de ações no plano. O tamanho da bolha indica o progresso do plano.">
-                        <BubbleScatterChart data={data.crossAnalysis.actionsVsImpact} xAxisLabel="Melhora no IRP (Pontos)" yAxisLabel="Número de Ações no Plano" />
+                    <AnalysisCard title="Ações × Impacto (IRP - Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. A altura da barra mostra a melhoria no IRP (Impacto). A cor da barra indica o progresso do plano de ação.">
+                        <ActionsImpactChart data={data.crossAnalysis.actionsVsImpact} yAxisLabel="Melhora no IRP (Pontos)" />
                     </AnalysisCard>
                     
                     <AnalysisCard title="Evolução do IRP (Índice de Risco Psicossocial)" tooltip="Monitora a tendência trimestral ou mensal do Índice de Risco Psicossocial (IRP) geral da empresa." className="xl:col-span-2">

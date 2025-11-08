@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import type { PotentialAnalysisData } from '../services/dataService';
 
 // --- Gauge Chart ---
@@ -515,7 +516,9 @@ export const ColumnChart: React.FC<{ data: ColumnChartData, yAxisLabel?: string 
                             <line x1={padding.left} y1={yPoint(val)} x2={width - padding.right} y2={yPoint(val)} stroke="#e2e8f0" strokeDasharray="2" />
                         </g>
                     ))}
-                    <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
+                    {yAxisLabel && (
+                        <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
+                    )}
                 </g>
                 
                 {/* X-Axis */}
@@ -552,65 +555,137 @@ export const ColumnChart: React.FC<{ data: ColumnChartData, yAxisLabel?: string 
 // --- Bubble Scatter Chart ---
 type BubbleData = { x: number; y: number; z: number; label: string; };
 export const BubbleScatterChart: React.FC<{ data: BubbleData[], xAxisLabel: string; yAxisLabel: string; }> = ({ data, xAxisLabel, yAxisLabel }) => {
+    const [hoveredBubble, setHoveredBubble] = useState<BubbleData | null>(null);
+
     const width = 500, height = 300, paddingX = 50, paddingY = 40;
-    const xMax = Math.max(...data.map(d => d.x), 0) * 1.1;
-    const yMax = Math.max(...data.map(d => d.y), 0) * 1.1;
+    const xMax = Math.max(...data.map(d => d.x), 0) * 1.15;
+    const yMax = Math.max(...data.map(d => d.y), 0) * 1.15;
     const zMax = Math.max(...data.map(d => d.z), 1);
 
     const x = (val: number) => paddingX + (val / xMax) * (width - paddingX * 2);
     const y = (val: number) => height - paddingY - (val / yMax) * (height - paddingY * 2);
-    const r = (val: number) => 5 + (val / zMax) * 25;
+    const r = (val: number) => 5 + (val / zMax) * 20;
+
+    const tooltipPosition = (d: BubbleData) => {
+        let tx = x(d.x);
+        let ty = y(d.y) - r(d.z) - 10;
+        
+        if (ty < 10) ty = y(d.y) + r(d.z) + 10;
+        if (tx > width - 100) tx = width - 100;
+        if (tx < 10) tx = 10;
+
+        return { x: tx, y: ty };
+    }
 
     return (
         <div className="w-full relative" style={{ height: '300px' }}>
             <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
-                {/* Grid Lines */}
+                <defs>
+                    <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style={{ stopColor: 'rgba(96, 165, 250, 1)' }} />
+                        <stop offset="100%" style={{ stopColor: 'rgba(59, 130, 246, 1)' }} />
+                    </linearGradient>
+                    <filter id="bubbleShadow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feDropShadow dx="1" dy="2" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.2" />
+                    </filter>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                    </marker>
+                </defs>
+
                 {Array.from({length: 5}).map((_, i) => (
-                    <line key={`h-${i}`} x1={paddingX} y1={paddingY + i * ((height - 2*paddingY)/4)} x2={width - paddingX} y2={paddingY + i * ((height - 2*paddingY)/4)} stroke="#f1f5f9" />
+                    <line key={`h-${i}`} x1={paddingX} y1={paddingY + i * ((height - 2*paddingY)/4)} x2={width - paddingX} y2={paddingY + i * ((height - 2*paddingY)/4)} stroke="#f1f5f9" strokeDasharray="3,5" />
                 ))}
                 {Array.from({length: 5}).map((_, i) => (
-                    <line key={`v-${i}`} x1={paddingX + i * ((width - 2*paddingX)/4)} y1={paddingY} x2={paddingX + i * ((width - 2*paddingX)/4)} y2={height - paddingY} stroke="#f1f5f9" />
+                    <line key={`v-${i}`} x1={paddingX + i * ((width - 2*paddingX)/4)} y1={paddingY} x2={paddingX + i * ((width - 2*paddingX)/4)} y2={height - paddingY} stroke="#f1f5f9" strokeDasharray="3,5" />
                 ))}
 
-                {/* Axes */}
-                <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="#cbd5e1" />
-                <line x1={paddingX} y1={paddingY} x2={paddingX} y2={height - paddingY} stroke="#cbd5e1" />
+                <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="#94a3b8" markerEnd="url(#arrowhead)" />
+                <line x1={paddingX} y1={height - paddingY} x2={paddingX} y2={paddingY} stroke="#94a3b8" markerEnd="url(#arrowhead)" />
                 <text x={width/2} y={height-10} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500">{xAxisLabel}</text>
                 <text x={15} y={height/2} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-90 15 ${height/2})`}>{yAxisLabel}</text>
 
-                {/* Bubbles */}
-                {data.map((d, i) => {
-                    const abbreviatedLabel = d.label.length > 10 ? d.label.substring(0, 9) + '…' : d.label;
+                <g>
+                    {data.map((d, i) => {
+                        const abbreviatedLabel = d.label.length > 10 ? d.label.substring(0, 9) + '…' : d.label;
+                        const isHovered = hoveredBubble?.label === d.label;
+                        return (
+                        <g 
+                            key={i} 
+                            onMouseEnter={() => setHoveredBubble(d)}
+                            onMouseLeave={() => setHoveredBubble(null)}
+                            style={{ 
+                                transition: 'transform 0.2s ease-out, opacity 0.2s ease-out',
+                                transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                                transformOrigin: `${x(d.x)}px ${y(d.y)}px`,
+                                opacity: hoveredBubble && !isHovered ? 0.4 : 1,
+                                cursor: 'pointer'
+                             }}
+                        >
+                            <circle 
+                                cx={x(d.x)} 
+                                cy={y(d.y)} 
+                                r={r(d.z)} 
+                                fill="url(#bubbleGradient)" 
+                                stroke="rgba(37, 99, 235, 1)" 
+                                filter={isHovered ? "url(#bubbleShadow)" : ""}
+                            />
+                            <text
+                                x={x(d.x)}
+                                y={y(d.y)}
+                                textAnchor="middle"
+                                fontSize="9"
+                                stroke="#ffffff"
+                                strokeWidth="0.5em"
+                                paintOrder="stroke"
+                                dy=".3em"
+                                className="pointer-events-none font-semibold"
+                            >
+                                {abbreviatedLabel}
+                            </text>
+                            <text 
+                                x={x(d.x)} 
+                                y={y(d.y)} 
+                                textAnchor="middle" 
+                                fontSize="9"
+                                fill="#ffffff" 
+                                dy=".3em" 
+                                className="pointer-events-none font-semibold"
+                            >
+                                {abbreviatedLabel}
+                            </text>
+                        </g>
+                    )})}
+                </g>
+
+                {hoveredBubble && (() => {
+                    const pos = tooltipPosition(hoveredBubble);
+                    const tooltipLines = [
+                        hoveredBubble.label,
+                        `${xAxisLabel}: ${hoveredBubble.x.toFixed(1)}`,
+                        `${yAxisLabel}: ${hoveredBubble.y.toFixed(1)}`,
+                        `Progresso: ${hoveredBubble.z}%`
+                    ];
+                    const tooltipWidth = Math.max(...tooltipLines.map(l => l.length)) * 6 + 20;
+                    
                     return (
-                    <g key={i}>
-                        <title>{`${d.label} | ${xAxisLabel}: ${d.x.toFixed(1)} | ${yAxisLabel}: ${d.y.toFixed(1)} | Progresso: ${d.z}%`}</title>
-                        <circle cx={x(d.x)} cy={y(d.y)} r={r(d.z)} fill="rgba(59, 130, 246, 0.6)" stroke="rgba(37, 99, 235, 1)" />
-                        <text
-                            x={x(d.x)}
-                            y={y(d.y)}
-                            textAnchor="middle"
-                            fontSize="9"
-                            stroke="white"
-                            strokeWidth="0.4em"
-                            paintOrder="stroke"
-                            dy=".3em"
-                            className="pointer-events-none font-semibold"
-                        >
-                            {abbreviatedLabel}
-                        </text>
-                        <text 
-                            x={x(d.x)} 
-                            y={y(d.y)} 
-                            textAnchor="middle" 
-                            fontSize="9"
-                            fill="#1e3a8a" 
-                            dy=".3em" 
-                            className="pointer-events-none font-semibold"
-                        >
-                            {abbreviatedLabel}
-                        </text>
-                    </g>
-                )})}
+                        <g transform={`translate(${pos.x - tooltipWidth / 2}, ${pos.y - 70})`} style={{ pointerEvents: 'none', transition: 'opacity 0.2s', opacity: 1 }}>
+                            <rect
+                                x="0"
+                                y="0"
+                                width={tooltipWidth}
+                                height="65"
+                                rx="5"
+                                fill="rgba(15, 23, 42, 0.85)"
+                                stroke="rgba(255, 255, 255, 0.2)"
+                            />
+                            <text x={10} y="18" fontSize="11" fontWeight="bold" fill="#ffffff">{tooltipLines[0]}</text>
+                            <text x={10} y="34" fontSize="10" fill="#cbd5e1">{tooltipLines[1]}</text>
+                            <text x={10} y="47" fontSize="10" fill="#cbd5e1">{tooltipLines[2]}</text>
+                            <text x={10} y="60" fontSize="10" fill="#cbd5e1">{tooltipLines[3]}</text>
+                        </g>
+                    );
+                })()}
             </svg>
         </div>
     );
@@ -811,4 +886,153 @@ export const PotentialAnalysisChart: React.FC<{ data: PotentialAnalysisData }> =
     };
 
     return <ColumnChart data={chartData} />;
+};
+
+// --- Actions Impact Chart ---
+const interpolateColor = (value: number, min: number, max: number, startColor: [number, number, number], endColor: [number, number, number]): string => {
+    if (value < min) value = min;
+    if (value > max) value = max;
+    const ratio = (value - min) / (max - min);
+    const r = Math.round(startColor[0] + ratio * (endColor[0] - startColor[0]));
+    const g = Math.round(startColor[1] + ratio * (endColor[1] - startColor[1]));
+    const b = Math.round(startColor[2] + ratio * (endColor[2] - startColor[2]));
+    return `rgb(${r}, ${g}, ${b})`;
+};
+
+type ActionImpactData = { x: number; y: number; z: number; label: string; };
+export const ActionsImpactChart: React.FC<{ data: ActionImpactData[], yAxisLabel: string; }> = ({ data, yAxisLabel }) => {
+    const [hoveredBar, setHoveredBar] = useState<ActionImpactData | null>(null);
+
+    const width = 500, height = 300;
+    const padding = { top: 30, right: 20, bottom: 40, left: 50 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    const labels = data.map(d => d.label);
+    const maxValue = data.length > 0 ? Math.max(...data.map(d => d.x), 0) * 1.15 : 1;
+    const yAxisValues = [0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue];
+    
+    const yPoint = (value: number) => padding.top + chartHeight - Math.max(0, (value / maxValue) * chartHeight);
+
+    const startColor: [number, number, number] = [148, 163, 184]; // slate-400
+    const endColor: [number, number, number] = [37, 99, 235];   // blue-700
+    // FIX: The original gradient logic passed an RGBA array (4 values) to a function expecting RGB (3 values), causing a type error. The logic was also inverted relative to the legend. This fix defines lighter start/end colors and corrects the gradient interpolation to properly reflect progress from slate (0%) to blue (100%).
+    const lightStartColor: [number, number, number] = [203, 213, 225]; // slate-300
+    const lightEndColor: [number, number, number] = [96, 165, 250];   // blue-400
+
+    return (
+        <div className="w-full">
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
+                <defs>
+                    {data.map((d, i) => (
+                        <linearGradient key={i} id={`barGradient-${i}`} x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stopColor={interpolateColor(d.z, 0, 100, lightStartColor, lightEndColor)} />
+                            <stop offset="100%" stopColor={interpolateColor(d.z, 0, 100, startColor, endColor)} />
+                        </linearGradient>
+                    ))}
+                </defs>
+
+                <g>
+                    {yAxisValues.map((val, i) => (
+                        <g key={i}>
+                            <text x={padding.left - 8} y={yPoint(val)} textAnchor="end" fontSize="11" fill="#475569" dy="3">
+                                {val.toFixed(0)}
+                            </text>
+                            <line x1={padding.left} y1={yPoint(val)} x2={width - padding.right} y2={yPoint(val)} stroke="#e2e8f0" strokeDasharray="2" />
+                        </g>
+                    ))}
+                    <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
+                </g>
+                
+                <g>
+                    {labels.map((label, i) => (
+                        <text key={i} x={padding.left + (chartWidth / labels.length) * (i + 0.5)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="11" fill="#475569">{label}</text>
+                    ))}
+                </g>
+                
+                {data.map((d, i) => {
+                    const barHeight = Math.max(0, (d.x / maxValue) * chartHeight);
+                    const barWidth = Math.min(60, (chartWidth / labels.length) * 0.7);
+                    const x = padding.left + (chartWidth / labels.length) * (i + 0.5) - (barWidth / 2);
+                    const y = yPoint(d.x);
+                    const isHovered = hoveredBar?.label === d.label;
+                    
+                    return (
+                        <g 
+                            key={i}
+                            onMouseEnter={() => setHoveredBar(d)}
+                            onMouseLeave={() => setHoveredBar(null)}
+                        >
+                            <rect 
+                                x={x} 
+                                y={y} 
+                                width={barWidth} 
+                                height={barHeight} 
+                                fill={`url(#barGradient-${i})`}
+                                rx="3"
+                                style={{
+                                    transition: 'all 0.2s ease',
+                                    opacity: hoveredBar && !isHovered ? 0.6 : 1,
+                                    cursor: 'pointer'
+                                }}
+                            />
+                            <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="bold">
+                                {d.x.toFixed(1)}
+                            </text>
+                        </g>
+                    );
+                })}
+            
+                {hoveredBar && (() => {
+                    const barIndex = data.findIndex(d => d.label === hoveredBar.label);
+                    let tx = padding.left + (chartWidth / labels.length) * (barIndex + 0.5);
+                    let ty = yPoint(hoveredBar.x) - 15;
+                    
+                    const tooltipLines = [
+                        hoveredBar.label,
+                        `${yAxisLabel}: ${hoveredBar.x.toFixed(1)}`,
+                        `Nº de Ações: ${hoveredBar.y}`,
+                        `Progresso: ${hoveredBar.z}%`
+                    ];
+                    const tooltipWidth = 150;
+                    const tooltipHeight = 75;
+
+                    if (tx + tooltipWidth/2 > width) tx = width - tooltipWidth/2;
+                    if (tx - tooltipWidth/2 < 0) tx = tooltipWidth/2;
+                    if (ty - tooltipHeight < 0) ty = yPoint(hoveredBar.x) + 20;
+
+
+                    return (
+                        <g transform={`translate(${tx - tooltipWidth / 2}, ${ty - tooltipHeight})`} style={{ pointerEvents: 'none' }}>
+                            <rect
+                                x="0"
+                                y="0"
+                                width={tooltipWidth}
+                                height={tooltipHeight}
+                                rx="5"
+                                fill="rgba(15, 23, 42, 0.9)"
+                                stroke="rgba(255,255,255,0.1)"
+                            />
+                             <text x={10} y="18" fontSize="11" fontWeight="bold" fill="#f8fafc">{tooltipLines[0]}</text>
+                             <text x={10} y="34" fontSize="10" fill="#cbd5e1">{tooltipLines[1]}</text>
+                             <text x={10} y="47" fontSize="10" fill="#cbd5e1">{tooltipLines[2]}</text>
+                             <text x={10} y="60" fontSize="10" fill="#cbd5e1">{tooltipLines[3]}</text>
+                        </g>
+                    );
+                })()}
+            </svg>
+             <div className="flex justify-center items-center gap-x-4 gap-y-1 pt-2 text-xs text-slate-600">
+                <span>Progresso do Plano:</span>
+                <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm" style={{backgroundColor: `rgb(${startColor.join(',')})`}}></span>
+                    <span>0%</span>
+                </div>
+                <div className="w-24 h-2 rounded-full" style={{background: `linear-gradient(to right, rgb(${startColor.join(',')}), rgb(${endColor.join(',')}))`}}></div>
+                 <div className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded-sm" style={{backgroundColor: `rgb(${endColor.join(',')})`}}></span>
+                    <span>100%</span>
+                </div>
+            </div>
+        </div>
+    );
 };
