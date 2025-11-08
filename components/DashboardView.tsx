@@ -153,12 +153,12 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
 };
 
 const AnalysisCard: React.FC<{title: string; tooltip: string; children: React.ReactNode; className?: string}> = ({ title, tooltip, children, className = '' }) => (
-    <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 ${className}`}>
-        <div className="flex justify-between items-center mb-3">
+    <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col ${className}`}>
+        <div className="flex justify-between items-center mb-3 flex-shrink-0">
             <h3 className="text-md font-semibold text-slate-800">{title}</h3>
             <InfoTooltip text={tooltip} />
         </div>
-        <div>{children}</div>
+        <div className="flex-grow flex flex-col">{children}</div>
     </div>
 );
 

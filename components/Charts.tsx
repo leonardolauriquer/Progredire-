@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import type { PotentialAnalysisData } from '../services/dataService';
 
@@ -504,7 +505,7 @@ export const ColumnChart: React.FC<{ data: ColumnChartData, yAxisLabel?: string 
     const yPoint = (value: number) => padding.top + chartHeight - Math.max(0, (value / maxValue) * chartHeight);
 
     return (
-        <div className="w-full" style={{ height: '300px' }}>
+        <div className="w-full h-full">
             <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
                 {/* Y-Axis */}
                 <g>
@@ -921,107 +922,109 @@ export const ActionsImpactChart: React.FC<{ data: ActionImpactData[], yAxisLabel
     const lightEndColor: [number, number, number] = [96, 165, 250];   // blue-400
 
     return (
-        <div className="w-full">
-            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
-                <defs>
-                    {data.map((d, i) => (
-                        <linearGradient key={i} id={`barGradient-${i}`} x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor={interpolateColor(d.z, 0, 100, lightStartColor, lightEndColor)} />
-                            <stop offset="100%" stopColor={interpolateColor(d.z, 0, 100, startColor, endColor)} />
-                        </linearGradient>
-                    ))}
-                </defs>
+        <div className="w-full h-full flex flex-col">
+            <div className="flex-grow">
+                <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
+                    <defs>
+                        {data.map((d, i) => (
+                            <linearGradient key={i} id={`barGradient-${i}`} x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stopColor={interpolateColor(d.z, 0, 100, lightStartColor, lightEndColor)} />
+                                <stop offset="100%" stopColor={interpolateColor(d.z, 0, 100, startColor, endColor)} />
+                            </linearGradient>
+                        ))}
+                    </defs>
 
-                <g>
-                    {yAxisValues.map((val, i) => (
-                        <g key={i}>
-                            <text x={padding.left - 8} y={yPoint(val)} textAnchor="end" fontSize="11" fill="#475569" dy="3">
-                                {val.toFixed(0)}
-                            </text>
-                            <line x1={padding.left} y1={yPoint(val)} x2={width - padding.right} y2={yPoint(val)} stroke="#e2e8f0" strokeDasharray="2" />
-                        </g>
-                    ))}
-                    <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
-                </g>
-                
-                <g>
-                    {labels.map((label, i) => (
-                        <text key={i} x={padding.left + (chartWidth / labels.length) * (i + 0.5)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="11" fill="#475569">{label}</text>
-                    ))}
-                </g>
-                
-                {data.map((d, i) => {
-                    const barHeight = Math.max(0, (d.x / maxValue) * chartHeight);
-                    const barWidth = Math.min(60, (chartWidth / labels.length) * 0.7);
-                    const x = padding.left + (chartWidth / labels.length) * (i + 0.5) - (barWidth / 2);
-                    const y = yPoint(d.x);
-                    const isHovered = hoveredBar?.label === d.label;
+                    <g>
+                        {yAxisValues.map((val, i) => (
+                            <g key={i}>
+                                <text x={padding.left - 8} y={yPoint(val)} textAnchor="end" fontSize="11" fill="#475569" dy="3">
+                                    {val.toFixed(0)}
+                                </text>
+                                <line x1={padding.left} y1={yPoint(val)} x2={width - padding.right} y2={yPoint(val)} stroke="#e2e8f0" strokeDasharray="2" />
+                            </g>
+                        ))}
+                        <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
+                    </g>
                     
-                    return (
-                        <g 
-                            key={i}
-                            onMouseEnter={() => setHoveredBar(d)}
-                            onMouseLeave={() => setHoveredBar(null)}
-                        >
-                            <rect 
-                                x={x} 
-                                y={y} 
-                                width={barWidth} 
-                                height={barHeight} 
-                                fill={`url(#barGradient-${i})`}
-                                rx="3"
-                                style={{
-                                    transition: 'all 0.2s ease',
-                                    opacity: hoveredBar && !isHovered ? 0.6 : 1,
-                                    cursor: 'pointer'
-                                }}
-                            />
-                            <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="bold">
-                                {d.x.toFixed(1)}
-                            </text>
-                        </g>
-                    );
-                })}
-            
-                {hoveredBar && (() => {
-                    const barIndex = data.findIndex(d => d.label === hoveredBar.label);
-                    let tx = padding.left + (chartWidth / labels.length) * (barIndex + 0.5);
-                    let ty = yPoint(hoveredBar.x) - 15;
+                    <g>
+                        {labels.map((label, i) => (
+                            <text key={i} x={padding.left + (chartWidth / labels.length) * (i + 0.5)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="11" fill="#475569">{label}</text>
+                        ))}
+                    </g>
                     
-                    const tooltipLines = [
-                        hoveredBar.label,
-                        `${yAxisLabel}: ${hoveredBar.x.toFixed(1)}`,
-                        `Nº de Ações: ${hoveredBar.y}`,
-                        `Progresso: ${hoveredBar.z}%`
-                    ];
-                    const tooltipWidth = 150;
-                    const tooltipHeight = 75;
+                    {data.map((d, i) => {
+                        const barHeight = Math.max(0, (d.x / maxValue) * chartHeight);
+                        const barWidth = Math.min(60, (chartWidth / labels.length) * 0.7);
+                        const x = padding.left + (chartWidth / labels.length) * (i + 0.5) - (barWidth / 2);
+                        const y = yPoint(d.x);
+                        const isHovered = hoveredBar?.label === d.label;
+                        
+                        return (
+                            <g 
+                                key={i}
+                                onMouseEnter={() => setHoveredBar(d)}
+                                onMouseLeave={() => setHoveredBar(null)}
+                            >
+                                <rect 
+                                    x={x} 
+                                    y={y} 
+                                    width={barWidth} 
+                                    height={barHeight} 
+                                    fill={`url(#barGradient-${i})`}
+                                    rx="3"
+                                    style={{
+                                        transition: 'all 0.2s ease',
+                                        opacity: hoveredBar && !isHovered ? 0.6 : 1,
+                                        cursor: 'pointer'
+                                    }}
+                                />
+                                <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#1e293b" fontWeight="bold">
+                                    {d.x.toFixed(1)}
+                                </text>
+                            </g>
+                        );
+                    })}
+                
+                    {hoveredBar && (() => {
+                        const barIndex = data.findIndex(d => d.label === hoveredBar.label);
+                        let tx = padding.left + (chartWidth / labels.length) * (barIndex + 0.5);
+                        let ty = yPoint(hoveredBar.x) - 15;
+                        
+                        const tooltipLines = [
+                            hoveredBar.label,
+                            `${yAxisLabel}: ${hoveredBar.x.toFixed(1)}`,
+                            `Nº de Ações: ${hoveredBar.y}`,
+                            `Progresso: ${hoveredBar.z}%`
+                        ];
+                        const tooltipWidth = 150;
+                        const tooltipHeight = 75;
 
-                    if (tx + tooltipWidth/2 > width) tx = width - tooltipWidth/2;
-                    if (tx - tooltipWidth/2 < 0) tx = tooltipWidth/2;
-                    if (ty - tooltipHeight < 0) ty = yPoint(hoveredBar.x) + 20;
+                        if (tx + tooltipWidth/2 > width) tx = width - tooltipWidth/2;
+                        if (tx - tooltipWidth/2 < 0) tx = tooltipWidth/2;
+                        if (ty - tooltipHeight < 0) ty = yPoint(hoveredBar.x) + 20;
 
 
-                    return (
-                        <g transform={`translate(${tx - tooltipWidth / 2}, ${ty - tooltipHeight})`} style={{ pointerEvents: 'none' }}>
-                            <rect
-                                x="0"
-                                y="0"
-                                width={tooltipWidth}
-                                height={tooltipHeight}
-                                rx="5"
-                                fill="rgba(15, 23, 42, 0.9)"
-                                stroke="rgba(255,255,255,0.1)"
-                            />
-                             <text x={10} y="18" fontSize="11" fontWeight="bold" fill="#f8fafc">{tooltipLines[0]}</text>
-                             <text x={10} y="34" fontSize="10" fill="#cbd5e1">{tooltipLines[1]}</text>
-                             <text x={10} y="47" fontSize="10" fill="#cbd5e1">{tooltipLines[2]}</text>
-                             <text x={10} y="60" fontSize="10" fill="#cbd5e1">{tooltipLines[3]}</text>
-                        </g>
-                    );
-                })()}
-            </svg>
-             <div className="flex justify-center items-center gap-x-4 gap-y-1 pt-2 text-xs text-slate-600">
+                        return (
+                            <g transform={`translate(${tx - tooltipWidth / 2}, ${ty - tooltipHeight})`} style={{ pointerEvents: 'none' }}>
+                                <rect
+                                    x="0"
+                                    y="0"
+                                    width={tooltipWidth}
+                                    height={tooltipHeight}
+                                    rx="5"
+                                    fill="rgba(15, 23, 42, 0.9)"
+                                    stroke="rgba(255,255,255,0.1)"
+                                />
+                                 <text x={10} y="18" fontSize="11" fontWeight="bold" fill="#f8fafc">{tooltipLines[0]}</text>
+                                 <text x={10} y="34" fontSize="10" fill="#cbd5e1">{tooltipLines[1]}</text>
+                                 <text x={10} y="47" fontSize="10" fill="#cbd5e1">{tooltipLines[2]}</text>
+                                 <text x={10} y="60" fontSize="10" fill="#cbd5e1">{tooltipLines[3]}</text>
+                            </g>
+                        );
+                    })()}
+                </svg>
+            </div>
+             <div className="flex-shrink-0 flex justify-center items-center gap-x-4 gap-y-1 pt-2 text-xs text-slate-600">
                 <span>Progresso do Plano:</span>
                 <div className="flex items-center gap-1">
                     <span className="w-3 h-3 rounded-sm" style={{backgroundColor: `rgb(${startColor.join(',')})`}}></span>

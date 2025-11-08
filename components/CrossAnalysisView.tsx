@@ -22,9 +22,9 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
 const AnalysisSection: React.FC<{title: string; tooltip: string; children: React.ReactNode}> = ({ title, tooltip, children }) => {
     const [isOpen, setIsOpen] = useState(true);
     return (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-lg">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col">
             <button
-                className="w-full flex justify-between items-center p-4"
+                className="w-full flex justify-between items-center p-4 flex-shrink-0"
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex items-center gap-2">
@@ -33,9 +33,9 @@ const AnalysisSection: React.FC<{title: string; tooltip: string; children: React
                 </div>
                 <ChevronDownIcon className={`w-6 h-6 text-slate-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            <div className={`grid transition-[grid-template-rows] duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="min-h-0 transition-opacity duration-300 ease-in-out" style={{ opacity: isOpen ? 1 : 0 }}>
-                    <div className="p-4 border-t border-slate-200">{children}</div>
+            <div className={`grid transition-[grid-template-rows] duration-500 ease-in-out flex-grow ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="min-h-0 overflow-hidden transition-opacity duration-300 ease-in-out" style={{ opacity: isOpen ? 1 : 0 }}>
+                    <div className="p-4 border-t border-slate-200 h-full flex flex-col">{children}</div>
                 </div>
             </div>
         </div>
