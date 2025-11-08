@@ -1,11 +1,9 @@
 
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon } from './icons';
+import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
 import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart } from './Charts';
 
@@ -66,11 +64,32 @@ const exportToExcel = (htmlContent: string, filename: string) => {
 };
 
 
+// --- Helper Components ---
+const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
+    <div className="group relative inline-flex align-middle">
+        <QuestionMarkCircleIcon className="w-4 h-4 text-blue-600 cursor-help" />
+        <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-slate-900 text-white text-sm rounded-lg shadow-xl z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none text-left font-normal normal-case tracking-normal">
+            {text}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900"></div>
+        </div>
+    </div>
+);
+
+
 // --- Sub-components ---
-const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
-  <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 ${className}`}>
-    <h3 className="text-sm font-medium text-slate-500 truncate">{title}</h3>
-    <div className="mt-1 text-2xl font-semibold text-slate-900">{children}</div>
+const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: string, tooltip?: string }> = ({ title, children, className, tooltip }) => (
+  <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col ${className}`}>
+    <div className="flex justify-between items-start gap-2">
+      <div className="flex-grow min-w-0">
+        <h3 className="text-sm font-medium text-slate-500 truncate">{title}</h3>
+      </div>
+      {tooltip && (
+        <div className="flex-shrink-0">
+          <InfoTooltip text={tooltip} />
+        </div>
+      )}
+    </div>
+    <div className="mt-1 text-2xl font-semibold text-slate-900 flex-grow">{children}</div>
   </div>
 );
 
@@ -79,10 +98,14 @@ const RankingCard: React.FC<{
     items: RiskFactor[], 
     icon: React.ElementType, 
     iconClass: string,
-    onActionClick?: (factorId: string) => void
-}> = ({title, items, icon: Icon, iconClass, onActionClick}) => (
+    onActionClick?: (factorId: string) => void,
+    tooltip?: string
+}> = ({title, items, icon: Icon, iconClass, onActionClick, tooltip}) => (
     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-        <h3 className="text-md font-semibold text-slate-800 mb-3">{title}</h3>
+        <div className="flex justify-between items-center mb-3">
+            <h3 className="text-md font-semibold text-slate-800 truncate pr-2">{title}</h3>
+            {tooltip && <InfoTooltip text={tooltip} />}
+        </div>
         <ul className="space-y-2">
             {items.map(item => (
                 <li key={item.id} className="flex items-center text-sm">
@@ -115,8 +138,10 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
                 <h2 className="text-xl font-bold text-slate-800">{title}</h2>
                 <ChevronDownIcon className={`w-6 h-6 text-slate-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="p-4 border-t border-slate-200">{children}</div>
+            <div className={`grid transition-[grid-template-rows] duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="min-h-0 transition-opacity duration-300 ease-in-out" style={{ opacity: isOpen ? 1 : 0 }}>
+                    <div className="p-4 border-t border-slate-200">{children}</div>
+                </div>
             </div>
         </div>
     );
@@ -346,22 +371,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             
             <DashboardSection title="Visão Geral">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-                    <KpiCard title="IRP Global (1-5)"><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
-                    <KpiCard title="% Respostas (Meta ≥80%)">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {80}</span></KpiCard>
-                    <KpiCard title="ROI Estimado (25%)">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
-                    <KpiCard title="Economia Estimada (Anual)">{data.estimatedSavings}</KpiCard>
-                    <KpiCard title="Absenteísmo Estimado">{data.absenteeismRate.toFixed(1)}%</KpiCard>
-                    <KpiCard title="Presenteísmo Estimado">{data.presenteeismRate.toFixed(1)}%</KpiCard>
+                    <KpiCard title="IRP Global (1-5)" tooltip="Índice de Risco Psicossocial: Nota de 1 a 5 que resume a saúde psicossocial geral. Valores mais altos são melhores."><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
+                    <KpiCard title="% Respostas" tooltip="Percentual de colaboradores que responderam ao questionário. Uma alta adesão aumenta a precisão dos dados.">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {80}</span></KpiCard>
+                    <KpiCard title="ROI Estimado (25%)" tooltip="Retorno sobre o Investimento estimado ao reduzir os riscos psicossociais em 25%, com base na redução de custos com absenteísmo e presenteísmo.">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
+                    <KpiCard title="Economia Estimada (Anual)" tooltip="Estimativa de economia anual ao mitigar os riscos identificados, impactando positivamente a produtividade e a retenção de talentos.">{data.estimatedSavings}</KpiCard>
+                    <KpiCard title="Absenteísmo Estimado" tooltip="Percentual estimado de horas de trabalho perdidas devido a ausências não planejadas, influenciadas pelo clima organizacional.">{data.absenteeismRate.toFixed(1)}%</KpiCard>
+                    <KpiCard title="Presenteísmo Estimado" tooltip="Percentual estimado de perda de produtividade de colaboradores que estão no trabalho, mas não totalmente engajados devido a problemas psicossociais.">{data.presenteeismRate.toFixed(1)}%</KpiCard>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow border border-slate-200">
-                        <h3 className="text-md font-semibold text-slate-800">Nível de Maturidade</h3>
+                        <div className="flex justify-between items-center">
+                             <h3 className="text-md font-semibold text-slate-800">Nível de Maturidade</h3>
+                             <InfoTooltip text="Classifica a capacidade da organização de gerenciar riscos psicossociais, variando de Reativa (M1) a Estratégica (M5)." />
+                        </div>
                         <p className="text-xl font-bold text-slate-900 mt-1">{data.maturityLevel.level} - {data.maturityLevel.name}</p>
                         <MaturityProgressBar level={data.maturityLevel.level} />
                     </div>
                     <div className="lg:col-span-1">
                         <RankingCard 
                             title="Top 3 Fatores Críticos de Risco" 
+                            tooltip="Os 3 fatores com as piores pontuações. Indicam as áreas que precisam de atenção prioritária."
                             items={data.topRisks} 
                             icon={ExclamationTriangleIcon} 
                             iconClass="text-red-500" 
@@ -369,7 +398,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                         />
                     </div>
                     <div className="lg:col-span-1">
-                         <RankingCard title="Top 3 Fatores de Proteção" items={data.topProtections} icon={ShieldCheckIcon} iconClass="text-green-500" />
+                         <RankingCard title="Top 3 Fatores de Proteção" tooltip="Os 3 fatores com as melhores pontuações. Representam os pontos fortes da cultura organizacional." items={data.topProtections} icon={ShieldCheckIcon} iconClass="text-green-500" />
                     </div>
                 </div>
             </DashboardSection>
@@ -378,7 +407,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div className="space-y-6">
                         <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                             <h3 className="text-md font-semibold text-slate-800 mb-2">Distribuição de Riscos por Setor (%)</h3>
+                             <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-md font-semibold text-slate-800">Distribuição de Riscos por Setor (%)</h3>
+                                <InfoTooltip text="Mostra a proporção de setores classificados com risco psicossocial alto, moderado ou baixo." />
+                            </div>
                              <StackedBarChart data={[{label: 'Setores', values: [
                                  { value: data.sectorRiskDistribution.high, color: '#ef4444', tooltip: `Risco Alto: ${data.sectorRiskDistribution.high.toFixed(1)}%` },
                                  { value: data.sectorRiskDistribution.moderate, color: '#f59e0b', tooltip: `Risco Moderado: ${data.sectorRiskDistribution.moderate.toFixed(1)}%` },
@@ -386,12 +418,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                              ]}]} />
                         </div>
                          <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2">Tendência de Clima (Evolução IRP Global)</h3>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-md font-semibold text-slate-800">Tendência de Clima (Evolução IRP Global)</h3>
+                                <InfoTooltip text="Gráfico que acompanha a evolução da pontuação geral (IRP Global) ao longo do tempo, mostrando a trajetória da saúde organizacional." />
+                            </div>
                             <LineChart chartData={data.climateTrend} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                         <h3 className="text-md font-semibold text-slate-800 mb-2">Perfil de Risco Comparativo</h3>
+                         <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-md font-semibold text-slate-800">Perfil de Risco Comparativo</h3>
+                            <InfoTooltip text="Compara o perfil de risco do segmento selecionado com a média geral da empresa, destacando desvios e particularidades." />
+                         </div>
                          <RadarChart data={{
                             labels: data.riskFactors.map(f => f.name.replace(' e ', '/').split(' ')[0]),
                             datasets: [
@@ -405,14 +443,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
 
             <DashboardSection title="Engajamento e Liderança">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <KpiCard title="Percepção da Liderança"><span className="text-slate-800">{data.leadershipScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
+                    <KpiCard title="Percepção da Liderança" tooltip="Nota de 1 a 5 que reflete a avaliação dos colaboradores sobre a eficácia da liderança e comunicação."><span className="text-slate-800">{data.leadershipScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                         <h3 className="text-sm font-medium text-slate-500 truncate">Segurança Psicológica</h3>
+                        <div className="flex justify-between items-start">
+                            <h3 className="text-sm font-medium text-slate-500 truncate pr-2">Segurança Psicológica</h3>
+                            <InfoTooltip text="Mede a percepção de que é seguro expressar opiniões e errar sem medo de punição. Um pilar para a inovação." />
+                        </div>
                          <ThermometerChart value={data.safetyScore} max={5.0} />
                     </div>
-                    <KpiCard title="Equilíbrio Vida-Trabalho"><span className="text-slate-800">{data.workLifeBalanceScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
+                    <KpiCard title="Equilíbrio Vida-Trabalho" tooltip="Avalia a percepção dos colaboradores sobre a capacidade de conciliar as demandas profissionais e pessoais."><span className="text-slate-800">{data.workLifeBalanceScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col items-center justify-center">
-                         <h3 className="text-sm font-medium text-slate-500">% Líderes em Desenvolvimento</h3>
+                        <div className="flex justify-between items-center w-full mb-1">
+                            <h3 className="text-sm font-medium text-slate-500">% Líderes em Desenvolvimento</h3>
+                            <InfoTooltip text="Percentual de líderes participando ativamente de programas de desenvolvimento focados em competências de gestão de pessoas e bem-estar." />
+                        </div>
                          <DonutChart value={data.leadersInDevelopment} color="#3b82f6" />
                     </div>
                 </div>
