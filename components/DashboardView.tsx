@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
-import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart } from './Charts';
+import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, BubbleScatterChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart } from './Charts';
 
 // --- Types ---
 interface AiInsightData {
@@ -75,6 +74,12 @@ const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
     </div>
 );
 
+const getIRPColor = (irp: number) => {
+    if (irp >= 3.5) return '#22c55e'; // green-500
+    if (irp >= 2.5) return '#f59e0b'; // yellow-500
+    return '#ef4444'; // red-500
+};
+
 
 // --- Sub-components ---
 const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: string, tooltip?: string }> = ({ title, children, className, tooltip }) => (
@@ -138,14 +143,25 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
                 <h2 className="text-xl font-bold text-slate-800">{title}</h2>
                 <ChevronDownIcon className={`w-6 h-6 text-slate-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            <div className={`grid transition-[grid-template-rows] duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-                <div className="min-h-0 transition-opacity duration-300 ease-in-out" style={{ opacity: isOpen ? 1 : 0 }}>
+            <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
                     <div className="p-4 border-t border-slate-200">{children}</div>
                 </div>
             </div>
         </div>
     );
 };
+
+const AnalysisCard: React.FC<{title: string; tooltip: string; children: React.ReactNode; className?: string}> = ({ title, tooltip, children, className = '' }) => (
+    <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 ${className}`}>
+        <div className="flex justify-between items-center mb-3">
+            <h3 className="text-md font-semibold text-slate-800">{title}</h3>
+            <InfoTooltip text={tooltip} />
+        </div>
+        <div>{children}</div>
+    </div>
+);
+
 
 // --- Main Component ---
 export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, onNavigateToActionPlan }) => {
@@ -371,12 +387,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             
             <DashboardSection title="Visão Geral">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-                    <KpiCard title="IRP Global (1-5)" tooltip="Índice de Risco Psicossocial: Nota de 1 a 5 que resume a saúde psicossocial geral. Valores mais altos são melhores."><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
+                    <KpiCard title="IRP (Índice de Risco Psicossocial) Global" tooltip="Índice de Risco Psicossocial: Nota de 1 a 5 que resume a saúde psicossocial geral. Valores mais altos são melhores."><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
                     <KpiCard title="% Respostas" tooltip="Percentual de colaboradores que responderam ao questionário. Uma alta adesão aumenta a precisão dos dados.">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {80}</span></KpiCard>
                     <KpiCard title="ROI Estimado (25%)" tooltip="Retorno sobre o Investimento estimado ao reduzir os riscos psicossociais em 25%, com base na redução de custos com absenteísmo e presenteísmo.">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
                     <KpiCard title="Economia Estimada (Anual)" tooltip="Estimativa de economia anual ao mitigar os riscos identificados, impactando positivamente a produtividade e a retenção de talentos.">{data.estimatedSavings}</KpiCard>
                     <KpiCard title="Absenteísmo Estimado" tooltip="Percentual estimado de horas de trabalho perdidas devido a ausências não planejadas, influenciadas pelo clima organizacional.">{data.absenteeismRate.toFixed(1)}%</KpiCard>
-                    <KpiCard title="Presenteísmo Estimado" tooltip="Percentual estimado de perda de produtividade de colaboradores que estão no trabalho, mas não totalmente engajados devido a problemas psicossociais.">{data.presenteeismRate.toFixed(1)}%</KpiCard>
+                    <KpiCard title="IPE (Índice de Presenteísmo Emocional)" tooltip="Percentual estimado de perda de produtividade de colaboradores que estão no trabalho, mas não totalmente engajados devido a problemas psicossociais.">{data.presenteeismRate.toFixed(1)}%</KpiCard>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow border border-slate-200">
@@ -419,7 +435,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                         </div>
                          <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-md font-semibold text-slate-800">Tendência de Clima (Evolução IRP Global)</h3>
+                                <h3 className="text-md font-semibold text-slate-800">Tendência de Clima (Evolução do IRP Global - Índice de Risco Psicossocial)</h3>
                                 <InfoTooltip text="Gráfico que acompanha a evolução da pontuação geral (IRP Global) ao longo do tempo, mostrando a trajetória da saúde organizacional." />
                             </div>
                             <LineChart chartData={data.climateTrend} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
@@ -462,6 +478,44 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 </div>
             </DashboardSection>
             
+            <DashboardSection title="Análise Cruzada Estratégica">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <AnalysisCard title="IRP (Índice de Risco Psicossocial) × IPE (Índice de Presenteísmo Emocional)" tooltip="Compara a saúde psicossocial (IRP) com a perda de produtividade (presenteísmo) em cada setor. A cor da barra indica o nível do IRP.">
+                        <HorizontalBarChartWithColorScale 
+                            data={data.crossAnalysis.irpVsPresenteeism.map(d => ({
+                                label: d.label,
+                                value: d.y, // presenteeism
+                                colorValue: d.x, // IRP
+                                sizeValue: d.z, // collaborators
+                            }))}
+                            valueLabel="Presenteísmo Estimado (%)"
+                            colorValueLabel="IRP (1-5)"
+                            colorScale={getIRPColor}
+                        />
+                    </AnalysisCard>
+
+                    <AnalysisCard title="IRP (Índice de Risco Psicossocial) × Turnover" tooltip="Compara a tendência do IRP Global com a taxa de turnover trimestral, ajudando a identificar como o clima impacta a retenção.">
+                        <LineChart chartData={data.crossAnalysis.irpVsTurnover} yAxisLabels={[0, 5, 10, 15, 20]} />
+                    </AnalysisCard>
+
+                    <AnalysisCard title="Diagnóstico por Dimensão e Área (Heatmap)" tooltip="Mapa de calor que cruza as dimensões de risco psicossocial com as áreas da empresa. Cores mais quentes (vermelho/laranja) indicam pontos críticos (nota de 1 a 5)." className="xl:col-span-2">
+                        <HeatmapChart data={data.crossAnalysis.dimensionVsAreaHeatmap} />
+                    </AnalysisCard>
+
+                    <AnalysisCard title="IPE (Índice de Presenteísmo Emocional) × ROI" tooltip="Estima o custo anual do presenteísmo e o potencial de economia (ROI) ao implementar ações que melhorem a saúde mental e reduzam a perda de produtividade.">
+                        <PotentialAnalysisChart data={data.crossAnalysis.presenteeismVsRoi} />
+                    </AnalysisCard>
+                    
+                    <AnalysisCard title="Ações × Impacto (IRP - Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. O eixo X mostra a melhoria no IRP após a ação, e o eixo Y, o número de ações no plano. O tamanho da bolha indica o progresso do plano.">
+                        <BubbleScatterChart data={data.crossAnalysis.actionsVsImpact} xAxisLabel="Melhora no IRP (Pontos)" yAxisLabel="Número de Ações no Plano" />
+                    </AnalysisCard>
+                    
+                    <AnalysisCard title="Evolução do IRP (Índice de Risco Psicossocial)" tooltip="Monitora a tendência trimestral ou mensal do Índice de Risco Psicossocial (IRP) geral da empresa." className="xl:col-span-2">
+                        <LineChart chartData={{ labels: data.crossAnalysis.irpEvolution.labels, datasets: [{ label: 'IRP Global', data: data.crossAnalysis.irpEvolution.data, color: '#3b82f6' }] }} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
+                    </AnalysisCard>
+                </div>
+            </DashboardSection>
+
             <DashboardSection title="Insights Estratégicos com IA">
                 <div className="flex flex-wrap items-center gap-4 mb-4">
                      <button onClick={handleGenerateInsight} disabled={isInsightLoading || data.participationRate === 0} className="flex-grow flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2.5 px-5 rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400">

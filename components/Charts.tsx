@@ -1,6 +1,5 @@
-
-
 import React from 'react';
+import type { PotentialAnalysisData } from '../services/dataService';
 
 // --- Gauge Chart ---
 export const GaugeChart: React.FC<{ score: number }> = ({ score }) => {
@@ -291,7 +290,7 @@ export const LineChart: React.FC<LineChartProps> = ({ chartData, yMin: yMinProp,
                                 stroke="#e2e8f0"
                                 strokeDasharray="2,4"
                             />
-                            <text x={padding - 10} y={yPoint(val) + 5} textAnchor="end" fontSize="10" fill="#64748b">
+                            <text x={padding - 10} y={yPoint(val) + 5} textAnchor="end" fontSize="11" fill="#475569" fontWeight="500">
                                 {val}
                             </text>
                         </g>
@@ -299,7 +298,7 @@ export const LineChart: React.FC<LineChartProps> = ({ chartData, yMin: yMinProp,
 
                     {/* X-axis labels */}
                     {labels.map((label, i) => (
-                        <text key={i} x={xPoint(i)} y={height - padding + 20} textAnchor="middle" fontSize="10" fill="#64748b">
+                        <text key={i} x={xPoint(i)} y={height - padding + 20} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500">
                             {label}
                         </text>
                     ))}
@@ -311,7 +310,12 @@ export const LineChart: React.FC<LineChartProps> = ({ chartData, yMin: yMinProp,
                             <g key={dataset.label}>
                                 <path d={path} fill="none" stroke={dataset.color} strokeWidth="2" />
                                 {dataset.data.map((d, i) => (
-                                    d !== null && <circle key={i} cx={xPoint(i)} cy={yPoint(d)} r="4" fill={dataset.color} />
+                                    d !== null && (
+                                        <g key={i}>
+                                            <title>{`${dataset.label ? `${dataset.label} - ` : ''}${labels[i]}: ${d.toFixed(1)}`}</title>
+                                            <circle cx={xPoint(i)} cy={yPoint(d)} r="4" fill={dataset.color} />
+                                        </g>
+                                    )
                                 ))}
                             </g>
                         );
@@ -474,4 +478,337 @@ export const DonutChart: React.FC<{ value: number; color: string }> = ({ value, 
             <span className="absolute text-2xl font-bold text-slate-800">{value}%</span>
         </div>
     );
+};
+
+// --- Column Chart ---
+type ColumnChartData = {
+    labels: string[];
+    datasets: {
+        label: string;
+        data: number[];
+        backgroundColor: string | string[];
+    }[];
+};
+
+export const ColumnChart: React.FC<{ data: ColumnChartData, yAxisLabel?: string }> = ({ data, yAxisLabel }) => {
+    const width = 500, height = 300;
+    const padding = { top: 30, right: 20, bottom: 40, left: 65 }; 
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    const allData = data.datasets.flatMap(ds => ds.data);
+    const maxValue = allData.length > 0 ? Math.max(...allData, 0) * 1.15 : 1;
+    const yAxisValues = [0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue];
+    
+    const yPoint = (value: number) => padding.top + chartHeight - Math.max(0, (value / maxValue) * chartHeight);
+
+    return (
+        <div className="w-full" style={{ height: '300px' }}>
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
+                {/* Y-Axis */}
+                <g>
+                    {yAxisValues.map((val, i) => (
+                        <g key={i}>
+                            <text x={padding.left - 8} y={yPoint(val)} textAnchor="end" fontSize="11" fill="#475569" fontWeight="500" dy="3">
+                                {val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' })}
+                            </text>
+                            <line x1={padding.left} y1={yPoint(val)} x2={width - padding.right} y2={yPoint(val)} stroke="#e2e8f0" strokeDasharray="2" />
+                        </g>
+                    ))}
+                    <text x="15" y={padding.top + chartHeight / 2} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-90 15 ${padding.top + chartHeight / 2})`}>{yAxisLabel}</text>
+                </g>
+                
+                {/* X-Axis */}
+                <g>
+                    {data.labels.map((label, i) => (
+                        <text key={i} x={padding.left + (chartWidth / data.labels.length) * (i + 0.5)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500">{label}</text>
+                    ))}
+                </g>
+                
+                {/* Bars */}
+                {data.datasets.map(dataset => 
+                    dataset.data.map((value, i) => {
+                        const barHeight = Math.max(0, (value / maxValue) * chartHeight);
+                        const barWidth = Math.min(50, (chartWidth / data.labels.length) * 0.6);
+                        const x = padding.left + (chartWidth / data.labels.length) * (i + 0.5) - (barWidth / 2);
+                        const y = yPoint(value);
+                        const barColor = Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[i] || '#3b82f6' : dataset.backgroundColor;
+                        return (
+                             <g key={i}>
+                                <title>{`${dataset.label} - ${data.labels[i]}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`}</title>
+                                <rect x={x} y={y} width={barWidth} height={barHeight} fill={barColor} rx="4" />
+                                <text x={x + barWidth / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="#475569" fontWeight="bold">
+                                    {value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' })}
+                                </text>
+                             </g>
+                        );
+                    })
+                )}
+            </svg>
+        </div>
+    );
+};
+
+// --- Bubble Scatter Chart ---
+type BubbleData = { x: number; y: number; z: number; label: string; };
+export const BubbleScatterChart: React.FC<{ data: BubbleData[], xAxisLabel: string; yAxisLabel: string; }> = ({ data, xAxisLabel, yAxisLabel }) => {
+    const width = 500, height = 300, paddingX = 50, paddingY = 40;
+    const xMax = Math.max(...data.map(d => d.x), 0) * 1.1;
+    const yMax = Math.max(...data.map(d => d.y), 0) * 1.1;
+    const zMax = Math.max(...data.map(d => d.z), 1);
+
+    const x = (val: number) => paddingX + (val / xMax) * (width - paddingX * 2);
+    const y = (val: number) => height - paddingY - (val / yMax) * (height - paddingY * 2);
+    const r = (val: number) => 5 + (val / zMax) * 25;
+
+    return (
+        <div className="w-full relative" style={{ height: '300px' }}>
+            <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
+                {/* Grid Lines */}
+                {Array.from({length: 5}).map((_, i) => (
+                    <line key={`h-${i}`} x1={paddingX} y1={paddingY + i * ((height - 2*paddingY)/4)} x2={width - paddingX} y2={paddingY + i * ((height - 2*paddingY)/4)} stroke="#f1f5f9" />
+                ))}
+                {Array.from({length: 5}).map((_, i) => (
+                    <line key={`v-${i}`} x1={paddingX + i * ((width - 2*paddingX)/4)} y1={paddingY} x2={paddingX + i * ((width - 2*paddingX)/4)} y2={height - paddingY} stroke="#f1f5f9" />
+                ))}
+
+                {/* Axes */}
+                <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="#cbd5e1" />
+                <line x1={paddingX} y1={paddingY} x2={paddingX} y2={height - paddingY} stroke="#cbd5e1" />
+                <text x={width/2} y={height-10} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500">{xAxisLabel}</text>
+                <text x={15} y={height/2} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-90 15 ${height/2})`}>{yAxisLabel}</text>
+
+                {/* Bubbles */}
+                {data.map((d, i) => {
+                    const abbreviatedLabel = d.label.length > 10 ? d.label.substring(0, 9) + '…' : d.label;
+                    return (
+                    <g key={i}>
+                        <title>{`${d.label} | ${xAxisLabel}: ${d.x.toFixed(1)} | ${yAxisLabel}: ${d.y.toFixed(1)} | Progresso: ${d.z}%`}</title>
+                        <circle cx={x(d.x)} cy={y(d.y)} r={r(d.z)} fill="rgba(59, 130, 246, 0.6)" stroke="rgba(37, 99, 235, 1)" />
+                        <text
+                            x={x(d.x)}
+                            y={y(d.y)}
+                            textAnchor="middle"
+                            fontSize="9"
+                            stroke="white"
+                            strokeWidth="0.4em"
+                            paintOrder="stroke"
+                            dy=".3em"
+                            className="pointer-events-none font-semibold"
+                        >
+                            {abbreviatedLabel}
+                        </text>
+                        <text 
+                            x={x(d.x)} 
+                            y={y(d.y)} 
+                            textAnchor="middle" 
+                            fontSize="9"
+                            fill="#1e3a8a" 
+                            dy=".3em" 
+                            className="pointer-events-none font-semibold"
+                        >
+                            {abbreviatedLabel}
+                        </text>
+                    </g>
+                )})}
+            </svg>
+        </div>
+    );
+};
+
+// --- Horizontal Bar Chart with Color Scale ---
+type HorizontalBarData = {
+    label: string;
+    value: number;
+    colorValue: number;
+    sizeValue: number;
+};
+
+export const HorizontalBarChartWithColorScale: React.FC<{ 
+    data: HorizontalBarData[]; 
+    valueLabel: string; 
+    colorValueLabel: string;
+    colorScale: (value: number) => string;
+}> = ({ data, valueLabel, colorValueLabel, colorScale }) => {
+    if (!data || data.length === 0) {
+        return <div className="flex items-center justify-center h-full text-slate-500">Sem dados para exibir.</div>;
+    }
+    const width = 500, barHeight = 30, padding = { top: 30, right: 30, bottom: 40, left: 100 };
+    const height = data.length * (barHeight + 10) + padding.top + padding.bottom;
+    const xMax = Math.max(...data.map(d => d.value), 0) * 1.1 || 10;
+
+    const x = (val: number) => padding.left + (val / xMax) * (width - padding.left - padding.right);
+    const y = (i: number) => padding.top + i * (barHeight + 10);
+    
+    const legendItems = [
+        { color: colorScale(1.5), label: 'Ruim (<2.5)' },
+        { color: colorScale(3.0), label: 'Médio (2.5-3.4)' },
+        { color: colorScale(4.5), label: 'Bom (>=3.5)' },
+    ];
+
+    return (
+        <div className="w-full">
+            <div className="overflow-x-auto">
+                <svg width="100%" viewBox={`0 0 ${width} ${height}`} className="min-w-[500px]">
+                    {/* X-axis */}
+                    <line x1={padding.left} y1={height - padding.bottom} x2={width - padding.right} y2={height - padding.bottom} stroke="#94a3b8" />
+                    {Array.from({length: 5}).map((_, i) => {
+                        const val = (xMax / 4) * i;
+                        return (
+                            <g key={i}>
+                                <text x={x(val)} y={height - padding.bottom + 15} textAnchor="middle" fontSize="10" fill="#475569">{val.toFixed(0)}%</text>
+                            </g>
+                        )
+                    })}
+                    <text x={padding.left + (width - padding.left - padding.right)/2} y={height-5} textAnchor="middle" fontSize="11" fill="#475569" fontWeight="500">{valueLabel}</text>
+                    
+                    {/* Bars */}
+                    {data.map((d, i) => (
+                        <g key={d.label}>
+                            <title>{`${d.label} | ${valueLabel}: ${d.value.toFixed(1)}% | ${colorValueLabel}: ${d.colorValue.toFixed(1)}/5.0 | Colaboradores: ${d.sizeValue}`}</title>
+                            <text x={padding.left - 10} y={y(i) + barHeight / 2} textAnchor="end" fontSize="11" fill="#334155" dy="3" fontWeight="600">{d.label}</text>
+                            <rect 
+                                x={padding.left} 
+                                y={y(i)} 
+                                width={x(d.value) - padding.left} 
+                                height={barHeight} 
+                                fill={colorScale(d.colorValue)} 
+                                rx="4"
+                            />
+                            <text 
+                                x={x(d.value) - 8} 
+                                y={y(i) + barHeight / 2} 
+                                textAnchor="end" 
+                                fontSize="11" 
+                                fill="white" 
+                                dy="4"
+                                fontWeight="bold"
+                                className="pointer-events-none"
+                            >
+                                {d.value.toFixed(1)}%
+                            </text>
+                            <text 
+                                x={padding.left + 8} 
+                                y={y(i) + barHeight / 2} 
+                                textAnchor="start" 
+                                fontSize="11" 
+                                fill="white" 
+                                dy="4"
+                                className="pointer-events-none"
+                            >
+                                <tspan alignmentBaseline="middle" role="img" aria-label="Colaboradores">👥</tspan>
+                                <tspan alignmentBaseline="middle"> {d.sizeValue}</tspan>
+                            </text>
+                        </g>
+                    ))}
+                </svg>
+            </div>
+            <div className="flex justify-center flex-wrap items-center gap-x-4 gap-y-1 text-xs mt-2">
+                <span className="font-semibold text-slate-600">{colorValueLabel}:</span>
+                {legendItems.map(item => (
+                    <div key={item.label} className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm" style={{backgroundColor: item.color}}></span>
+                        <span className="text-slate-500">{item.label}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- Heatmap Chart ---
+type HeatmapData = { yLabels: string[]; xLabels: string[]; data: number[][]; };
+export const HeatmapChart: React.FC<{ data: HeatmapData }> = ({ data }) => {
+    const { yLabels, xLabels, data: matrix } = data;
+    const cols = xLabels.length, rows = yLabels.length;
+    const cellWidth = 90, cellHeight = 40, xOffset = 120, yOffset = 80;
+
+    const getColor = (value: number) => { // score from 1 to 5
+        if (value >= 4.0) return '#16a34a'; // green-700
+        if (value >= 3.5) return '#22c55e'; // green-500
+        if (value >= 2.5) return '#f59e0b'; // yellow-500
+        if (value >= 1.5) return '#f97316'; // orange-500
+        return '#ef4444'; // red-500
+    };
+    
+    const legendItems = [
+      { color: '#ef4444', label: '1.0-2.4 (Crítico)' },
+      { color: '#f97316', label: '2.5-3.4 (Atenção)' },
+      { color: '#f59e0b', label: '3.5-3.9 (Moderado)' },
+      { color: '#22c55e', label: '4.0-5.0 (Saudável)' },
+    ];
+
+    return (
+        <div>
+            <div className="overflow-x-auto pb-4">
+                <svg width={xOffset + cols * cellWidth} height={yOffset + rows * cellHeight}>
+                    {/* X-Axis Labels (rotated) */}
+                    {xLabels.map((label, i) => (
+                        <text key={i} x={xOffset + i * cellWidth + cellWidth / 2} y={yOffset - 10} textAnchor="start" fontSize="11" fill="#475569" fontWeight="500" transform={`rotate(-45 ${xOffset + i * cellWidth + cellWidth / 2},${yOffset - 10})`}>
+                            {label}
+                        </text>
+                    ))}
+                    {/* Y-Axis Labels */}
+                    {yLabels.map((label, i) => (
+                        <text key={i} x={xOffset - 10} y={yOffset + i * cellHeight + cellHeight / 2} textAnchor="end" fontSize="11" fill="#475569" dy="3" fontWeight="500">
+                            {label}
+                        </text>
+                    ))}
+                    {/* Cells */}
+                    {matrix.map((row, i) => 
+                        row.map((value, j) => (
+                            <g key={`${i}-${j}`}>
+                                <title>{`${yLabels[i]} - ${xLabels[j]}: ${value.toFixed(1)}`}</title>
+                                <rect
+                                    x={xOffset + j * cellWidth}
+                                    y={yOffset + i * cellHeight}
+                                    width={cellWidth}
+                                    height={cellHeight}
+                                    fill={getColor(value)}
+                                    stroke="#fff"
+                                    strokeWidth="2"
+                                    rx="4"
+                                />
+                                <text
+                                    x={xOffset + j * cellWidth + cellWidth / 2}
+                                    y={yOffset + i * cellHeight + cellHeight / 2}
+                                    textAnchor="middle"
+                                    fontSize="12"
+                                    fill="#fff"
+                                    dy="4"
+                                    fontWeight="bold"
+                                    className="pointer-events-none"
+                                >
+                                    {value.toFixed(1)}
+                                </text>
+                            </g>
+                        ))
+                    )}
+                </svg>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-xs text-slate-600">
+                {legendItems.map(item => (
+                    <div key={item.label} className="flex items-center">
+                        <span className="w-3 h-3 rounded-sm mr-1.5" style={{backgroundColor: item.color}}></span>{item.label}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- Potential Analysis Chart ---
+export const PotentialAnalysisChart: React.FC<{ data: PotentialAnalysisData }> = ({ data }) => {
+    const { totalCost, scenarios } = data;
+
+    const chartData: ColumnChartData = {
+        labels: ['Custo Total', ...scenarios.map(s => s.label.replace('Economia com redução de ', 'Redução de '))],
+        datasets: [{
+            label: 'Valor (R$)',
+            data: [totalCost, ...scenarios.map(s => s.value)],
+            backgroundColor: ['#ef4444', ...scenarios.map(() => '#22c55e')],
+        }]
+    };
+
+    return <ColumnChart data={chartData} />;
 };

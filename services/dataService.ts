@@ -1,5 +1,3 @@
-
-
 import { authService } from './authService';
 import { mockResponses, mockFilters, dimensions } from '../components/dashboardMockData';
 
@@ -11,6 +9,21 @@ type MaturityLevel = {
     name: string;
     description: string;
 };
+export interface PotentialAnalysisData {
+    totalCost: number;
+    scenarios: {
+        label: string;
+        value: number;
+    }[];
+}
+export interface CrossAnalysisData {
+    irpVsPresenteeism: { x: number; y: number; z: number; label: string; }[];
+    irpVsTurnover: { labels: string[]; datasets: { label: string; data: (number | null)[]; color: string; }[] };
+    presenteeismVsRoi: PotentialAnalysisData;
+    dimensionVsAreaHeatmap: { yLabels: string[]; xLabels: string[]; data: number[][]; };
+    actionsVsImpact: { x: number; y: number; z: number; label: string; }[];
+    irpEvolution: { labels: string[]; data: number[]; };
+}
 export type DashboardData = {
   geralScore: number;
   irpGlobal: number;
@@ -32,6 +45,7 @@ export type DashboardData = {
   leadersInDevelopment: number;
   absenteeismRate: number;
   presenteeismRate: number;
+  crossAnalysis: CrossAnalysisData;
 };
 export interface CollaboratorEvolutionEntry {
     timestamp: number;
@@ -60,6 +74,7 @@ const allDimensionIds = Object.keys(dimensions);
 const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
 const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
 const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
+const ACTION_PLAN_HISTORY_KEY = 'progredire-action-plan-history';
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
     'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
@@ -203,6 +218,95 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const companyData = calculateDataForResponses(mockResponses);
     const { riskFactors, distributions, workLifeBalanceScore } = calculateDataForResponses(filteredResponses);
     
+    // START: CROSS-ANALYSIS DATA CALCULATION
+    const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
+    const irpVsPresenteeism = sectors.map(sector => {
+        const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
+        const { riskFactors: sectorRiskFactors } = calculateDataForResponses(sectorResponses);
+        const geralScore = Math.round(sectorRiskFactors.reduce((acc, curr) => acc + curr.score, 0) / (sectorRiskFactors.length || 1));
+        const irp = (geralScore / 100) * 4 + 1;
+        const presenteeism = Math.max(0, 30 - 5.5 * (irp - 1) + (Math.random() - 0.5) * 5);
+        return { x: irp, y: presenteeism, z: sectorResponses.length, label: sector };
+    });
+
+    const irpVsTurnover = (() => {
+        const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+        const irpData = [3.2, 3.5, 3.4, 3.8];
+        const turnoverData = irpData.map(irp => Math.max(0, 15 - 3 * irp + (Math.random() - 0.5) * 2));
+        return {
+            labels,
+            datasets: [
+                { label: 'IRP Global (1-5)', data: irpData, color: '#3b82f6' },
+                { label: 'Turnover (%)', data: turnoverData, color: '#ef4444' }
+            ]
+        };
+    })();
+
+    const presenteeismVsRoi = ((): PotentialAnalysisData => {
+        const avgPresenteeism = irpVsPresenteeism.reduce((acc, curr) => acc + curr.y, 0) / (irpVsPresenteeism.length || 1);
+        const cost = (avgPresenteeism / 100) * TOTAL_EMPLOYEES * 60000;
+        return {
+            totalCost: cost,
+            scenarios: [
+                { label: 'Economia com redução de 10%', value: cost * 0.1 },
+                { label: 'Economia com redução de 25%', value: cost * 0.25 }
+            ]
+        };
+    })();
+
+    const dimensionVsAreaHeatmap = (() => {
+        const xLabels = allDimensionIds.map(id => dimensions[id].name);
+        const yLabels = sectors;
+        const data = yLabels.map(sector => {
+            const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
+            return allDimensionIds.map(dimId => {
+                const { riskFactors: factorData } = calculateDataForResponses(sectorResponses);
+                const factor = factorData.find(f => f.id === dimId);
+                const score = factor ? factor.score : 0;
+                return (score / 100) * 4 + 1;
+            });
+        });
+        return { yLabels, xLabels, data };
+    })();
+    
+    const actionsVsImpact = (() => {
+        try {
+            const stored = localStorage.getItem(ACTION_PLAN_HISTORY_KEY);
+            const plans: any[] = stored ? JSON.parse(stored) : [];
+            if (plans && plans.length > 0) {
+                return plans.map((plan: any) => ({
+                    x: 5 + Math.random() * 15, // Mocked improvement for demo
+                    y: plan.actions.length,
+                    z: plan.progress,
+                    label: plan.factor,
+                }));
+            }
+            // If no archived plans, provide mock data to ensure the chart is not blank
+            return [
+                { x: 8.5, y: 3, z: 100, label: 'Carga Trab.' },
+                { x: 12.1, y: 5, z: 75, label: 'Liderança' },
+                { x: 5.7, y: 4, z: 50, label: 'Reconhecimento' },
+            ];
+        } catch { 
+            // Fallback in case of parsing error
+            return [
+                { x: 8.5, y: 3, z: 100, label: 'Carga Trab.' },
+                { x: 12.1, y: 5, z: 75, label: 'Liderança' },
+                { x: 5.7, y: 4, z: 50, label: 'Reconhecimento' },
+            ];
+        }
+    })();
+
+    const crossAnalysis: CrossAnalysisData = {
+        irpVsPresenteeism,
+        irpVsTurnover,
+        presenteeismVsRoi,
+        dimensionVsAreaHeatmap,
+        actionsVsImpact,
+        irpEvolution: calculateClimateTrend(),
+    };
+    // END: CROSS-ANALYSIS DATA CALCULATION
+
     if (filteredResponses.length === 0) {
         return {
             geralScore: 0, irpGlobal: 0, riskClassification: { text: 'N/A', color: 'bg-slate-500' },
@@ -212,6 +316,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
             leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
             estimatedSavings: 'R$0', roiScenarios: [], leadersInDevelopment: 0,
             absenteeismRate: 0, presenteeismRate: 0,
+            crossAnalysis: crossAnalysis, // Still return cross analysis even if filters are empty
         };
     }
 
@@ -227,8 +332,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const sortedRisks = [...riskFactors].sort((a, b) => a.score - b.score);
     const topRisks = sortedRisks.slice(0, 3);
     const topProtections = sortedRisks.slice(-3).reverse();
-
-    const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
+    
     let highCount = 0, moderateCount = 0, lowCount = 0;
     sectors.forEach(sector => {
         const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
@@ -267,6 +371,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         leadersInDevelopment: 68,
         absenteeismRate,
         presenteeismRate,
+        crossAnalysis,
     };
 };
 
