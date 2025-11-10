@@ -240,9 +240,28 @@ Estes endpoints são essenciais para proteger sua `API_KEY`. Eles recebem uma so
         4.  Retorne a resposta final em texto para o frontend.
 
 ---
-## 4. Considerações Finais
+## 4. Considerações Finais e Boas Práticas
 
--   **Validação:** Valide todos os dados de entrada em todos os endpoints para garantir a integridade e segurança.
--   **Error Handling:** Forneça mensagens de erro claras e códigos de status HTTP apropriados.
--   **Performance:** Para endpoints complexos como o `/dashboard`, considere estratégias de cache para dados que não mudam com frequência.
--   **Segurança:** Use o ORM para prevenir SQL Injection e garanta que todas as rotas protegidas verifiquem o JWT e o `role` do usuário.
+### 4.1. Validação
+-   **Validação de Entrada:** Utilize bibliotecas como `class-validator` (com NestJS) ou `zod` para validar todos os `body`, `query params` e `route params` em todos os endpoints. Isso previne dados malformados de alcançarem sua lógica de negócio ou banco de dados.
+
+### 4.2. Tratamento de Erros (Error Handling)
+-   **Estrutura de Erro Padrão:** Padronize as respostas de erro em um formato JSON consistente para facilitar o tratamento no frontend. Exemplo: `{ "statusCode": 404, "message": "Recurso não encontrado", "error": "Not Found" }`.
+-   **Códigos de Status HTTP:** Use os códigos HTTP semanticamente corretos:
+    -   `400 Bad Request`: Falha na validação dos dados de entrada.
+    -   `401 Unauthorized`: Token JWT ausente ou inválido.
+    -   `403 Forbidden`: O usuário (token válido) não tem permissão (`role`) para acessar o recurso.
+    -   `404 Not Found`: Recurso não encontrado.
+    -   `500 Internal Server Error`: Erros inesperados no servidor, incluindo falhas ao chamar a API Gemini. Não exponha detalhes sensíveis do erro ao cliente; registre-os em logs.
+
+### 4.3. Performance
+-   **Consultas Otimizadas:** Use o poder do Prisma para criar consultas eficientes. Utilize `select` para buscar apenas os campos necessários e evite o problema "N+1" com o uso de `include` ou consultas agregadas.
+-   **Paginação:** Para endpoints que retornam listas (ex: `/action-plans/history`), implemente paginação (`skip`, `take`) para evitar a transferência de grandes volumes de dados.
+-   **Cache:** Para endpoints de leitura com dados que mudam pouco (ex: dados de campanhas concluídas), considere implementar uma estratégia de cache (ex: com Redis) para reduzir a carga no banco de dados. O endpoint `/dashboard` também é um forte candidato para cache.
+
+### 4.4. Segurança
+-   **Autenticação JWT:** O token JWT deve ter um tempo de expiração curto (ex: 15-30 minutos) para limitar a janela de vulnerabilidade em caso de vazamento. Implemente um mecanismo de refresh token (com expiração mais longa, ex: 7 dias) para manter a sessão do usuário de forma segura. Armazene o refresh token em um cookie `HttpOnly`, `Secure` e `SameSite=Strict`.
+-   **CORS (Cross-Origin Resource Sharing):** Configure o backend para aceitar requisições apenas do domínio da aplicação frontend em produção (`origin: 'https://seu-dominio.com'`).
+-   **Rate Limiting:** Implemente limitação de taxa (ex: com `express-rate-limit`) em endpoints críticos, especialmente `/auth/login` e todos os endpoints `/api/ai/*`, para prevenir ataques de força bruta e abuso de API.
+-   **Proteção contra Injeção:** Use um ORM como o Prisma, que parametriza consultas por padrão, para se proteger contra ataques de SQL Injection.
+-   **Gerenciamento de Segredos:** A `API_KEY` do Gemini, o segredo do JWT e a `DATABASE_URL` **devem** ser gerenciados através de variáveis de ambiente (usando um arquivo `.env` e bibliotecas como `dotenv`) e nunca devem ser versionados no código-fonte.
