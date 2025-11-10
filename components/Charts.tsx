@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import type { PotentialAnalysisData } from '../services/dataService';
 
@@ -1035,6 +1033,49 @@ export const ActionsImpactChart: React.FC<{ data: ActionImpactData[], yAxisLabel
                     <span className="w-3 h-3 rounded-sm" style={{backgroundColor: `rgb(${endColor.join(',')})`}}></span>
                     <span>100%</span>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// --- Simple Horizontal Bar Chart ---
+export const SimpleHorizontalBarChart: React.FC<{ data: { label: string; value: number }[], color: string }> = ({ data, color }) => {
+    if (!data || data.length === 0) {
+        return (
+            <div className="text-center text-slate-500 py-8">
+                Nenhum dado de afastamento para o período selecionado.
+            </div>
+        );
+    }
+
+    const maxValue = Math.max(...data.map(d => d.value), 0);
+
+    return (
+        <div className="space-y-4 pt-2">
+            {data.map(({ label, value }) => {
+                const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+                return (
+                    <div key={label} className="space-y-1 sm:space-y-0 sm:flex sm:items-center sm:gap-4">
+                        <div className="text-sm font-medium text-slate-700 w-full sm:w-1/3 sm:text-right flex-shrink-0" title={label}>
+                            {label}
+                        </div>
+                        <div className="w-full sm:w-2/3">
+                            <div
+                                className="h-6 flex items-center justify-end pr-2 rounded-md text-white text-xs font-bold transition-all duration-500"
+                                style={{
+                                    width: `${percentage}%`,
+                                    backgroundColor: color,
+                                    minWidth: '2rem' // Ensure value is visible even for small bars
+                                }}
+                            >
+                                {value}
+                            </div>
+                        </div>
+                    </div>
+                );
+            })}
+             <div className="text-center text-xs text-slate-500 pt-2 sm:pl-[33.333%]">
+                Nº de Afastamentos
             </div>
         </div>
     );

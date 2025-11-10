@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
 import { runDashboardAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
 import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from './icons';
 import { mockFilters } from './dashboardMockData';
-import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart, ActionsImpactChart } from './Charts';
+import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart, ActionsImpactChart, SimpleHorizontalBarChart } from './Charts';
 
 // --- Types ---
 interface AiInsightData {
@@ -174,6 +174,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
     const [data, setData] = useState<DashboardData | null>(null);
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [dataError, setDataError] = useState<string | null>(null);
+    const [leavePeriod, setLeavePeriod] = useState<string>('12');
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -217,6 +219,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             setIsInsightLoading(false);
         }
     }, [data, filters]);
+
+    const processedLeaveData = useMemo(() => {
+        if (!data?.leaveEvents) return [];
+    
+        const periodInMonths = parseInt(leavePeriod, 10);
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - periodInMonths);
+    
+        const filteredEvents = data.leaveEvents.filter(event => new Date(event.date) >= cutoffDate);
+    
+        const counts = filteredEvents.reduce<Record<string, number>>((acc, event) => {
+            acc[event.type] = (acc[event.type] || 0) + 1;
+            return acc;
+        }, {});
+    
+        return Object.entries(counts)
+            .map(([label, value]) => ({ label, value }))
+            .sort((a, b) => b.value - a.value);
+
+    }, [data?.leaveEvents, leavePeriod]);
     
     const handleExportXls = useCallback(() => {
         if (!data || !data.riskFactors || data.riskFactors.length === 0) return;
@@ -439,6 +461,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                                 <InfoTooltip text="Gráfico que acompanha a evolução da pontuação geral (IRP Global) ao longo do tempo, mostrando a trajetória da saúde organizacional." />
                             </div>
                             <LineChart chartData={data.climateTrend} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-md font-semibold text-slate-800">Histórico de Afastamentos (INSS)</h3>
+                                <InfoTooltip text="Acompanha o número de colaboradores afastados pelo INSS ao longo dos meses, um indicador chave do impacto do bem-estar na saúde ocupacional." />
+                            </div>
+                            <LineChart 
+                                chartData={{
+                                    labels: data.inssLeaveTrend.labels,
+                                    datasets: [{
+                                        label: 'Colaboradores Afastados',
+                                        data: data.inssLeaveTrend.data,
+                                        color: '#8b5cf6'
+                                    }]
+                                }} 
+                                yMax={15}
+                                yAxisLabels={[0, 5, 10, 15]}
+                            />
+                        </div>
+                         <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
+                                <div className="flex-grow">
+                                    <h3 className="text-md font-semibold text-slate-800">Tipos de Afastamentos (Últimos {leavePeriod} meses)</h3>
+                                </div>
+                                <div className="flex-shrink-0">
+                                    <select 
+                                        value={leavePeriod} 
+                                        onChange={(e) => setLeavePeriod(e.target.value)}
+                                        className="text-sm p-1 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="3">Últimos 3 meses</option>
+                                        <option value="6">Últimos 6 meses</option>
+                                        <option value="12">Últimos 12 meses</option>
+                                    </select>
+                                </div>
+                            </div>
+                             <InfoTooltip text="Distribuição dos motivos de afastamentos relacionados à saúde mental, com base nos dados disponíveis." />
+                            <SimpleHorizontalBarChart 
+                                data={processedLeaveData}
+                                color="#8b5cf6"
+                            />
                         </div>
                     </div>
                     <div className="bg-white p-4 rounded-lg shadow border border-slate-200">

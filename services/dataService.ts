@@ -45,6 +45,8 @@ export type DashboardData = {
   leadersInDevelopment: number;
   absenteeismRate: number;
   presenteeismRate: number;
+  inssLeaveTrend: {labels: string[], data: number[]};
+  leaveEvents: { type: string; date: string }[];
   crossAnalysis: CrossAnalysisData;
 };
 export interface CollaboratorEvolutionEntry {
@@ -210,6 +212,33 @@ const calculateClimateTrend = (): {labels: string[], data: number[]} => {
     return { labels, data };
 };
 
+const generateLeaveEvents = (): { type: string; date: string }[] => {
+    const types = [
+        'Transtorno Misto Ansioso e Depressivo',
+        'Burnout',
+        'Ansiedade Generalizada',
+        'Depressão',
+        'Transtorno do Pânico',
+    ];
+    const events: { type: string; date: string }[] = [];
+    const totalEvents = 25;
+    const now = new Date();
+
+    for (let i = 0; i < totalEvents; i++) {
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        const randomDaysAgo = Math.floor(Math.random() * 365);
+        const eventDate = new Date();
+        eventDate.setDate(now.getDate() - randomDaysAgo);
+        
+        events.push({
+            type: randomType,
+            date: eventDate.toISOString(),
+        });
+    }
+    return events;
+};
+
+
 const calculateDashboardData = (filters: Record<string, string>): DashboardData => {
     const filteredResponses = mockResponses.filter(r => 
         Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
@@ -316,6 +345,8 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
             leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
             estimatedSavings: 'R$0', roiScenarios: [], leadersInDevelopment: 0,
             absenteeismRate: 0, presenteeismRate: 0,
+            inssLeaveTrend: {labels: [], data: []},
+            leaveEvents: [],
             crossAnalysis: crossAnalysis, // Still return cross analysis even if filters are empty
         };
     }
@@ -351,6 +382,12 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         moderate: (moderateCount / totalSectors) * 100,
         low: (lowCount / totalSectors) * 100,
     };
+    
+    const inssLeaveTrend = {
+        labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'],
+        data: [12, 11, 9, 8, 6, 5]
+    };
+    
 
     return { 
         geralScore, irpGlobal, riskClassification,
@@ -371,6 +408,8 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         leadersInDevelopment: 68,
         absenteeismRate,
         presenteeismRate,
+        inssLeaveTrend,
+        leaveEvents: generateLeaveEvents(),
         crossAnalysis,
     };
 };

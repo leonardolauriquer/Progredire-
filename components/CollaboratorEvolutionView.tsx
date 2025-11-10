@@ -105,9 +105,8 @@ export const CollaboratorEvolutionView: React.FC<CollaboratorEvolutionViewProps>
     const topImprovement = changes[0];
     
     const attentionPoint = Object.entries(last.scores)
-        // FIX: Destructuring in sort callback was causing type inference issues.
-        // Accessing array elements by index ensures correct numeric comparison.
-        .sort((a, b) => a[1] - b[1])[0];
+        // FIX: Explicitly cast score values to number to resolve TypeScript's type inference issue with Object.entries.
+        .sort((a, b) => (a[1] as number) - (b[1] as number))[0];
 
     return { topImprovement, attentionPoint: { factorId: attentionPoint[0], score: attentionPoint[1] } };
   }, [evolutionData]);
