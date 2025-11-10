@@ -1,8 +1,11 @@
 
 
-import React, { useState, useMemo } from 'react';
+
+
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon } from './icons';
-import { mockFilters, initialCampaigns, Campaign, CampaignStatus } from './dashboardMockData';
+import { mockFilters, Campaign, CampaignStatus } from './dashboardMockData';
+import { getCampaigns, addCampaign, approveCampaign } from '../services/dataService';
 import { ActiveView } from '../App';
 
 interface CampaignViewProps {
@@ -30,8 +33,7 @@ const CampaignCard: React.FC<{
     campaign: Campaign;
     onViewReport: (filters: Record<string, string>) => void;
     onTakeSurvey: () => void;
-    onApprove: (campaignId: number) => void;
-}> = ({ campaign, onViewReport, onTakeSurvey, onApprove }) => {
+}> = ({ campaign, onViewReport, onTakeSurvey }) => {
     const getStatusStyles = (status: CampaignStatus) => {
         switch (status) {
             case 'Em Andamento': return 'bg-blue-100 text-blue-800';
@@ -69,14 +71,7 @@ const CampaignCard: React.FC<{
             <div className="flex flex-wrap gap-2 pt-4 mt-4 border-t border-slate-200">
                 {campaign.status === 'Pendente' && (
                     <div className="w-full text-center">
-                        <button
-                            onClick={() => onApprove(campaign.id)}
-                            className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-1.5 rounded-md"
-                        >
-                            <ShieldCheckIcon className="w-4 h-4"/>
-                            Aprovar Campanha
-                        </button>
-                        <p className="text-xs text-slate-500 mt-2">Aguardando aprovação da Staff.</p>
+                         <p className="text-xs text-slate-500 mt-2">Aguardando aprovação da Staff para ser iniciada.</p>
                     </div>
                 )}
                 {campaign.status === 'Agendada' && (
@@ -108,7 +103,7 @@ const CampaignCard: React.FC<{
 const CreateCampaignModal: React.FC<{
     isOpen: boolean;
     onClose: () => void;
-    onAddCampaign: (campaign: Campaign) => void;
+    onAddCampaign: (campaign: Partial<Campaign>) => void;
 }> = ({ isOpen, onClose, onAddCampaign }) => {
     const [currentStep, setCurrentStep] = useState(1);
     const [campaignData, setCampaignData] = useState<Partial<Campaign>>({
@@ -135,19 +130,7 @@ const CreateCampaignModal: React.FC<{
     };
 
     const handleCreate = () => {
-        const newCampaign: Campaign = {
-            id: Date.now(),
-            name: campaignData.name || 'Nova Campanha',
-            description: campaignData.description || '',
-            status: 'Pendente',
-            targetAudience: campaignData.targetAudience || 'Toda a empresa',
-            adherence: 0,
-            startDate: campaignData.startDate || new Date().toISOString().split('T')[0],
-            endDate: campaignData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            emailMessage: campaignData.emailMessage || '',
-            filters: campaignData.filters || {},
-        };
-        onAddCampaign(newCampaign);
+        onAddCampaign(campaignData);
         onClose();
         setCurrentStep(1);
         setCampaignData({ name: '', description: '', filters: {}, startDate: '', endDate: '', emailMessage: defaultEmailMessage });
@@ -241,32 +224,16 @@ const CreateCampaignModal: React.FC<{
 };
 
 export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navigateToDashboard }) => {
-    const [campaigns, setCampaigns] = useState<Campaign[]>(initialCampaigns);
+    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     
-    const handleAddCampaign = (campaign: Campaign) => {
-        setCampaigns(prev => [campaign, ...prev]);
-    };
+    useEffect(() => {
+        getCampaigns().then(setCampaigns);
+    }, []);
 
-    const handleApproveCampaign = (campaignId: number) => {
-        setCampaigns(prevCampaigns => {
-            const campaignToUpdate = prevCampaigns.find(c => c.id === campaignId);
-            if (!campaignToUpdate) return prevCampaigns;
-            
-            const today = new Date();
-            const startDate = new Date(campaignToUpdate.startDate);
-            today.setHours(0, 0, 0, 0);
-            startDate.setHours(0, 0, 0, 0);
-
-            const newStatus = startDate <= today ? 'Em Andamento' : 'Agendada';
-
-            return prevCampaigns.map(c => 
-                c.id === campaignId 
-                    ? { ...c, status: newStatus } 
-                    : c
-            );
-        });
-    };
+    const handleAddCampaign = useCallback((campaignData: Partial<Campaign>) => {
+        addCampaign(campaignData).then(setCampaigns);
+    }, []);
 
     const { activeCampaigns, completedCampaigns } = useMemo(() => {
         const active: Campaign[] = [];
@@ -307,7 +274,6 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
                                 campaign={campaign}
                                 onViewReport={navigateToDashboard}
                                 onTakeSurvey={() => setActiveView('corporate_survey')}
-                                onApprove={handleApproveCampaign}
                             />
                         ))}
                     </div>
@@ -333,7 +299,6 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
                                 campaign={campaign}
                                 onViewReport={navigateToDashboard}
                                 onTakeSurvey={() => setActiveView('corporate_survey')}
-                                onApprove={handleApproveCampaign}
                             />
                         ))}
                     </div>

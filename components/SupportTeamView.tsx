@@ -49,26 +49,45 @@ const ProfessionalCard: React.FC<{ professional: Professional, onSchedule: (prof
 };
 
 const StaffCard: React.FC = () => (
-    <div className="bg-[--color-muted] p-6 rounded-2xl shadow-lg border border-[--color-border] lg:col-span-2 flex flex-col md:flex-row items-center text-center md:text-left gap-6">
-      <div className="flex-shrink-0">
-        <UserGroupIcon className="h-16 w-16 text-blue-600" />
-      </div>
-      <div>
-        <h3 className="text-2xl font-bold text-[--color-card-foreground]">Fale com a Staff Progredire+</h3>
-        <p className="text-[--color-card-muted-foreground] mt-2 mb-4">
-          Nossa equipe está disponível para um bate-papo confidencial sobre qualquer questão. Entre em contato para agendar uma conversa.
-        </p>
-        <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 text-sm">
-          <a href="mailto:staff@progrediremais.com.br" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
-            <EnvelopeIcon className="w-5 h-5" />
-            staff@progrediremais.com.br
-          </a>
-          <a href="tel:+5511999998888" className="inline-flex items-center gap-2 text-blue-600 hover:underline">
-            <PhoneIcon className="w-5 h-5" />
-            +55 (11) 99999-8888
-          </a>
+    <div className="bg-[--color-muted] p-6 rounded-2xl shadow-lg border border-[--color-border] lg:col-span-2">
+        <div className="text-center md:text-left">
+             <h3 className="text-2xl font-bold text-[--color-card-foreground] flex items-center justify-center md:justify-start gap-3">
+                <UserGroupIcon className="h-8 w-8 text-blue-600" />
+                Fale com a Staff Progredire+
+            </h3>
+            <p className="text-[--color-card-muted-foreground] mt-2">
+                Nossa equipe está disponível para um bate-papo confidencial sobre qualquer questão. Entre em contato para agendar uma conversa.
+            </p>
         </div>
-      </div>
+      
+        <div className="mt-6 pt-6 border-t border-[--color-border] grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+            <div>
+                <h4 className="font-semibold text-[--color-card-foreground]">Paula</h4>
+                <div className="mt-2 space-y-2 text-sm">
+                    <a href="mailto:paula.progredire@gmail.com" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <EnvelopeIcon className="w-5 h-5" />
+                        <span>paula.progredire@gmail.com</span>
+                    </a>
+                    <a href="https://wa.me/554896805355" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <PhoneIcon className="w-5 h-5" />
+                        <span>(48) 9680-5355</span>
+                    </a>
+                </div>
+            </div>
+             <div>
+                <h4 className="font-semibold text-[--color-card-foreground]">Natieli</h4>
+                 <div className="mt-2 space-y-2 text-sm">
+                    <a href="mailto:natieli.progredire@gmail.com" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <EnvelopeIcon className="w-5 h-5" />
+                        <span>natieli.progredire@gmail.com</span>
+                    </a>
+                    <a href="https://wa.me/554796159997" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-blue-600 hover:underline">
+                        <PhoneIcon className="w-5 h-5" />
+                        <span>(47) 9615-9997</span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 );
 

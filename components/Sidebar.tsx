@@ -1,8 +1,9 @@
 
 
 
+
 import React, { useMemo } from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
@@ -19,6 +20,7 @@ interface SidebarProps {
 
 const allNavigation = [
   { name: 'Início', view: 'home', icon: HomeIcon },
+  { name: 'Painel Staff', view: 'staff_dashboard', icon: ShieldCheckIcon },
   { name: 'Assistente IA', view: 'assistant', icon: ChatBubbleOvalLeftEllipsisIcon },
   { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
   { name: 'Diário de Emoções', view: 'journal', icon: BookOpenIcon },
@@ -36,6 +38,7 @@ const allNavigation = [
 
 const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
+const staffViews: ActiveView[] = ['staff_dashboard', 'settings', 'faq'];
 
 const NavItem: React.FC<{
   item: typeof allNavigation[0];
@@ -72,7 +75,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   
   const navigation = useMemo(() => {
-    const allowedViews = userRole === 'company' ? companyViews : collaboratorViews;
+    const allowedViews = 
+        userRole === 'company' ? companyViews : 
+        userRole === 'collaborator' ? collaboratorViews : 
+        staffViews;
     return allNavigation.filter(item => allowedViews.includes(item.view as ActiveView));
   }, [userRole]);
   

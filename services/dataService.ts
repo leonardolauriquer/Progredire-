@@ -1,5 +1,6 @@
 import { authService } from './authService';
-import { mockResponses, mockFilters, dimensions } from '../components/dashboardMockData';
+// FIX: Import 'initialCampaigns' from the centralized mock data file.
+import { mockResponses, mockFilters, dimensions, Campaign, CampaignStatus, initialCampaigns } from '../components/dashboardMockData';
 
 // --- Types ---
 export type RiskFactor = { id: string; name: string; score: number };
@@ -77,6 +78,8 @@ const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
 const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
 const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
 const ACTION_PLAN_HISTORY_KEY = 'progredire-action-plan-history';
+const CAMPAIGNS_KEY = 'progredire-campaigns';
+
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
     'M1': { name: 'Reativa', description: 'Atuação apenas após crises (>60% dos fatores em risco alto).' },
@@ -581,4 +584,75 @@ export const queryRiskFactors = async (filters: Record<string, string>): Promise
     const { riskFactors } = calculateDataForResponses(dataToProcess);
     
     return riskFactors.map(rf => ({ factor: rf.name, score: rf.score }));
+};
+
+// --- Campaign Service Functions ---
+
+const initializeCampaigns = () => {
+    try {
+        const stored = localStorage.getItem(CAMPAIGNS_KEY);
+        if (!stored) {
+            localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(initialCampaigns));
+        }
+    } catch (e) { console.error(e); }
+};
+initializeCampaigns();
+
+export const getCampaigns = async (): Promise<Campaign[]> => {
+    return new Promise(resolve => {
+        try {
+            const stored = localStorage.getItem(CAMPAIGNS_KEY);
+            const campaigns = stored ? JSON.parse(stored) : [];
+            campaigns.sort((a: Campaign, b: Campaign) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+            resolve(campaigns);
+        } catch (e) {
+            console.error('Failed to get campaigns', e);
+            resolve([]);
+        }
+    });
+};
+
+export const addCampaign = async (campaignData: Partial<Campaign>): Promise<Campaign[]> => {
+    const campaigns = await getCampaigns();
+    const newCampaign: Campaign = {
+        id: Date.now(),
+        name: campaignData.name || 'Nova Campanha',
+        description: campaignData.description || '',
+        status: 'Pendente', // Always starts as pending
+        targetAudience: campaignData.targetAudience || 'Toda a empresa',
+        adherence: 0,
+        startDate: campaignData.startDate || new Date().toISOString().split('T')[0],
+        endDate: campaignData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        emailMessage: campaignData.emailMessage || '',
+        filters: campaignData.filters || {},
+    };
+    const updatedCampaigns = [newCampaign, ...campaigns];
+    try {
+        localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updatedCampaigns));
+    } catch (e) { console.error(e); }
+    return updatedCampaigns;
+};
+
+export const approveCampaign = async (campaignId: number): Promise<Campaign[]> => {
+    let campaigns = await getCampaigns();
+    const campaignToUpdate = campaigns.find(c => c.id === campaignId);
+    if (!campaignToUpdate) return campaigns;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(campaignToUpdate.startDate);
+    startDate.setHours(0,0,0,0);
+    
+    const newStatus: CampaignStatus = startDate <= today ? 'Em Andamento' : 'Agendada';
+    
+    const updatedCampaigns = campaigns.map(c => 
+        c.id === campaignId 
+            ? { ...c, status: newStatus } 
+            : c
+    );
+    try {
+        localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updatedCampaigns));
+    } catch(e) { console.error(e); }
+
+    return updatedCampaigns;
 };

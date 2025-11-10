@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -23,9 +24,10 @@ import { InitiativesView } from './components/InitiativesView';
 import { AssistantView } from './components/AssistantView';
 import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
 import { JournalView } from './components/JournalView';
+import { StaffDashboardView } from './components/StaffDashboardView';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal';
-export type UserRole = 'company' | 'collaborator';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal' | 'staff_dashboard';
+export type UserRole = 'company' | 'collaborator' | 'staff';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AuthData | null>(null);
@@ -58,7 +60,11 @@ const App: React.FC = () => {
 
   const handleLogin = (authData: AuthData) => {
     setUser(authData);
-    setActiveView('home'); // Reset to home on login
+    if (authData.role === 'staff') {
+        setActiveView('staff_dashboard');
+    } else {
+        setActiveView('home'); // Reset to home on login for other roles
+    }
   };
 
   const handleLogout = () => {
@@ -107,10 +113,12 @@ const App: React.FC = () => {
     if (!user) return null;
     switch (activeView) {
       case 'home':
-        if (user.role === 'collaborator') {
-          return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
-        }
-        return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
+        if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'staff') return <StaffDashboardView />;
+        return null;
+      case 'staff_dashboard':
+        return user.role === 'staff' ? <StaffDashboardView /> : null; // Only for staff
       case 'personal_reflection':
         return <AnalysisView />;
       case 'dashboard':
@@ -141,10 +149,10 @@ const App: React.FC = () => {
       case 'journal':
         return <JournalView />;
       default:
-        if (user.role === 'collaborator') {
-          return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
-        }
-        return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
+        if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
+        if (user.role === 'staff') return <StaffDashboardView />;
+        return null;
     }
   };
   

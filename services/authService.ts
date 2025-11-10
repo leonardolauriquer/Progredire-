@@ -1,4 +1,3 @@
-
 import { UserRole } from '../App';
 
 export interface AuthData {
@@ -8,12 +7,27 @@ export interface AuthData {
 
 const AUTH_KEY = 'progredire-auth';
 
-const login = (role: UserRole): Promise<AuthData> => {
+const login = (role: UserRole, email?: string): Promise<AuthData> => {
   return new Promise((resolve, reject) => {
     // Simulate network delay
     setTimeout(() => {
+      // Staff-specific validation
+      if (role === 'staff') {
+        if (!email) {
+          return reject(new Error('Email é obrigatório para acesso Staff.'));
+        }
+        const allowedStaffEmails = [
+          'paula.progredire@gmail.com',
+          'natieli.progredire@gmail.com',
+          'leonardo.progredire@gmail.com'
+        ];
+        if (!allowedStaffEmails.includes(email.toLowerCase())) {
+          return reject(new Error('Acesso negado. Email não autorizado.'));
+        }
+      }
+
       // Simulate a possible failure
-      if (Math.random() > 0.9) { // 10% chance of failure
+      if (Math.random() > 0.95) { // 5% chance of failure
         reject(new Error('Falha na autenticação. Tente novamente.'));
         return;
       }
