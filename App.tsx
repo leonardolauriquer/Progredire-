@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -25,8 +22,9 @@ import { AssistantView } from './components/AssistantView';
 import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
 import { JournalView } from './components/JournalView';
 import { StaffDashboardView } from './components/StaffDashboardView';
+import { DocumentationView } from './components/DocumentationView';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal' | 'staff_dashboard';
+export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal' | 'staff_dashboard' | 'documentation';
 export type UserRole = 'company' | 'collaborator' | 'staff';
 
 const App: React.FC = () => {
@@ -148,6 +146,8 @@ const App: React.FC = () => {
         return <AssistantView />;
       case 'journal':
         return <JournalView />;
+      case 'documentation':
+        return <DocumentationView />;
       default:
         if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;

@@ -1,9 +1,6 @@
 
-
-
-
 import React, { useMemo } from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
@@ -30,13 +27,14 @@ const allNavigation = [
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
   { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
   { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
+  { name: 'Documentação', view: 'documentation', icon: ArchiveBoxIcon },
   { name: 'Iniciativas', view: 'initiatives', icon: LightBulbIcon },
   { name: 'Equipe de Apoio', view: 'support_team', icon: UserGroupIcon },
   { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
   { name: 'Configurações', view: 'settings', icon: CogIcon },
 ];
 
-const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
+const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'documentation', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
 const staffViews: ActiveView[] = ['staff_dashboard', 'settings', 'faq'];
 
