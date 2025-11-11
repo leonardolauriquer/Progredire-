@@ -1,7 +1,8 @@
 
 
+
 import React, { useMemo } from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon, ClockIcon, UserIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
@@ -17,19 +18,26 @@ interface SidebarProps {
 }
 
 const allNavigation = [
+  // General & Company
   { name: 'Início', view: 'home', icon: HomeIcon },
-  { name: 'Painel Staff', view: 'staff_dashboard', icon: ShieldCheckIcon },
   { name: 'Assistente IA', view: 'assistant', icon: ChatBubbleOvalLeftEllipsisIcon },
-  { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
-  { name: 'Diário de Emoções', view: 'journal', icon: BookOpenIcon },
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-  { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
   { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
   { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
   { name: 'Acompanhamento', view: 'action_tracking', icon: ClipboardDocumentCheckIcon },
   { name: 'Documentação', view: 'documentation', icon: ArchiveBoxIcon },
+  // Collaborator
+  { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
+  { name: 'Diário de Emoções', view: 'journal', icon: BookOpenIcon },
+  { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
   { name: 'Iniciativas', view: 'initiatives', icon: LightBulbIcon },
+  // Staff
+  { name: 'Aprovar Campanhas', view: 'staff_campaign_approval', icon: ClockIcon },
+  { name: 'Gestão de Documentos', view: 'staff_document_management', icon: ArchiveBoxIcon },
+  { name: 'Gestão de Usuários', view: 'staff_user_management', icon: UserGroupIcon },
+  { name: 'Acesso Delegado', view: 'staff_impersonation', icon: UserIcon },
+  // Common
   { name: 'Equipe de Apoio', view: 'support_team', icon: UserGroupIcon },
   { name: 'FAQ', view: 'faq', icon: QuestionMarkCircleIcon },
   { name: 'Configurações', view: 'settings', icon: CogIcon },
@@ -37,7 +45,7 @@ const allNavigation = [
 
 const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'documentation', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
-const staffViews: ActiveView[] = ['staff_dashboard', 'settings', 'faq'];
+const staffViews: ActiveView[] = ['staff_campaign_approval', 'staff_document_management', 'staff_user_management', 'staff_impersonation', 'settings', 'faq'];
 
 const NavItem: React.FC<{
   item: typeof allNavigation[0];

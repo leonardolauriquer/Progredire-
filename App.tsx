@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -21,11 +22,21 @@ import { InitiativesView } from './components/InitiativesView';
 import { AssistantView } from './components/AssistantView';
 import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
 import { JournalView } from './components/JournalView';
-import { StaffDashboardView } from './components/StaffDashboardView';
 import { DocumentationView } from './components/DocumentationView';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
 
-export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal' | 'staff_dashboard' | 'documentation';
+import { StaffCampaignApprovalView } from './components/StaffCampaignApprovalView';
+import { StaffDocumentManagementView } from './components/StaffDocumentManagementView';
+import { StaffUserManagementView } from './components/StaffUserManagementView';
+import { StaffImpersonationView } from './components/StaffImpersonationView';
+
+
+export type ActiveView = 
+  'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 
+  'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 
+  'initiatives' | 'assistant' | 'journal' | 'documentation' |
+  'staff_campaign_approval' | 'staff_document_management' | 'staff_user_management' | 'staff_impersonation';
+
 export type UserRole = 'company' | 'collaborator' | 'staff';
 
 const App: React.FC = () => {
@@ -51,6 +62,9 @@ const App: React.FC = () => {
 
       if (authData) {
         setUser(authData);
+        if (authData.role === 'staff') {
+            setActiveView('staff_campaign_approval'); // Default to campaigns for staff
+        }
         // Generate notifications only for authenticated company users
         if (authData.role === 'company') {
             const fetchedNotifications = generateAndFetchNotifications();
@@ -66,7 +80,7 @@ const App: React.FC = () => {
     setUser(authData);
     setImpersonationOrigin(null); // Clear impersonation on normal login
     if (authData.role === 'staff') {
-        setActiveView('staff_dashboard');
+        setActiveView('staff_campaign_approval');
     } else {
         setActiveView('home'); // Reset to home on login for other roles
     }
@@ -89,7 +103,7 @@ const App: React.FC = () => {
     const originalAuthData = await authService.stopImpersonation();
     setImpersonationOrigin(null);
     setUser(originalAuthData);
-    setActiveView('staff_dashboard');
+    setActiveView('staff_impersonation');
   };
 
   const handleDirectNavigation = (view: ActiveView) => {
@@ -135,10 +149,18 @@ const App: React.FC = () => {
       case 'home':
         if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
-        if (user.role === 'staff') return <StaffDashboardView onImpersonate={handleImpersonateLogin} />;
+        if (user.role === 'staff') return <StaffCampaignApprovalView />;
         return null;
-      case 'staff_dashboard':
-        return user.role === 'staff' ? <StaffDashboardView onImpersonate={handleImpersonateLogin} /> : null; // Only for staff
+      // Staff Views
+      case 'staff_campaign_approval':
+        return user.role === 'staff' ? <StaffCampaignApprovalView /> : null;
+      case 'staff_document_management':
+        return user.role === 'staff' ? <StaffDocumentManagementView /> : null;
+      case 'staff_user_management':
+        return user.role === 'staff' ? <StaffUserManagementView /> : null;
+      case 'staff_impersonation':
+        return user.role === 'staff' ? <StaffImpersonationView onImpersonate={handleImpersonateLogin} /> : null;
+      // Company & Collaborator Views
       case 'personal_reflection':
         return <AnalysisView />;
       case 'dashboard':
@@ -173,7 +195,7 @@ const App: React.FC = () => {
       default:
         if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
-        if (user.role === 'staff') return <StaffDashboardView onImpersonate={handleImpersonateLogin} />;
+        if (user.role === 'staff') return <StaffCampaignApprovalView />;
         return null;
     }
   };
