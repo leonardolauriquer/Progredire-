@@ -51,8 +51,8 @@ const NavItem: React.FC<{
       title={isCollapsed ? item.name : undefined}
       className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md transition-colors duration-200 ${
         isActive
-          ? 'bg-blue-50 text-blue-600'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          ? 'bg-[--color-primary-50] text-[--color-primary-600]'
+          : 'text-slate-600 hover:bg-[--color-muted] hover:text-slate-900'
       } ${isCollapsed ? 'justify-center' : 'px-3'}`}
     >
       <item.icon className={`h-5 w-5 shrink-0 ${!isCollapsed && 'mr-3'}`} />
@@ -95,11 +95,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
         <div className="flex flex-col h-full">
             {/* Sidebar Header */}
-            <div className={`flex items-center h-16 px-4 border-b border-slate-200 flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
+            <div className={`flex items-center h-16 px-4 border-b border-[--color-border] flex-shrink-0 ${collapsed ? 'justify-center' : ''}`}>
                 <div className={`flex items-center ${collapsed ? '' : 'space-x-3'}`}>
                     <LogoIcon className="h-8 w-8 text-blue-600" />
                     {!collapsed && (
-                        <span className="text-2xl font-bold text-slate-800 tracking-tight whitespace-nowrap">
+                        <span className="text-2xl font-bold text-[--color-foreground] tracking-tight whitespace-nowrap">
                             Progredire<span className="text-blue-600">+</span>
                         </span>
                     )}
@@ -122,14 +122,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </nav>
 
             {/* Sidebar Footer */}
-            <div className="px-4 py-4 border-t border-slate-200 flex-shrink-0">
+            <div className="px-4 py-4 border-t border-[--color-border] flex-shrink-0">
                 <ul className="space-y-1">
                     {!isMobile && (
                         <li>
                             <button
                                 onClick={onToggleCollapse}
                                 title={collapsed ? "Expandir" : "Minimizar"}
-                                className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200 ${collapsed ? 'justify-center' : 'px-3'}`}
+                                className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-[--color-muted] hover:text-slate-900 transition-colors duration-200 ${collapsed ? 'justify-center' : 'px-3'}`}
                             >
                                 <ChevronDoubleLeftIcon className={`h-5 w-5 shrink-0 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''} ${!collapsed ? 'mr-3' : ''}`} />
                                 {!collapsed && <span>Minimizar</span>}
@@ -140,7 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <button
                             onClick={onLogout}
                             title="Sair"
-                            className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors duration-200 ${collapsed ? 'justify-center' : 'px-3'}`}
+                            className={`w-full flex items-center py-2.5 text-sm font-medium rounded-md text-slate-600 hover:bg-[--color-muted] hover:text-slate-900 transition-colors duration-200 ${collapsed ? 'justify-center' : 'px-3'}`}
                         >
                             <ArrowLeftOnRectangleIcon className={`h-5 w-5 shrink-0 ${!collapsed ? 'mr-3' : ''}`} />
                             {!collapsed && <span>Sair</span>}
@@ -164,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar */}
         <aside
             className={`
-                fixed top-0 left-0 h-full bg-white border-r border-slate-200 z-40 flex flex-col 
+                fixed top-0 left-0 h-full bg-[--color-card] border-r border-[--color-border] z-40 flex flex-col 
                 w-64 transition-transform duration-300 ease-in-out 
                 md:w-auto md:transition-all md:duration-300 md:translate-x-0
                 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}

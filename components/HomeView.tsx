@@ -19,14 +19,14 @@ const ActionCard: React.FC<{
 }> = ({ icon: Icon, title, description, onClick }) => (
   <button
     onClick={onClick}
-    className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 text-left w-full flex flex-col"
+    className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-blue-300 transition-all duration-300 text-left w-full flex flex-col hover:-translate-y-1"
   >
     <div className="flex-shrink-0">
         <Icon className="h-10 w-10 text-blue-600 mb-4" />
     </div>
     <div className="flex-grow">
-        <h3 className="text-xl font-bold text-slate-800">{title}</h3>
-        <p className="text-slate-500 mt-2">{description}</p>
+        <h3 className="text-xl font-bold text-[--color-card-foreground]">{title}</h3>
+        <p className="text-[--color-card-muted-foreground] mt-2">{description}</p>
     </div>
     <div className="mt-4">
         <span className="font-semibold text-blue-600">Começar →</span>
@@ -58,7 +58,7 @@ export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView,
       
         {/* Header */}
         <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-extold text-slate-900">
+            <h1 className="text-4xl md:text-5xl font-extrabold text-[--color-foreground]">
                 Bem-vindo ao <span className="text-blue-600">Progredire+</span>
             </h1>
             <p className="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
@@ -67,9 +67,9 @@ export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView,
         </div>
 
         {/* AI Insight Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Uma Reflexão para o seu Dia</h2>
-            <p className="text-slate-500 mt-2 mb-6 max-w-lg mx-auto">Busque clareza e inspiração com um pensamento gerado especialmente para você. Um pequeno impulso para um grande dia.</p>
+        <div className="bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8 text-center">
+            <h2 className="text-2xl font-bold text-[--color-card-foreground]">Uma Reflexão para o seu Dia</h2>
+            <p className="text-[--color-card-muted-foreground] mt-2 mb-6 max-w-lg mx-auto">Busque clareza e inspiração com um pensamento gerado especialmente para você. Um pequeno impulso para um grande dia.</p>
             
             <button
                 onClick={handleGenerateInsight}
@@ -94,8 +94,8 @@ export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView,
             )}
 
             {insight && (
-                <blockquote className="mt-6 bg-slate-50/70 border-l-4 border-blue-500 p-4 text-left">
-                    <p className="text-slate-700 italic">"{insight}"</p>
+                <blockquote className="mt-6 bg-[--color-muted] border-l-4 border-blue-500 p-4 text-left rounded-r-lg">
+                    <p className="text-[--color-card-muted-foreground] italic">"{insight}"</p>
                 </blockquote>
             )}
         </div>
@@ -123,15 +123,15 @@ export const CompanyHomeView: React.FC<CompanyHomeViewProps> = ({ setActiveView,
         </div>
         
         {/* Impact Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 md:p-10 flex flex-col md:flex-row items-center text-center md:text-left gap-6 md:gap-8">
+        <div className="bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-8 md:p-10 flex flex-col md:flex-row items-center text-center md:text-left gap-6 md:gap-8">
             <div className="flex-shrink-0">
                 <ShieldCheckIcon className="h-16 w-16 text-blue-500" />
             </div>
             <div>
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-2xl font-bold text-[--color-card-foreground]">
                     Mais de <span className="text-blue-600">20 mil+</span> vidas cobertas por nossas análises de bem-estar
                 </h2>
-                <p className="text-slate-500 mt-2">
+                <p className="text-[--color-card-muted-foreground] mt-2">
                     Estamos comprometidos em ajudar organizações a construir ambientes de trabalho mais seguros, saudáveis e produtivos. Cada análise é um passo em direção a uma cultura organizacional mais forte.
                 </p>
             </div>

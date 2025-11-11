@@ -1,7 +1,6 @@
 
 
 
-
 import React, { useState } from 'react';
 import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon } from './icons';
 import { UserRole } from '../App';
@@ -22,10 +21,10 @@ const LoginButton: React.FC<{
     <button
         onClick={onClick}
         disabled={isLoading}
-        className="w-full text-left p-6 bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-[--color-primary-300] transition-all duration-300 flex items-center space-x-6 disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full text-left p-6 bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-[--color-primary-300] transition-all duration-300 flex items-center space-x-6 disabled:opacity-70 disabled:cursor-not-allowed group"
     >
-        <div className="flex-shrink-0 w-16 h-16 bg-blue-50 p-4 rounded-full flex items-center justify-center">
-            {isLoading ? <LoadingSpinner /> : <Icon className="h-8 w-8 text-blue-600" />}
+        <div className="flex-shrink-0 w-16 h-16 bg-[--color-primary-50] p-4 rounded-full flex items-center justify-center transition-colors duration-300 group-hover:bg-[--color-primary-100]">
+            {isLoading ? <LoadingSpinner /> : <Icon className="h-8 w-8 text-[--color-primary-600]" />}
         </div>
         <div>
             <h3 className="text-xl font-bold text-[--color-card-foreground]">
@@ -66,11 +65,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         <div className="w-full max-w-sm mx-auto text-center">
           <div className="flex justify-center items-center space-x-3 mb-8">
               <LogoIcon className="h-10 w-10 text-blue-600" />
-              <span className="text-3xl font-bold text-slate-800 tracking-tight">
+              <span className="text-3xl font-bold text-[--color-foreground] tracking-tight">
                   Progredire<span className="text-blue-600">+</span>
               </span>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-800">Acesso da Equipe</h1>
+          <h1 className="text-2xl font-semibold text-[--color-foreground]">Acesso da Equipe</h1>
           <p className="text-slate-500 mt-2 mb-8">
               Use seu email de staff para acessar o painel de gerenciamento.
           </p>
@@ -83,7 +82,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
                 value={staffEmail} 
                 onChange={e => setStaffEmail(e.target.value)}
                 placeholder="seu-email@progrediremais.com.br"
-                className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 bg-[--color-input] border border-[--color-border] rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
                 required
               />
             </div>
@@ -113,11 +112,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       <div className="w-full max-w-md mx-auto text-center">
         <div className="flex justify-center items-center space-x-3 mb-8">
             <LogoIcon className="h-10 w-10 text-blue-600" />
-            <span className="text-3xl font-bold text-slate-800 tracking-tight">
+            <span className="text-3xl font-bold text-[--color-foreground] tracking-tight">
                 Progredire<span className="text-blue-600">+</span>
             </span>
         </div>
-        <h1 className="text-2xl font-semibold text-slate-800">Selecione seu tipo de acesso</h1>
+        <h1 className="text-2xl font-semibold text-[--color-foreground]">Selecione seu tipo de acesso</h1>
         <p className="text-slate-500 mt-2 mb-8">
             Escolha como você deseja acessar a plataforma.
         </p>
@@ -146,7 +145,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             </div>
         )}
 
-        <div className="mt-8 pt-4 border-t border-slate-200">
+        <div className="mt-8 pt-4 border-t border-[--color-border]">
             <button onClick={() => setShowStaffLogin(true)} className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
                 É membro da equipe? Acesse aqui.
             </button>

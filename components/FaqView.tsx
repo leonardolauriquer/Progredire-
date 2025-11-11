@@ -96,24 +96,26 @@ const FaqItem: React.FC<{
     onClick: () => void;
 }> = ({ item, isOpen, onClick }) => {
     return (
-        <div className="border-b border-slate-200">
+        <div className="border-b border-[--color-border]">
             <button
-                className="w-full flex justify-between items-center text-left py-4 px-2 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75"
+                className="w-full flex justify-between items-center text-left py-5 px-2 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75"
                 onClick={onClick}
                 aria-expanded={isOpen}
             >
-                <h3 className="text-lg font-medium text-slate-800">{item.question}</h3>
+                <h3 className="text-lg font-medium text-[--color-card-foreground]">{item.question}</h3>
                 <ChevronDownIcon
                     className={`w-5 h-5 text-slate-500 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
             <div
-                className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`grid transition-all duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
             >
-                <div 
-                    className="prose prose-slate max-w-none p-4 pt-0 text-slate-600"
-                    dangerouslySetInnerHTML={{ __html: item.answer }}
-                />
+                <div className="overflow-hidden">
+                    <div 
+                        className="prose prose-slate max-w-none p-4 pt-0 text-[--color-card-muted-foreground]"
+                        dangerouslySetInnerHTML={{ __html: item.answer }}
+                    />
+                </div>
             </div>
         </div>
     );
@@ -131,10 +133,10 @@ export const FaqView: React.FC<FaqViewProps> = ({ userRole }) => {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8">
+        <div className="w-full max-w-4xl mx-auto bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8">
             <div className="text-center mb-8">
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Perguntas Frequentes (FAQ)</h2>
-                <p className="text-slate-500 mt-2">
+                <h2 className="text-2xl md:text-3xl font-bold text-[--color-card-foreground]">Perguntas Frequentes (FAQ)</h2>
+                <p className="text-[--color-card-muted-foreground] mt-2">
                     Encontre respostas para as dúvidas mais comuns sobre o Progredire+.
                 </p>
             </div>

@@ -34,7 +34,7 @@ const professionals: Professional[] = [
 const ProfessionalCard: React.FC<{ professional: Professional, onSchedule: (prof: Professional) => void }> = ({ professional, onSchedule }) => {
   const { title, description, icon: Icon } = professional;
   return (
-    <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border] flex flex-col text-center items-center">
+    <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border] flex flex-col text-center items-center hover:-translate-y-1 transition-transform duration-300">
       <Icon className="h-12 w-12 text-blue-600 mb-4" />
       <h3 className="text-xl font-bold text-[--color-card-foreground]">{title}</h3>
       <p className="text-[--color-card-muted-foreground] mt-2 flex-grow">{description}</p>

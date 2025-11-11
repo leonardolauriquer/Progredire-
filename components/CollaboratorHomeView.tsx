@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useCallback } from 'react';
 import { getInsightForFeeling, getDailyInsight } from '../services/geminiService';
 import { addJournalEntry } from '../services/journalService';
@@ -28,14 +27,14 @@ const ActionCard: React.FC<{
 }> = ({ icon: Icon, title, description, onClick }) => (
   <button
     onClick={onClick}
-    className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 text-left w-full flex flex-col"
+    className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-blue-300 transition-all duration-300 text-left w-full flex flex-col hover:-translate-y-1"
   >
     <div className="flex-shrink-0">
         <Icon className="h-8 w-8 text-blue-600 mb-3" />
     </div>
     <div className="flex-grow">
-        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-        <p className="text-slate-500 mt-1 text-sm">{description}</p>
+        <h3 className="text-lg font-bold text-[--color-card-foreground]">{title}</h3>
+        <p className="text-[--color-card-muted-foreground] mt-1 text-sm">{description}</p>
     </div>
     <div className="mt-4">
         <span className="font-semibold text-blue-600 text-sm">Acessar →</span>
@@ -136,7 +135,7 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
       
         {/* Header */}
         <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
+            <h1 className="text-3xl md:text-4xl font-bold text-[--color-foreground]">
                 Olá! Como você está hoje?
             </h1>
             <p className="mt-2 text-md text-slate-600 max-w-2xl mx-auto">
@@ -145,8 +144,8 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
         </div>
 
         {/* Feeling Tracker Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8">
-            <h2 className="text-xl font-semibold text-slate-800 text-center mb-6">Como você está se sentindo?</h2>
+        <div className="bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-[--color-card-foreground] text-center mb-6">Como você está se sentindo?</h2>
             
             <div className="flex flex-wrap justify-center gap-3 md:gap-4">
                 {feelings.map((feeling) => (
@@ -176,14 +175,14 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
                     <div className="text-red-600 bg-red-100 p-3 rounded-md text-sm text-center">{feelingError}</div>
                 ) : feelingInsight ? (
                      <div className="w-full space-y-4">
-                        <blockquote className="bg-slate-50/70 border-l-4 border-blue-500 p-4 text-left">
-                             <p className="text-slate-700 italic">
+                        <blockquote className="bg-[--color-muted] border-l-4 border-blue-500 p-4 text-left rounded-r-lg">
+                             <p className="text-[--color-card-muted-foreground] italic">
                                 <SparklesIcon className="w-5 h-5 inline-block mr-2 text-blue-500" />
                                 {feelingInsight}
                             </p>
                         </blockquote>
-                        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 transition-all duration-300">
-                            <label htmlFor="journal-note" className="block text-sm font-medium text-slate-700 mb-2">Adicionar uma nota ao seu diário (privado):</label>
+                        <div className="bg-[--color-muted] p-4 rounded-lg border border-[--color-border] transition-all duration-300">
+                            <label htmlFor="journal-note" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-2">Adicionar uma nota ao seu diário (privado):</label>
                             <textarea
                                 id="journal-note"
                                 value={note}
@@ -209,18 +208,18 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
         </div>
         
         {/* Pending Campaigns Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8">
-            <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
+        <div className="bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8">
+            <h2 className="text-xl font-semibold text-[--color-card-foreground] mb-4 flex items-center">
                 <PaperAirplaneIcon className="w-6 h-6 mr-3 text-blue-600"/>
                 Campanhas Pendentes
             </h2>
             {pendingCampaigns.length > 0 ? (
                 <div className="space-y-4">
                     {pendingCampaigns.map(campaign => (
-                        <div key={campaign.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div key={campaign.id} className="bg-[--color-muted] p-4 rounded-lg border border-[--color-border] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
-                                <h3 className="font-bold text-slate-800">{campaign.name}</h3>
-                                <div className="flex items-center gap-4 text-sm text-slate-500 mt-1">
+                                <h3 className="font-bold text-[--color-card-foreground]">{campaign.name}</h3>
+                                <div className="flex items-center gap-4 text-sm text-[--color-card-muted-foreground] mt-1">
                                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusStyles(campaign.status)}`}>
                                         {campaign.status}
                                     </span>
@@ -245,9 +244,9 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
         </div>
 
         {/* Daily Reflection Section */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 text-center">
-            <h2 className="text-2xl font-bold text-slate-800">Uma Reflexão para o seu Dia</h2>
-            <p className="text-slate-500 mt-2 mb-6 max-w-lg mx-auto">Busque clareza e inspiração com um pensamento gerado especialmente para você.</p>
+        <div className="bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8 text-center">
+            <h2 className="text-2xl font-bold text-[--color-card-foreground]">Uma Reflexão para o seu Dia</h2>
+            <p className="text-[--color-card-muted-foreground] mt-2 mb-6 max-w-lg mx-auto">Busque clareza e inspiração com um pensamento gerado especialmente para você.</p>
             
             <button
                 onClick={handleGenerateDailyInsight}
@@ -266,8 +265,8 @@ export const CollaboratorHomeView: React.FC<CollaboratorHomeViewProps> = ({ setA
             )}
 
             {dailyInsight && (
-                <blockquote className="mt-6 bg-slate-50/70 border-l-4 border-blue-500 p-4 text-left">
-                    <p className="text-slate-700 italic">"{dailyInsight}"</p>
+                <blockquote className="mt-6 bg-[--color-muted] border-l-4 border-blue-500 p-4 text-left rounded-r-lg">
+                    <p className="text-[--color-card-muted-foreground] italic">"{dailyInsight}"</p>
                 </blockquote>
             )}
         </div>

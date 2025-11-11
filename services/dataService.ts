@@ -66,6 +66,53 @@ export interface PublishedInitiative {
     status: 'Em Andamento' | 'Concluído';
     supportCount: number;
 }
+export interface Company {
+    id: number;
+    name: string; // Nome Fantasia
+    razaoSocial: string;
+    cnpj: string;
+    setor: string;
+    numColaboradores: number;
+    contatoPrincipal: {
+        nome: string;
+        email: string;
+    };
+    address: {
+        logradouro: string;
+        numero: string;
+        bairro: string;
+        cidade: string;
+        estado: string;
+        cep: string;
+    };
+}
+export interface Employee {
+    id: number;
+    name: string;
+    email: string;
+    company: string;
+    cpf: string;
+    dataNascimento: string; // YYYY-MM-DD
+    genero: 'Masculino' | 'Feminino' | 'Outro' | 'Prefiro não informar';
+    dataAdmissao: string; // YYYY-MM-DD
+    nivelCargo: 'Estagiário' | 'Júnior' | 'Pleno' | 'Sênior' | 'Especialista' | 'Líder/Coordenador' | 'Gerente' | 'Diretor';
+    unidade?: string;
+    liderDireto?: string;
+    status: 'Ativo' | 'Inativo' | 'Férias' | 'Licença';
+}
+export interface Branch {
+    id: number;
+    name: string;
+    companyId: number;
+    address: {
+        logradouro: string;
+        numero: string;
+        bairro: string;
+        cidade: string;
+        estado: string;
+        cep: string;
+    };
+}
 
 
 // --- Calculation Logic (Moved from DashboardView) ---
@@ -79,6 +126,9 @@ const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
 const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
 const ACTION_PLAN_HISTORY_KEY = 'progredire-action-plan-history';
 const CAMPAIGNS_KEY = 'progredire-campaigns';
+const COMPANIES_KEY = 'progredire-companies';
+const EMPLOYEES_KEY = 'progredire-employees';
+const BRANCHES_KEY = 'progredire-branches';
 
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
@@ -655,4 +705,197 @@ export const approveCampaign = async (campaignId: number): Promise<Campaign[]> =
     } catch(e) { console.error(e); }
 
     return updatedCampaigns;
+};
+
+// --- User Management Service Functions ---
+const initialMockCompanies: Company[] = [
+    { id: 1, name: 'InovaCorp', razaoSocial: 'InovaCorp Soluções S.A.', cnpj: '12.345.678/0001-99', setor: 'Tecnologia', numColaboradores: 150, contatoPrincipal: { nome: 'Ana Costa', email: 'ana.costa@inovacorp.com' }, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
+    { id: 2, name: 'NexusTech', razaoSocial: 'Nexus Tecnologia Ltda.', cnpj: '98.765.432/0001-11', setor: 'Software', numColaboradores: 85, contatoPrincipal: { nome: 'Bruno Lima', email: 'bruno.lima@nexustech.com' }, address: { logradouro: 'Avenida Principal', numero: '456', bairro: 'Jardins', cidade: 'Rio de Janeiro', estado: 'RJ', cep: '22000-000' } },
+    { id: 3, name: 'AuraDigital', razaoSocial: 'Aura Digital e Marketing', cnpj: '45.678.912/0001-33', setor: 'Marketing', numColaboradores: 45, contatoPrincipal: { nome: 'Carla Dias', email: 'carla.dias@auradigital.com' }, address: { logradouro: 'Praça da Liberdade', numero: '789', bairro: 'Savassi', cidade: 'Belo Horizonte', estado: 'MG', cep: '30140-010' } },
+    { id: 4, name: 'Vértice', razaoSocial: 'Vértice Consultoria Empresarial', cnpj: '33.222.111/0001-55', setor: 'Consultoria', numColaboradores: 120, contatoPrincipal: { nome: 'Daniel Souza', email: 'daniel.souza@vertice.com' }, address: { logradouro: 'Setor Comercial Sul', numero: '101', bairro: 'Asa Sul', cidade: 'Brasília', estado: 'DF', cep: '70300-000' } },
+];
+
+const generateMockEmployees = (): Employee[] => {
+    const firstNames = ['Ana', 'Bruno', 'Carla', 'Daniel', 'Elisa', 'Fernando', 'Gabriela', 'Henrique', 'Isabela', 'João'];
+    const lastNames = ['Silva', 'Costa', 'Dias', 'Fogaça', 'Martins', 'Pereira', 'Alves', 'Ribeiro', 'Gomes', 'Santos'];
+    const companies = initialMockCompanies.map(c => c.name);
+    const generos: Employee['genero'][] = ['Masculino', 'Feminino', 'Outro', 'Prefiro não informar'];
+    const niveis: Employee['nivelCargo'][] = ['Estagiário', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Líder/Coordenador', 'Gerente', 'Diretor'];
+    const statuses: Employee['status'][] = ['Ativo', 'Ativo', 'Ativo', 'Ativo', 'Inativo', 'Férias', 'Licença'];
+    const employees: Employee[] = [];
+
+    const randomDate = (start: Date, end: Date) => {
+        return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
+    };
+
+    for (let i = 1; i <= 20000; i++) {
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        const company = companies[Math.floor(Math.random() * companies.length)];
+        employees.push({
+            id: i,
+            name: `${firstName} ${lastName} ${i}`,
+            email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@${company.toLowerCase().replace(' ', '')}.com`,
+            company: company,
+            cpf: `${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}-${Math.floor(Math.random()*100).toString().padStart(2,'0')}`,
+            dataNascimento: randomDate(new Date(1970, 0, 1), new Date(2004, 0, 1)),
+            genero: generos[Math.floor(Math.random() * generos.length)],
+            dataAdmissao: randomDate(new Date(2015, 0, 1), new Date()),
+            nivelCargo: niveis[Math.floor(Math.random() * niveis.length)],
+            status: statuses[Math.floor(Math.random() * statuses.length)],
+            unidade: 'Matriz',
+            liderDireto: 'Fulano de Tal'
+        });
+    }
+    return employees;
+};
+
+const initialMockBranches: Branch[] = [
+    { id: 1, name: 'Matriz InovaCorp', companyId: 1, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
+    { id: 2, name: 'InovaCorp Paulista', companyId: 1, address: { logradouro: 'Avenida Paulista', numero: '1500', bairro: 'Bela Vista', cidade: 'São Paulo', estado: 'SP', cep: '01310-200' } },
+    { id: 3, name: 'NexusTech Rio', companyId: 2, address: { logradouro: 'Avenida Rio Branco', numero: '1', bairro: 'Centro', cidade: 'Rio de Janeiro', estado: 'RJ', cep: '20090-003' } },
+    { id: 4, name: 'AuraDigital BH', companyId: 3, address: { logradouro: 'Avenida Afonso Pena', numero: '4000', bairro: 'Cruzeiro', cidade: 'Belo Horizonte', estado: 'MG', cep: '30130-009' } }
+];
+
+const initializeUserData = () => {
+    try {
+        if (!localStorage.getItem(COMPANIES_KEY)) {
+            localStorage.setItem(COMPANIES_KEY, JSON.stringify(initialMockCompanies));
+        }
+        if (!localStorage.getItem(EMPLOYEES_KEY)) {
+            // In a real backend, this would be a database query. For the prototype,
+            // we generate a smaller set to avoid blocking the main thread, 
+            // but the pagination logic will work regardless of the total size.
+            const employees = generateMockEmployees().slice(0, 500); // Generate 500 for demo
+            localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(employees));
+        }
+        if (!localStorage.getItem(BRANCHES_KEY)) {
+            localStorage.setItem(BRANCHES_KEY, JSON.stringify(initialMockBranches));
+        }
+    } catch (e) { console.error("Error initializing user data:", e); }
+};
+initializeUserData();
+
+export const getCompanies = async (): Promise<Company[]> => {
+    return new Promise(resolve => {
+        const data = localStorage.getItem(COMPANIES_KEY);
+        resolve(data ? JSON.parse(data) : []);
+    });
+};
+
+export const addCompany = async (companyData: Omit<Company, 'id'>): Promise<Company[]> => {
+    const companies = await getCompanies();
+    const newCompany: Company = { id: Date.now(), ...companyData };
+    const updated = [...companies, newCompany];
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
+    return updated;
+};
+
+export const addCompanies = async (companyNames: string[]): Promise<Company[]> => {
+    const companies = await getCompanies();
+    const existingNames = new Set(companies.map(c => c.name.toLowerCase()));
+    
+    const newCompanies: Omit<Company, 'id'>[] = companyNames
+        .filter(name => name.trim() && !existingNames.has(name.trim().toLowerCase()))
+        .map(name => ({ 
+            name: name.trim(),
+            razaoSocial: `${name.trim()} LTDA`,
+            cnpj: '00.000.000/0000-00',
+            setor: 'Não especificado',
+            numColaboradores: 0,
+            contatoPrincipal: { nome: 'A definir', email: 'a@definir.com' },
+            address: { logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: '' }
+        }));
+    
+    const updated = [...companies, ...newCompanies.map(c => ({...c, id: Date.now() + Math.random()}))];
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
+    return updated;
+};
+
+export const deleteCompany = async (id: number): Promise<Company[]> => {
+    const companies = await getCompanies();
+    const updated = companies.filter(c => c.id !== id);
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
+    return updated;
+};
+
+// This function simulates a paginated and searchable backend endpoint.
+export const getEmployees = async (
+    { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
+): Promise<{ employees: Employee[]; total: number; pages: number }> => {
+    return new Promise(resolve => {
+        const data = localStorage.getItem(EMPLOYEES_KEY);
+        // Use a smaller slice for performance in the browser simulation
+        const allEmployees: Employee[] = data ? JSON.parse(data) : [];
+
+        const filtered = searchTerm
+            ? allEmployees.filter(e =>
+                e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                e.email.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            : allEmployees;
+        
+        const total = filtered.length;
+        const pages = Math.ceil(total / limit);
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const employees = filtered.slice(start, end);
+
+        // Simulate network delay
+        setTimeout(() => {
+            resolve({ employees, total, pages });
+        }, 300);
+    });
+};
+
+export const addEmployee = async (employeeData: Omit<Employee, 'id'>): Promise<void> => {
+     const data = localStorage.getItem(EMPLOYEES_KEY);
+     const allEmployees: Employee[] = data ? JSON.parse(data) : [];
+     const newEmployee: Employee = { id: Date.now(), ...employeeData };
+     allEmployees.unshift(newEmployee);
+     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(allEmployees));
+};
+
+export const addEmployees = async (employeesData: Omit<Employee, 'id'>[]): Promise<void> => {
+     const data = localStorage.getItem(EMPLOYEES_KEY);
+     const allEmployees: Employee[] = data ? JSON.parse(data) : [];
+     const newEmployees: Employee[] = employeesData.map(e => ({ ...e, id: Date.now() + Math.random() }));
+     const updated = [...newEmployees, ...allEmployees];
+     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
+};
+
+export const deleteEmployee = async (id: number): Promise<void> => {
+    const data = localStorage.getItem(EMPLOYEES_KEY);
+    const allEmployees: Employee[] = data ? JSON.parse(data) : [];
+    const updated = allEmployees.filter(e => e.id !== id);
+    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
+};
+
+// --- Branch Management Service Functions ---
+
+export const getBranches = async (companyId?: number): Promise<Branch[]> => {
+    return new Promise(resolve => {
+        const data = localStorage.getItem(BRANCHES_KEY);
+        const allBranches: Branch[] = data ? JSON.parse(data) : [];
+        if (companyId) {
+            resolve(allBranches.filter(b => b.companyId === companyId));
+        } else {
+            resolve(allBranches);
+        }
+    });
+};
+
+export const addBranch = async (branchData: Omit<Branch, 'id'>): Promise<void> => {
+    const data = localStorage.getItem(BRANCHES_KEY);
+    const allBranches: Branch[] = data ? JSON.parse(data) : [];
+    const newBranch: Branch = { id: Date.now(), ...branchData };
+    allBranches.push(newBranch);
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify(allBranches));
+};
+
+export const deleteBranch = async (id: number): Promise<void> => {
+    const data = localStorage.getItem(BRANCHES_KEY);
+    const allBranches: Branch[] = data ? JSON.parse(data) : [];
+    const updated = allBranches.filter(b => b.id !== id);
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
 };

@@ -28,7 +28,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar, notificat
     }, []);
 
     return (
-        <header className="bg-white/80 backdrop-blur-lg sticky top-0 z-20 border-b border-slate-200">
+        <header className="bg-[--color-card]/70 backdrop-blur-lg sticky top-0 z-20 border-b border-[--color-border]">
             <div className="mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     {/* Hamburger menu button - visible on mobile */}

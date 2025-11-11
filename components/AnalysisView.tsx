@@ -35,11 +35,11 @@ export const AnalysisView: React.FC = () => {
 
     return (
         <>
-            <div className="w-full max-w-3xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 space-y-6">
+            <div className="w-full max-w-3xl mx-auto bg-[--color-card] rounded-2xl shadow-lg p-6 md:p-8 space-y-6 border border-[--color-border]">
             
                 <div className="text-center">
-                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Análise Psico-Social</h2>
-                    <p className="text-slate-500 mt-2">
+                    <h2 className="text-2xl md:text-3xl font-bold text-[--color-card-foreground]">Análise Psico-Social</h2>
+                    <p className="text-[--color-card-muted-foreground] mt-2">
                     Descreva uma situação, um sentimento ou um desafio. A IA fornecerá uma perspectiva psico-social para te ajudar a refletir.
                     </p>
                 </div>
@@ -52,7 +52,7 @@ export const AnalysisView: React.FC = () => {
                     onChange={(e) => setUserInput(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Ex: 'Sinto-me sobrecarregado no trabalho e com dificuldade de me conectar com meus colegas...'"
-                    className="w-full h-40 p-4 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 resize-none text-slate-700 placeholder-slate-400"
+                    className="w-full h-40 p-4 bg-[--color-muted] border border-[--color-border] rounded-xl focus:ring-2 focus:ring-[--color-ring] transition duration-200 resize-none text-[--color-foreground] placeholder-slate-400"
                     disabled={isLoading}
                     />
                     <button
@@ -83,8 +83,8 @@ export const AnalysisView: React.FC = () => {
                 )}
 
                 {analysisResult && (
-                    <div className="bg-slate-50/70 border border-slate-200 p-6 rounded-xl">
-                    <h3 className="text-xl font-semibold text-slate-800 mb-3">Perspectiva da IA</h3>
+                    <div className="bg-[--color-muted] p-6 rounded-xl border border-[--color-border]">
+                    <h3 className="text-xl font-semibold text-[--color-card-foreground] mb-3">Perspectiva da IA</h3>
                     <div 
                         className="prose prose-slate max-w-none" 
                         dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}

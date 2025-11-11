@@ -10,7 +10,7 @@
       body {
         font-family: 'Inter', sans-serif;
       }
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
       
       /* --- THEME AND FONT SIZE STYLES --- */
       :root { font-size: 16px; }
@@ -20,17 +20,17 @@
       /* Default Light Theme */
       :root, html.theme-default-light {
         --color-primary-50: #eff6ff; --color-primary-100: #dbeafe; --color-primary-300: #93c5fd; --color-primary-500: #3b82f6; --color-primary-600: #2563eb; --color-primary-700: #1d4ed8;
-        --color-background: #f1f5f9; /* slate-100 */
+        --color-background: #f8fafc; /* slate-50 (softer than slate-100) */
         --color-foreground: #0f172a; /* slate-900 */
         --color-card: #ffffff; /* white */
         --color-card-foreground: #1e293b; /* slate-800 */
         --color-card-muted-foreground: #64748b; /* slate-500 */
-        --color-muted: #f8fafc; /* slate-50 */
+        --color-muted: #f1f5f9; /* slate-100 */
         --color-muted-foreground: #64748b; /* slate-500 */
-        --color-accent: #f1f5f9; /* slate-100 */
+        --color-accent: #f8fafc; /* slate-50 */
         --color-accent-foreground: #475569; /* slate-600 */
         --color-border: #e2e8f0; /* slate-200 */
-        --color-input: #f8fafc; /* slate-50 */
+        --color-input: #ffffff; /* white */
         --color-ring: #2563eb; /* blue-600 */
         --color-destructive: #ef4444; --color-destructive-foreground: #fee2e2;
       }
@@ -56,7 +56,7 @@
       /* Colorblind Light Theme */
       html.theme-colorblind-light {
         --color-primary-50: #fffbeb; --color-primary-100: #fef3c7; --color-primary-300: #fcd34d; --color-primary-500: #f59e0b; --color-primary-600: #d97706; --color-primary-700: #b45309;
-        --color-background: #f1f5f9; --color-foreground: #0f172a; --color-card: #ffffff; --color-card-foreground: #1e293b; --color-card-muted-foreground: #64748b; --color-muted: #f8fafc; --color-muted-foreground: #64748b; --color-accent: #f1f5f9; --color-accent-foreground: #475569; --color-border: #e2e8f0; --color-input: #f8fafc; --color-ring: #d97706; --color-destructive: #ef4444; --color-destructive-foreground: #fee2e2;
+        --color-background: #f8fafc; --color-foreground: #0f172a; --color-card: #ffffff; --color-card-foreground: #1e293b; --color-card-muted-foreground: #64748b; --color-muted: #f1f5f9; --color-muted-foreground: #64748b; --color-accent: #f8fafc; --color-accent-foreground: #475569; --color-border: #e2e8f0; --color-input: #ffffff; --color-ring: #d97706; --color-destructive: #ef4444; --color-destructive-foreground: #fee2e2;
       }
 
       /* Colorblind Dark Theme */
@@ -84,7 +84,8 @@
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "eact": "https://aistudiocdn.com/eact@^0.0.1-security"
+    "eact": "https://aistudiocdn.com/eact@^0.0.1-security",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"
   }
 }
 </script>
@@ -103,6 +104,7 @@
 </head>
   <body class="bg-[--color-background]">
     <div id="root"></div>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

@@ -84,10 +84,10 @@ const getIRPColor = (irp: number) => {
 
 // --- Sub-components ---
 const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: string, tooltip?: string }> = ({ title, children, className, tooltip }) => (
-  <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col ${className}`}>
+  <div className={`bg-[--color-card] p-4 rounded-xl shadow-sm border border-[--color-border] flex flex-col ${className}`}>
     <div className="flex justify-between items-start gap-2">
       <div className="flex-grow min-w-0">
-        <h3 className="text-sm font-medium text-slate-500 truncate">{title}</h3>
+        <h3 className="text-sm font-medium text-[--color-card-muted-foreground] truncate">{title}</h3>
       </div>
       {tooltip && (
         <div className="flex-shrink-0">
@@ -95,7 +95,7 @@ const KpiCard: React.FC<{ title: string; children: React.ReactNode; className?: 
         </div>
       )}
     </div>
-    <div className="mt-1 text-2xl font-semibold text-slate-900 flex-grow">{children}</div>
+    <div className="mt-1 text-2xl font-semibold text-[--color-card-foreground] flex-grow">{children}</div>
   </div>
 );
 
@@ -107,17 +107,17 @@ const RankingCard: React.FC<{
     onActionClick?: (factorId: string) => void,
     tooltip?: string
 }> = ({title, items, icon: Icon, iconClass, onActionClick, tooltip}) => (
-    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-        <div className="flex justify-between items-center mb-3">
-            <h3 className="text-md font-semibold text-slate-800 truncate pr-2">{title}</h3>
+    <div className="bg-[--color-card] p-6 rounded-xl shadow-sm border border-[--color-border]">
+        <div className="flex justify-between items-center mb-4">
+            <h3 className="text-md font-semibold text-[--color-card-foreground] truncate pr-2">{title}</h3>
             {tooltip && <InfoTooltip text={tooltip} />}
         </div>
-        <ul className="space-y-2">
+        <ul className="space-y-3">
             {items.map(item => (
                 <li key={item.id} className="flex items-center text-sm">
-                    <Icon className={`w-5 h-5 mr-2 flex-shrink-0 ${iconClass}`} />
-                    <span className="text-slate-700 flex-grow">{item.name}</span>
-                    <span className="font-bold text-slate-800">{item.score}<span className="font-normal text-slate-500">/100</span></span>
+                    <Icon className={`w-5 h-5 mr-3 flex-shrink-0 ${iconClass}`} />
+                    <span className="text-[--color-card-foreground] flex-grow">{item.name}</span>
+                    <span className="font-bold text-[--color-card-foreground]">{item.score}<span className="font-normal text-[--color-card-muted-foreground]">/100</span></span>
                      {onActionClick && (
                         <button 
                             onClick={() => onActionClick(item.id)} 
@@ -136,17 +136,17 @@ const RankingCard: React.FC<{
 const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = ({ title, children }) => {
     const [isOpen, setIsOpen] = useState(true);
     return (
-        <div className="bg-slate-50/70 border border-slate-200 rounded-xl">
+        <div className="bg-[--color-card] border border-[--color-border] rounded-2xl shadow-lg">
             <button
                 className="w-full flex justify-between items-center p-4"
                 onClick={() => setIsOpen(!isOpen)}
             >
-                <h2 className="text-xl font-bold text-slate-800">{title}</h2>
+                <h2 className="text-xl font-bold text-[--color-card-foreground]">{title}</h2>
                 <ChevronDownIcon className={`w-6 h-6 text-slate-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             <div className={`grid transition-[grid-template-rows,opacity] duration-500 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                 <div className="overflow-hidden">
-                    <div className="p-4 border-t border-slate-200">{children}</div>
+                    <div className="p-4 sm:p-6 border-t border-[--color-border]">{children}</div>
                 </div>
             </div>
         </div>
@@ -154,9 +154,9 @@ const DashboardSection: React.FC<{title: string; children: React.ReactNode}> = (
 };
 
 const AnalysisCard: React.FC<{title: string; tooltip: string; children: React.ReactNode; className?: string}> = ({ title, tooltip, children, className = '' }) => (
-    <div className={`bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col ${className}`}>
-        <div className="flex justify-between items-center mb-3 flex-shrink-0">
-            <h3 className="text-md font-semibold text-slate-800">{title}</h3>
+    <div className={`bg-[--color-card] p-6 rounded-xl shadow-sm border border-[--color-border] flex flex-col ${className}`}>
+        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+            <h3 className="text-md font-semibold text-[--color-card-foreground]">{title}</h3>
             <InfoTooltip text={tooltip} />
         </div>
         <div className="flex-grow flex flex-col">{children}</div>
@@ -237,7 +237,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
     
         return Object.entries(counts)
             .map(([label, value]) => ({ label, value }))
-            .sort((a, b) => b.value - a.value);
+// @FIX: Cast `value` to number to allow arithmetic operation in sort, resolving an error where `Object.entries` infers `value` as `unknown`.
+            .sort((a, b) => (b.value as number) - (a.value as number));
 
     }, [data?.leaveEvents, leavePeriod]);
     
@@ -274,7 +275,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             .filter(([, value]) => value)
             .reduce((acc, [key, value]) => {
                 const filterLabel = mockFilters.find(f => f.id === key)?.label || key;
-                acc[filterLabel] = value;
+// @FIX: Cast `value` to string to fix assignment error where `Object.entries` infers `value` as `unknown` and `acc` expects a string.
+                acc[filterLabel] = value as string;
                 return acc;
             }, {} as Record<string, string>);
 
@@ -321,7 +323,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 distribution[4]?.value.toFixed(1) ?? '0',
             ];
         });
-        html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows as (string|number)[][]);
+        // @ts-ignore
+        html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows);
         
         // 4. Rankings
         html += createArrayTable(
@@ -364,9 +367,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             acc[event.type] = (acc[event.type] || 0) + 1;
             return acc;
         }, {});
+        // FIX: Explicitly type the map return value to ensure correct type inference for the sort function.
         const processedLeaveDataRows = Object.entries(leaveCounts)
-            .map(([label, value]) => [label, value])
-            .sort((a, b) => (b[1] as number) - (a[1] as number));
+// @FIX: Cast `value` to number to satisfy the map function's return type `[string, number]`, as `Object.entries` infers `value` as `unknown`.
+            .map(([label, value]): [string, number] => [label, value as number])
+            .sort((a, b) => b[1] - a[1]);
     
         html += createArrayTable(
             `Tipos de Afastamentos (Últimos ${leavePeriod} meses)`,
@@ -389,11 +394,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
         );
         
         const heatmapHeaders = ['Dimensão', ...data.crossAnalysis.dimensionVsAreaHeatmap.yLabels];
+        // FIX: Explicitly cast `dimLabel` to a string to resolve type inference issues, ensuring `heatmapRows` is typed correctly.
         const heatmapRows = data.crossAnalysis.dimensionVsAreaHeatmap.xLabels.map((dimLabel, colIndex) => {
             const rowData = data.crossAnalysis.dimensionVsAreaHeatmap.yLabels.map((_, rowIndex) => {
                 return data.crossAnalysis.dimensionVsAreaHeatmap.data[rowIndex][colIndex].toFixed(1);
             });
-            return [dimLabel, ...rowData];
+            return [dimLabel as string, ...rowData];
         });
         html += createArrayTable('Diagnóstico por Dimensão e Área (Heatmap)', heatmapHeaders, heatmapRows);
         
@@ -481,8 +487,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
 
     return (
     <>
-        <div className="space-y-6">
-            <div className="flex justify-between items-start">
+        <div className="space-y-8">
+            <div className="flex flex-wrap justify-between items-start gap-4">
                 <h1 className="text-3xl font-bold text-slate-900">Dashboard Executivo</h1>
                 <button
                     onClick={handleExportXls}
@@ -496,16 +502,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
 
 
             {/* Filters */}
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {mockFilters.map(f => (
-                    <div key={f.id}>
-                        <label htmlFor={f.id} className="block text-sm font-medium text-slate-700 mb-1">{f.label}</label>
-                        <select id={f.id} value={filters[f.id] || ''} onChange={e => handleFilterChange(f.id, e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
-                            <option value="">Todos</option>
-                            {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    </div>
-                ))}
+            <div className="bg-[--color-card] p-4 rounded-xl shadow-lg border border-[--color-border]">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {mockFilters.map(f => (
+                        <div key={f.id}>
+                            <label htmlFor={f.id} className="block text-sm font-medium text-slate-700 mb-1">{f.label}</label>
+                            <select id={f.id} value={filters[f.id] || ''} onChange={e => handleFilterChange(f.id, e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="">Todos</option>
+                                {f.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                            </select>
+                        </div>
+                    ))}
+                </div>
             </div>
             
             <DashboardSection title="Visão Geral">
@@ -518,12 +526,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                     <KpiCard title="IPE (Índice de Presenteísmo Emocional)" tooltip="Percentual estimado de perda de produtividade de colaboradores que estão no trabalho, mas não totalmente engajados devido a problemas psicossociais.">{data.presenteeismRate.toFixed(1)}%</KpiCard>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 bg-white p-4 rounded-lg shadow border border-slate-200">
+                    <div className="lg:col-span-1 bg-[--color-card] p-6 rounded-xl shadow-sm border border-[--color-border]">
                         <div className="flex justify-between items-center">
-                             <h3 className="text-md font-semibold text-slate-800">Nível de Maturidade</h3>
+                             <h3 className="text-md font-semibold text-[--color-card-foreground]">Nível de Maturidade</h3>
                              <InfoTooltip text="Classifica a capacidade da organização de gerenciar riscos psicossociais, variando de Reativa (M1) a Estratégica (M5)." />
                         </div>
-                        <p className="text-xl font-bold text-slate-900 mt-1">{data.maturityLevel.level} - {data.maturityLevel.name}</p>
+                        <p className="text-xl font-bold text-[--color-card-foreground] mt-1">{data.maturityLevel.level} - {data.maturityLevel.name}</p>
                         <MaturityProgressBar level={data.maturityLevel.level} />
                     </div>
                     <div className="lg:col-span-1">
@@ -545,29 +553,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             <DashboardSection title="Riscos e Clima Organizacional">
                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <div className="space-y-6">
-                        <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                             <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-md font-semibold text-slate-800">Distribuição de Riscos por Setor (%)</h3>
-                                <InfoTooltip text="Mostra a proporção de setores classificados com risco psicossocial alto, moderado ou baixo." />
-                            </div>
+                        <AnalysisCard title="Distribuição de Riscos por Setor (%)" tooltip="Mostra a proporção de setores classificados com risco psicossocial alto, moderado ou baixo.">
                              <StackedBarChart data={[{label: 'Setores', values: [
                                  { value: data.sectorRiskDistribution.high, color: '#ef4444', tooltip: `Risco Alto: ${data.sectorRiskDistribution.high.toFixed(1)}%` },
                                  { value: data.sectorRiskDistribution.moderate, color: '#f59e0b', tooltip: `Risco Moderado: ${data.sectorRiskDistribution.moderate.toFixed(1)}%` },
                                  { value: data.sectorRiskDistribution.low, color: '#22c55e', tooltip: `Risco Baixo: ${data.sectorRiskDistribution.low.toFixed(1)}%` },
                              ]}]} />
-                        </div>
-                         <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-md font-semibold text-slate-800">Tendência de Clima (Evolução do IRP Global - Índice de Risco Psicossocial)</h3>
-                                <InfoTooltip text="Gráfico que acompanha a evolução da pontuação geral (IRP Global) ao longo do tempo, mostrando a trajetória da saúde organizacional." />
-                            </div>
+                        </AnalysisCard>
+                         <AnalysisCard title="Tendência de Clima (Evolução do IRP Global)" tooltip="Gráfico que acompanha a evolução da pontuação geral (IRP Global) ao longo do tempo, mostrando a trajetória da saúde organizacional.">
                             <LineChart chartData={data.climateTrend} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
-                        </div>
-                        <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                            <div className="flex justify-between items-center mb-2">
-                                <h3 className="text-md font-semibold text-slate-800">Histórico de Afastamentos (INSS)</h3>
-                                <InfoTooltip text="Acompanha o número de colaboradores afastados pelo INSS ao longo dos meses, um indicador chave do impacto do bem-estar na saúde ocupacional." />
-                            </div>
+                        </AnalysisCard>
+                        <AnalysisCard title="Histórico de Afastamentos (INSS)" tooltip="Acompanha o número de colaboradores afastados pelo INSS ao longo dos meses, um indicador chave do impacto do bem-estar na saúde ocupacional.">
                             <LineChart 
                                 chartData={{
                                     labels: data.inssLeaveTrend.labels,
@@ -580,36 +576,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                                 yMax={15}
                                 yAxisLabels={[0, 5, 10, 15]}
                             />
-                        </div>
-                         <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
-                                <div className="flex-grow">
-                                    <h3 className="text-md font-semibold text-slate-800">Tipos de Afastamentos (Últimos {leavePeriod} meses)</h3>
-                                </div>
-                                <div className="flex-shrink-0">
-                                    <select 
-                                        value={leavePeriod} 
-                                        onChange={(e) => setLeavePeriod(e.target.value)}
-                                        className="text-sm p-1 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="3">Últimos 3 meses</option>
-                                        <option value="6">Últimos 6 meses</option>
-                                        <option value="12">Últimos 12 meses</option>
-                                    </select>
-                                </div>
+                        </AnalysisCard>
+                         <AnalysisCard title={`Tipos de Afastamentos (Últimos ${leavePeriod} meses)`} tooltip="Distribuição dos motivos de afastamentos relacionados à saúde mental, com base nos dados disponíveis.">
+                            <div className="flex justify-end mb-2 -mt-4">
+                                <select 
+                                    value={leavePeriod} 
+                                    onChange={(e) => setLeavePeriod(e.target.value)}
+                                    className="text-xs p-1 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="3">Últimos 3 meses</option>
+                                    <option value="6">Últimos 6 meses</option>
+                                    <option value="12">Últimos 12 meses</option>
+                                </select>
                             </div>
-                             <InfoTooltip text="Distribuição dos motivos de afastamentos relacionados à saúde mental, com base nos dados disponíveis." />
                             <SimpleHorizontalBarChart 
                                 data={processedLeaveData}
                                 color="#8b5cf6"
                             />
-                        </div>
+                        </AnalysisCard>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                         <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-md font-semibold text-slate-800">Perfil de Risco Comparativo</h3>
-                            <InfoTooltip text="Compara o perfil de risco do segmento selecionado com a média geral da empresa, destacando desvios e particularidades." />
-                         </div>
+                    <AnalysisCard title="Perfil de Risco Comparativo" tooltip="Compara o perfil de risco do segmento selecionado com a média geral da empresa, destacando desvios e particularidades.">
                          <RadarChart data={{
                             labels: data.riskFactors.map(f => f.name.replace(' e ', '/').split(' ')[0]),
                             datasets: [
@@ -617,28 +603,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                                 { label: 'Seleção Atual', data: data.riskFactors.map(f => f.score), borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.2)'}
                             ]
                          }} />
-                    </div>
+                    </AnalysisCard>
                  </div>
             </DashboardSection>
 
             <DashboardSection title="Engajamento e Liderança">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <KpiCard title="Percepção da Liderança" tooltip="Nota de 1 a 5 que reflete a avaliação dos colaboradores sobre a eficácia da liderança e comunicação."><span className="text-slate-800">{data.leadershipScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
-                    <div className="bg-white p-4 rounded-lg shadow border border-slate-200">
-                        <div className="flex justify-between items-start">
-                            <h3 className="text-sm font-medium text-slate-500 truncate pr-2">Segurança Psicológica</h3>
-                            <InfoTooltip text="Mede a percepção de que é seguro expressar opiniões e errar sem medo de punição. Um pilar para a inovação." />
-                        </div>
+                    <KpiCard title="Percepção da Liderança" tooltip="Nota de 1 a 5 que reflete a avaliação dos colaboradores sobre a eficácia da liderança e comunicação."><span className="text-[--color-card-foreground]">{data.leadershipScore.toFixed(1)}<span className="text-base text-[--color-card-muted-foreground]"> / 5.0</span></span></KpiCard>
+                    <AnalysisCard title="Segurança Psicológica" tooltip="Mede a percepção de que é seguro expressar opiniões e errar sem medo de punição. Um pilar para a inovação.">
                          <ThermometerChart value={data.safetyScore} max={5.0} />
-                    </div>
-                    <KpiCard title="Equilíbrio Vida-Trabalho" tooltip="Avalia a percepção dos colaboradores sobre a capacidade de conciliar as demandas profissionais e pessoais."><span className="text-slate-800">{data.workLifeBalanceScore.toFixed(1)}<span className="text-base text-slate-500"> / 5.0</span></span></KpiCard>
-                    <div className="bg-white p-4 rounded-lg shadow border border-slate-200 flex flex-col items-center justify-center">
-                        <div className="flex justify-between items-center w-full mb-1">
-                            <h3 className="text-sm font-medium text-slate-500">% Líderes em Desenvolvimento</h3>
-                            <InfoTooltip text="Percentual de líderes participando ativamente de programas de desenvolvimento focados em competências de gestão de pessoas e bem-estar." />
-                        </div>
-                         <DonutChart value={data.leadersInDevelopment} color="#3b82f6" />
-                    </div>
+                    </AnalysisCard>
+                    <KpiCard title="Equilíbrio Vida-Trabalho" tooltip="Avalia a percepção dos colaboradores sobre a capacidade de conciliar as demandas profissionais e pessoais."><span className="text-[--color-card-foreground]">{data.workLifeBalanceScore.toFixed(1)}<span className="text-base text-[--color-card-muted-foreground]"> / 5.0</span></span></KpiCard>
+                    <AnalysisCard title="% Líderes em Desenvolvimento" tooltip="Percentual de líderes participando ativamente de programas de desenvolvimento focados em competências de gestão de pessoas e bem-estar.">
+                         <div className="flex items-center justify-center flex-grow">
+                            <DonutChart value={data.leadersInDevelopment} color="#3b82f6" />
+                         </div>
+                    </AnalysisCard>
                 </div>
             </DashboardSection>
             
@@ -670,7 +650,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                         <PotentialAnalysisChart data={data.crossAnalysis.presenteeismVsRoi} />
                     </AnalysisCard>
                     
-                    <AnalysisCard title="Ações × Impacto (IRP - Índice de Risco Psicossocial)" tooltip="Visualiza a eficácia das intervenções. A altura da barra mostra a melhoria no IRP (Impacto). A cor da barra indica o progresso do plano de ação.">
+                    <AnalysisCard title="Ações × Impacto (IRP)" tooltip="Visualiza a eficácia das intervenções. A altura da barra mostra a melhoria no IRP (Impacto). A cor da barra indica o progresso do plano de ação.">
                         <ActionsImpactChart data={data.crossAnalysis.actionsVsImpact} yAxisLabel="Melhora no IRP (Pontos)" />
                     </AnalysisCard>
                     
@@ -698,25 +678,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 {insightError && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert"><p className="font-bold">Ocorreu um erro</p><p>{insightError}</p></div>}
                 {aiInsight ? (
                     <div id="ai-report-content" className="space-y-4 mt-4 max-h-[80vh] overflow-y-auto pr-2">
-                       <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary?.title || 'Sumário Executivo'}</h3>
-                            <p className="text-sm text-slate-600">{aiInsight.summary?.content}</p>
+                       <div className="bg-[--color-muted] border border-[--color-border] p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-[--color-card-foreground] mb-2 flex items-center"><span className="mr-2 text-xl">📊</span>{aiInsight.summary?.title || 'Sumário Executivo'}</h3>
+                            <p className="text-sm text-[--color-card-muted-foreground]">{aiInsight.summary?.content}</p>
                         </div>
-                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths?.title || 'Principais Pontos Fortes'}</h3>
-                            <ul className="space-y-2 text-sm">{aiInsight.strengths?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                        <div className="bg-[--color-muted] border border-[--color-border] p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-[--color-card-foreground] mb-2 flex items-center"><span className="mr-2 text-xl">✅</span>{aiInsight.strengths?.title || 'Principais Pontos Fortes'}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.strengths?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-[--color-card-muted-foreground] ml-1">{p.description}</span></li>))}</ul>
                         </div>
-                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints?.title || 'Principais Pontos de Atenção'}</h3>
-                            <ul className="space-y-2 text-sm">{aiInsight.attentionPoints?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-slate-600 ml-1">{p.description}</span></li>))}</ul>
+                        <div className="bg-[--color-muted] border border-[--color-border] p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-[--color-card-foreground] mb-2 flex items-center"><span className="mr-2 text-xl">⚠️</span>{aiInsight.attentionPoints?.title || 'Principais Pontos de Atenção'}</h3>
+                            <ul className="space-y-2 text-sm">{aiInsight.attentionPoints?.points?.map((p, i) => (<li key={i}><strong className="text-slate-700">{p.factor}:</strong><span className="text-[--color-card-muted-foreground] ml-1">{p.description}</span></li>))}</ul>
                         </div>
-                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations?.title || 'Recomendações Estratégicas'}</h3>
-                            <div className="space-y-3 text-sm">{aiInsight.recommendations?.points?.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-slate-600 mt-1">{p.actions?.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
+                        <div className="bg-[--color-muted] border border-[--color-border] p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-[--color-card-foreground] mb-2 flex items-center"><span className="mr-2 text-xl">💡</span>{aiInsight.recommendations?.title || 'Recomendações Estratégicas'}</h3>
+                            <div className="space-y-3 text-sm">{aiInsight.recommendations?.points?.map((p, i) => (<div key={i}><h4 className="font-semibold text-slate-700">{p.forFactor}</h4><ul className="list-disc list-inside space-y-1 text-[--color-card-muted-foreground] mt-1">{p.actions?.map((action, j) => <li key={j}>{action}</li>)}</ul></div>))}</div>
                         </div>
-                        <div className="bg-slate-100 border border-slate-200 p-4 rounded-xl">
-                            <h3 className="text-md font-semibold text-slate-800 mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps?.title || 'Próximos Passos'}</h3>
-                            <p className="text-sm text-slate-600">{aiInsight.nextSteps?.content}</p>
+                        <div className="bg-[--color-muted] border border-[--color-border] p-4 rounded-xl">
+                            <h3 className="text-md font-semibold text-[--color-card-foreground] mb-2 flex items-center"><span className="mr-2 text-xl">🚀</span>{aiInsight.nextSteps?.title || 'Próximos Passos'}</h3>
+                            <p className="text-sm text-[--color-card-muted-foreground]">{aiInsight.nextSteps?.content}</p>
                         </div>
                     </div>
                 ) : (data.participationRate > 0 && <p className="text-center text-sm text-slate-500">Clique no botão acima para gerar uma análise estratégica completa dos dados atuais.</p>)}

@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { runCorporateSurveyAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -209,13 +208,13 @@ export const CorporateSurveyView: React.FC<CorporateSurveyViewProps> = ({ setAct
 
     if (isSubmitted) {
         return (
-            <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 space-y-6 text-center">
+            <div className="w-full max-w-4xl mx-auto bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8 space-y-6 text-center">
                 <ShieldCheckIcon className="w-16 h-16 text-green-500 mx-auto"/>
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Obrigado por sua participação!</h2>
-                <p className="text-slate-600">Suas respostas foram registradas de forma 100% confidencial. A sua evolução pessoal foi atualizada.</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-[--color-card-foreground]">Obrigado por sua participação!</h2>
+                <p className="text-[--color-card-muted-foreground]">Suas respostas foram registradas de forma 100% confidencial. A sua evolução pessoal foi atualizada.</p>
                 {analysisResult && (
-                    <div className="bg-slate-50/70 border border-slate-200 p-6 rounded-xl text-left">
-                        <h3 className="text-xl font-semibold text-slate-800 mb-3">Análise Preliminar Individual</h3>
+                    <div className="bg-[--color-muted] p-6 rounded-xl text-left border border-[--color-border]">
+                        <h3 className="text-xl font-semibold text-[--color-card-foreground] mb-3">Análise Preliminar Individual</h3>
                         <div 
                             className="prose prose-slate max-w-none" 
                             dangerouslySetInnerHTML={{ __html: analysisResult.replace(/\n/g, '<br />') }}
@@ -235,36 +234,36 @@ export const CorporateSurveyView: React.FC<CorporateSurveyViewProps> = ({ setAct
 
     return (
         <>
-            <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-8 space-y-8">
+            <div className="w-full max-w-4xl mx-auto bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] p-6 md:p-8 space-y-8">
                 <div className="text-center">
-                    <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Questionário Psicossocial</h2>
-                    <p className="text-slate-500 mt-2">
+                    <h2 className="text-2xl md:text-3xl font-bold text-[--color-card-foreground]">Questionário Psicossocial</h2>
+                    <p className="text-[--color-card-muted-foreground] mt-2">
                         Responda ao questionário de forma confidencial. Suas percepções são fundamentais para construirmos um ambiente de trabalho melhor.
                     </p>
                 </div>
 
                 <div className="space-y-6">
                     {/* Segmentation Data */}
-                    <div className="border border-slate-200 p-4 rounded-lg">
-                        <h3 className="font-semibold text-slate-800 mb-4">Dados de Segmentação (Anônimo)</h3>
+                    <div className="bg-[--color-muted] p-4 rounded-xl border border-[--color-border]">
+                        <h3 className="font-semibold text-[--color-card-foreground] mb-4">Dados de Segmentação (Anônimo)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {corporateFields.map(field => (
                                 <div key={field.id}>
-                                    <label htmlFor={field.id} className="block text-sm font-medium text-slate-700 mb-1">{field.label}</label>
+                                    <label htmlFor={field.id} className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">{field.label}</label>
                                     {field.type === 'text' ? (
                                         <input
                                             type="text"
                                             id={field.id}
                                             value={corporateData[field.id] || ''}
                                             onChange={(e) => handleDataChange(field.id, e.target.value)}
-                                            className="w-full p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                            className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus:ring-2 focus:ring-[--color-ring] transition"
                                         />
                                     ) : (
                                         <select
                                             id={field.id}
                                             value={corporateData[field.id] || ''}
                                             onChange={(e) => handleDataChange(field.id, e.target.value)}
-                                            className="w-full p-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                            className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus:ring-2 focus:ring-[--color-ring] transition"
                                         >
                                             <option value="" disabled>Selecione...</option>
                                             {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -279,18 +278,18 @@ export const CorporateSurveyView: React.FC<CorporateSurveyViewProps> = ({ setAct
                     {/* Questions by Topic */}
                     <div className="space-y-6">
                         {surveyStructure.map((topic, topicIndex) => (
-                            <div key={topicIndex} className="border border-slate-200 p-4 md:p-6 rounded-lg">
-                                <h3 className="font-semibold text-slate-900 mb-6 text-lg">{topic.title}</h3>
+                            <div key={topicIndex} className="bg-[--color-muted] p-4 md:p-6 rounded-xl border border-[--color-border]">
+                                <h3 className="font-semibold text-[--color-card-foreground] mb-6 text-lg">{topic.title}</h3>
                                 <div className="space-y-8">
                                     {topic.questions.map((q) => (
                                         <div key={q.id}>
-                                            <label htmlFor={q.id} className="font-medium text-slate-800 mb-3 block">{q.id.replace('q', '')}. {q.text}</label>
+                                            <label htmlFor={q.id} className="font-medium text-[--color-card-foreground] mb-3 block">{q.id.replace('q', '')}. {q.text}</label>
                                             {q.type === 'textarea' ? (
                                                 <textarea
                                                     id={q.id}
                                                     value={answers[q.id] || ''}
                                                     onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                                                    className="w-full h-28 p-3 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none"
+                                                    className="w-full h-28 p-3 bg-[--color-input] border border-[--color-border] rounded-md focus:ring-2 focus:ring-[--color-ring] transition resize-none"
                                                     placeholder="Sua resposta (opcional)..."
                                                 />
                                             ) : (

@@ -72,17 +72,17 @@ export const AssistantView: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-10rem)] bg-white rounded-2xl shadow-lg border border-slate-200">
+        <div className="flex flex-col h-[calc(100vh-10rem)] bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border]">
             {/* Header */}
-            <div className="flex-shrink-0 p-4 border-b border-slate-200">
-                <h2 className="text-xl font-bold text-slate-800 text-center flex items-center justify-center gap-2">
+            <div className="flex-shrink-0 p-4 border-b border-[--color-border]">
+                <h2 className="text-xl font-bold text-[--color-card-foreground] text-center flex items-center justify-center gap-2">
                     <SparklesIcon className="w-6 h-6 text-blue-600"/>
                     Assistente IA
                 </h2>
             </div>
 
             {/* Messages */}
-            <div className="flex-grow p-4 space-y-4 overflow-y-auto bg-slate-50">
+            <div className="flex-grow p-4 space-y-4 overflow-y-auto bg-[--color-muted]">
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role !== 'user' && (
@@ -130,14 +130,14 @@ export const AssistantView: React.FC = () => {
             </div>
 
             {/* Input Form */}
-            <div className="flex-shrink-0 p-4 border-t border-slate-200 bg-white">
+            <div className="flex-shrink-0 p-4 border-t border-[--color-border] bg-[--color-card]">
                 <form onSubmit={handleFormSubmit} className="flex items-center gap-3">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Pergunte algo sobre os dados da sua organização..."
-                        className="w-full p-3 bg-slate-100 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200 text-slate-700 placeholder-slate-400"
+                        className="w-full p-3 bg-[--color-muted] border border-[--color-border] rounded-xl focus:ring-2 focus:ring-[--color-ring] transition duration-200 text-[--color-foreground] placeholder-slate-400"
                         disabled={isLoading}
                     />
                     <button
