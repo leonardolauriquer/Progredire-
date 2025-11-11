@@ -1,9 +1,5 @@
-
-
-
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon } from './icons';
+import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon, ArrowDownTrayIcon } from './icons';
 import { mockFilters, Campaign, CampaignStatus } from './dashboardMockData';
 import { getCampaigns, addCampaign, approveCampaign } from '../services/dataService';
 import { ActiveView } from '../App';
@@ -27,6 +23,48 @@ Agradecemos sua colaboração!
 
 Atenciosamente,
 Equipe Progredire+`;
+
+// --- Helper Functions ---
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 
 // --- Components ---
 const CampaignCard: React.FC<{
@@ -247,6 +285,42 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
         });
         return { activeCampaigns: active, completedCampaigns: completed };
     }, [campaigns]);
+    
+    const handleExportXls = useCallback(() => {
+        if (campaigns.length === 0) {
+            alert("Nenhuma campanha para exportar.");
+            return;
+        }
+
+        const headers = ['Nome da Campanha', 'Status', 'Público-Alvo', 'Adesão (%)', 'Data de Início', 'Data de Fim'];
+        
+        const createTable = (title: string, data: Campaign[]) => {
+            let table = `<h2>${title}</h2><table><thead><tr>`;
+            headers.forEach(h => table += `<th>${h}</th>`);
+            table += '</tr></thead><tbody>';
+
+            data.forEach(c => {
+                table += '<tr>';
+                table += `<td>${c.name}</td>`;
+                table += `<td>${c.status}</td>`;
+                table += `<td>${c.targetAudience}</td>`;
+                table += `<td>${c.adherence}</td>`;
+                table += `<td>${new Date(c.startDate).toLocaleDateString('pt-BR')}</td>`;
+                table += `<td>${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>`;
+                table += '</tr>';
+            });
+
+            table += '</tbody></table>';
+            return table;
+        };
+        
+        let html = '<h1>Relatório de Campanhas</h1>';
+        html += createTable('Campanhas Ativas e Agendadas', activeCampaigns);
+        html += createTable('Histórico de Campanhas', completedCampaigns);
+
+        exportToExcel(html, 'relatorio_de_campanhas_progredire');
+
+    }, [campaigns, activeCampaigns, completedCampaigns]);
 
     return (
         <div className="space-y-8">
@@ -257,10 +331,19 @@ export const CampaignView: React.FC<CampaignViewProps> = ({ setActiveView, navig
                         Crie, gerencie e acompanhe o andamento das suas pesquisas de clima e saúde organizacional.
                     </p>
                 </div>
-                 <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">
-                     <PlusCircleIcon className="w-5 h-5"/>
-                     Criar Nova Campanha
-                 </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        onClick={handleExportXls}
+                        className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        <ArrowDownTrayIcon className="w-5 h-5" />
+                        Exportar (XLS)
+                    </button>
+                    <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">
+                        <PlusCircleIcon className="w-5 h-5"/>
+                        Criar Nova Campanha
+                    </button>
+                </div>
             </div>
 
             {/* Active and Scheduled Campaigns */}

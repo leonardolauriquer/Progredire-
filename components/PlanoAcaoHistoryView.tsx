@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArchiveBoxIcon, ClipboardDocumentCheckIcon, ExclamationTriangleIcon } from './icons';
+import { ArchiveBoxIcon, ClipboardDocumentCheckIcon, ExclamationTriangleIcon, ArrowDownTrayIcon } from './icons';
 
 // --- Types ---
 type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
@@ -23,6 +23,49 @@ interface ArchivedPlan {
 }
 
 const LOCAL_STORAGE_KEY = 'progredire-action-plan-history';
+
+// --- Helper Functions ---
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+                h3 { font-size: 1.1rem; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 
 // --- Components ---
 
@@ -120,15 +163,67 @@ export const PlanoAcaoHistoryView: React.FC = () => {
             // Optionally revert UI change here
         }
     };
+    
+    const handleExportXls = () => {
+        if (filteredActions.length === 0) {
+            alert("Nenhuma ação para exportar com os filtros atuais.");
+            return;
+        }
+
+        const headers = ['Ação', 'Plano de Ação (Fator)', 'Público-Alvo', 'Responsável', 'Prazo', 'Status'];
+        
+        let html = '<h1>Relatório de Acompanhamento de Ações</h1>';
+
+        const activeFilters: Record<string, string> = {};
+        if (filterStatus !== 'Todos') activeFilters['Status'] = filterStatus;
+        if (filterResponsible !== 'Todos') activeFilters['Responsável'] = filterResponsible;
+
+        if (Object.keys(activeFilters).length > 0) {
+            html += '<h3>Filtros Aplicados</h3><table><tbody>';
+            for (const key in activeFilters) {
+                html += `<tr><td><strong>${key}</strong></td><td>${activeFilters[key]}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+
+        html += '<table><thead><tr>';
+        headers.forEach(h => html += `<th>${h}</th>`);
+        html += '</tr></thead><tbody>';
+
+        filteredActions.forEach(action => {
+            html += '<tr>';
+            html += `<td>${action.title}</td>`;
+            html += `<td>${action.planFactor}</td>`;
+            html += `<td>${action.planSegment}</td>`;
+            html += `<td>${action.responsible || 'N/D'}</td>`;
+            html += `<td>${action.dueDate ? new Date(action.dueDate).toLocaleDateString('pt-BR') : 'N/D'}</td>`;
+            html += `<td>${action.status}</td>`;
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+
+        exportToExcel(html, 'acompanhamento_de_acoes_progredire');
+    };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900">Acompanhamento de Ações</h1>
-                <p className="text-slate-600 mt-1 max-w-3xl">
-                    Monitore o progresso de todas as ações de melhoria em um único lugar.
-                </p>
+            <div className="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-slate-900">Acompanhamento de Ações</h1>
+                    <p className="text-slate-600 mt-1 max-w-3xl">
+                        Monitore o progresso de todas as ações de melhoria em um único lugar.
+                    </p>
+                </div>
+                 <button
+                    onClick={handleExportXls}
+                    className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                    Exportar (XLS)
+                </button>
             </div>
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KPICard title="Total de Ações" value={kpiData.total} />

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -419,7 +412,21 @@ export const CompanyEvolutionView: React.FC = () => {
             return table;
         };
 
-        let html = '';
+        let html = `<h1>Relatório de Evolução Organizacional</h1>`;
+
+        const periodLabels: Record<PeriodRange, string> = {
+            'bimonthly': 'Últimos 2 Meses',
+            'quarterly': 'Últimos 3 Meses',
+            'semesterly': 'Últimos 6 Meses',
+            'annually': 'Último Ano',
+            'all': 'Todo o período'
+        };
+
+        html += '<h2>Contexto da Análise</h2><table><tbody>';
+        html += `<tr><td><strong>Fator Analisado</strong></td><td>${factorIdToName[selectedFactorId]}</td></tr>`;
+        html += `<tr><td><strong>Período</strong></td><td>${periodLabels[periodRange]}</td></tr>`;
+        html += `<tr><td><strong>Setores</strong></td><td>${selectedSectors.join(', ')}</td></tr>`;
+        html += '</tbody></table>';
         
         const chartHeaders = ['Mês', ...chartEvolutionData.datasets.map(ds => ds.label)];
         const chartRows = chartEvolutionData.labels.map((label, index) => {
@@ -447,7 +454,7 @@ export const CompanyEvolutionView: React.FC = () => {
         }
 
         exportToExcel(html, 'Relatorio_Evolucao_Progredire');
-    }, [chartEvolutionData, selectedFactorId, topMovers, bottomMovers, aiInsight]);
+    }, [chartEvolutionData, selectedFactorId, topMovers, bottomMovers, aiInsight, periodRange, selectedSectors]);
 
     const handlePrintAnalysis = () => {
         const analysisContent = document.getElementById('ai-evolution-analysis-content')?.innerHTML;

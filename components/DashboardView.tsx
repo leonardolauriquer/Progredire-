@@ -41,6 +41,7 @@ const exportToExcel = (htmlContent: string, filename: string) => {
                 table { border-collapse: collapse; margin-bottom: 20px; }
                 td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
                 th { background-color: #f2f2f2; font-weight: bold; }
+                h1 { font-size: 1.5rem; font-weight: bold; margin-bottom: 20px; }
                 h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
                 h3 { font-size: 1.1rem; font-weight: bold; }
                 p, li { font-size: 0.9rem; }
@@ -242,7 +243,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
     
     const handleExportXls = useCallback(() => {
         if (!data || !data.riskFactors || data.riskFactors.length === 0) return;
-
+    
+        // Helper functions inside the handler
         const createKeyValueTable = (title: string, obj: Record<string, any>) => {
             let table = `<h2>${title}</h2><table><tbody>`;
             for (const key in obj) {
@@ -252,19 +254,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             return table;
         };
         
-        const createArrayTable = (title: string, headers: string[], rows: (string|number)[][]) => {
+        const createArrayTable = (title: string, headers: string[], rows: (string|number|null)[][]) => {
             let table = `<h2>${title}</h2><table><thead><tr>`;
             headers.forEach(h => table += `<th>${h}</th>`);
             table += '</tr></thead><tbody>';
             rows.forEach(row => {
                 table += '<tr>';
-                row.forEach(cell => table += `<td>${cell}</td>`);
+                row.forEach(cell => table += `<td>${cell ?? 'N/A'}</td>`);
                 table += '</tr>';
             });
             table += '</tbody></table>';
             return table;
         };
         
+        // Start building HTML string
+        let html = `<h1>Relatório Dashboard Executivo - Progredire+</h1>`;
+
+        const activeFilters = Object.entries(filters)
+            .filter(([, value]) => value)
+            .reduce((acc, [key, value]) => {
+                const filterLabel = mockFilters.find(f => f.id === key)?.label || key;
+                acc[filterLabel] = value;
+                return acc;
+            }, {} as Record<string, string>);
+
+        if (Object.keys(activeFilters).length > 0) {
+            html += createKeyValueTable('Filtros Aplicados', activeFilters);
+        }
+        
+        // 1. KPIs
         const kpiData = {
             'IRP Global (1-5)': data.irpGlobal.toFixed(1),
             'Nível de Risco': data.riskClassification.text,
@@ -272,10 +290,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             'Nível de Maturidade': `${data.maturityLevel.level} - ${data.maturityLevel.name}`,
             'Economia Anual Estimada': data.estimatedSavings,
             'Absenteísmo Estimado (%)': data.absenteeismRate.toFixed(1),
-            'Presenteísmo Estimado (%)': data.presenteeismRate.toFixed(1),
+            'Presenteísmo Estimado (IPE %)': data.presenteeismRate.toFixed(1),
         };
-        let html = createKeyValueTable('Indicadores Chave de Performance (KPIs)', kpiData);
-
+        html += createKeyValueTable('Indicadores Chave de Performance (KPIs)', kpiData);
+    
+        // 2. Engajamento e Liderança
+        const leadershipKpiData = {
+            'Percepção da Liderança (1-5)': data.leadershipScore.toFixed(1),
+            'Segurança Psicológica (1-5)': data.safetyScore.toFixed(1),
+            'Equilíbrio Vida-Trabalho (1-5)': data.workLifeBalanceScore.toFixed(1),
+            '% Líderes em Desenvolvimento': `${data.leadersInDevelopment}%`,
+        };
+        html += createKeyValueTable('Indicadores de Engajamento e Liderança', leadershipKpiData);
+    
+    
+        // 3. Fatores de Risco
         const factorHeaders = ['Fator de Risco', 'Pontuação (Seleção)', 'Pontuação (Média Empresa)', 'Discordo Total. (%)', 'Discordo Parc. (%)', 'Neutro (%)', 'Concordo Parc. (%)', 'Concordo Total. (%)'];
         const factorRows = data.riskFactors.map(factor => {
             const companyFactor = data.companyAverageFactors.find(f => f.id === factor.id);
@@ -293,6 +322,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
         });
         html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows as (string|number)[][]);
         
+        // 4. Rankings
         html += createArrayTable(
             'Top 3 Fatores Críticos de Risco', 
             ['Fator Crítico de Risco', 'Pontuação'], 
@@ -303,24 +333,94 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             ['Fator de Proteção', 'Pontuação'], 
             data.topProtections.map(p => [p.name, p.score])
         );
-        
+    
+        // 5. Riscos e Clima Organizacional
+        const sectorRiskData = {
+            'Setores com Risco Alto (%)': data.sectorRiskDistribution.high.toFixed(1),
+            'Setores com Risco Moderado (%)': data.sectorRiskDistribution.moderate.toFixed(1),
+            'Setores com Risco Baixo (%)': data.sectorRiskDistribution.low.toFixed(1),
+        };
+        html += createKeyValueTable('Distribuição de Riscos por Setor', sectorRiskData);
+    
         html += createArrayTable(
             'Tendência de Clima (Evolução IRP Global)', 
-            ['Mês/Ano', 'Pontuação de Clima'],
+            ['Mês/Ano', 'Pontuação (0-100)'],
             data.climateTrend.labels.map((label, i) => [label, data.climateTrend.data[i]])
         );
+    
+        html += createArrayTable(
+            'Histórico de Afastamentos (INSS)', 
+            ['Mês/Ano', 'Colaboradores Afastados'],
+            data.inssLeaveTrend.labels.map((label, i) => [label, data.inssLeaveTrend.data[i]])
+        );
+    
+        const periodInMonths = parseInt(leavePeriod, 10);
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - periodInMonths);
+    
+        const filteredLeaveEvents = data.leaveEvents.filter(event => new Date(event.date) >= cutoffDate);
+        const leaveCounts = filteredLeaveEvents.reduce<Record<string, number>>((acc, event) => {
+            acc[event.type] = (acc[event.type] || 0) + 1;
+            return acc;
+        }, {});
+        const processedLeaveDataRows = Object.entries(leaveCounts)
+            .map(([label, value]) => [label, value])
+            .sort((a, b) => (b[1] as number) - (a[1] as number));
+    
+        html += createArrayTable(
+            `Tipos de Afastamentos (Últimos ${leavePeriod} meses)`,
+            ['Tipo de Afastamento', 'Quantidade'],
+            processedLeaveDataRows
+        );
+    
+    
+        // 6. Análise Cruzada Estratégica
+        html += `<h1>Análise Cruzada Estratégica</h1>`;
+        html += createArrayTable(
+            'IRP vs. IPE por Setor',
+            ['Setor', 'IRP (1-5)', 'IPE (%)', 'Nº Colaboradores'],
+            data.crossAnalysis.irpVsPresenteeism.map(d => [d.label, d.x.toFixed(1), d.y.toFixed(1), d.z])
+        );
+        html += createArrayTable(
+            'IRP vs. Turnover',
+            ['Período', 'IRP (1-5)', 'Turnover (%)'],
+            data.crossAnalysis.irpVsTurnover.labels.map((label, i) => [label, data.crossAnalysis.irpVsTurnover.datasets[0].data[i], data.crossAnalysis.irpVsTurnover.datasets[1].data[i]])
+        );
         
+        const heatmapHeaders = ['Dimensão', ...data.crossAnalysis.dimensionVsAreaHeatmap.yLabels];
+        const heatmapRows = data.crossAnalysis.dimensionVsAreaHeatmap.xLabels.map((dimLabel, colIndex) => {
+            const rowData = data.crossAnalysis.dimensionVsAreaHeatmap.yLabels.map((_, rowIndex) => {
+                return data.crossAnalysis.dimensionVsAreaHeatmap.data[rowIndex][colIndex].toFixed(1);
+            });
+            return [dimLabel, ...rowData];
+        });
+        html += createArrayTable('Diagnóstico por Dimensão e Área (Heatmap)', heatmapHeaders, heatmapRows);
+        
+        const roiData = {
+            'Custo Total Estimado do Presenteísmo': data.crossAnalysis.presenteeismVsRoi.totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+            ...Object.fromEntries(data.crossAnalysis.presenteeismVsRoi.scenarios.map(s => [s.label, s.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]))
+        };
+        html += createKeyValueTable('Análise de ROI vs. Presenteísmo', roiData);
+    
+        html += createArrayTable(
+            'Impacto das Ações vs. IRP',
+            ['Iniciativa', 'Melhora no IRP (Pontos)', 'Nº de Ações', 'Progresso (%)'],
+            data.crossAnalysis.actionsVsImpact.map(d => [d.label, d.x.toFixed(1), d.y, d.z])
+        );
+    
+    
+        // 7. AI Insights
         if (aiInsight) {
-            html += `<h2>Insights Estratégicos com IA</h2>`;
-            html += `<div><h3>${aiInsight.summary?.title}</h3><p>${aiInsight.summary?.content}</p></div>`;
-            html += `<div><h3>${aiInsight.strengths?.title}</h3><ul>${aiInsight.strengths?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.attentionPoints?.title}</h3><ul>${aiInsight.attentionPoints?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
-            html += `<div><h3>${aiInsight.recommendations?.title}</h3>${aiInsight.recommendations?.points?.map(p => `<h4>${p.forFactor}</h4><ul>${p.actions?.map(a => `<li>${a}</li>`).join('')}</ul>`).join('')}</div>`;
-            html += `<div><h3>${aiInsight.nextSteps?.title}</h3><p>${aiInsight.nextSteps?.content}</p></div>`;
+            html += `<h1>Insights Estratégicos com IA</h1>`;
+            html += `<div><h2>${aiInsight.summary?.title}</h2><p>${aiInsight.summary?.content}</p></div>`;
+            html += `<div><h2>${aiInsight.strengths?.title}</h2><ul>${aiInsight.strengths?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h2>${aiInsight.attentionPoints?.title}</h2><ul>${aiInsight.attentionPoints?.points?.map(p => `<li><strong>${p.factor}:</strong> ${p.description}</li>`).join('')}</ul></div>`;
+            html += `<div><h2>${aiInsight.recommendations?.title}</h2>${aiInsight.recommendations?.points?.map(p => `<h3>${p.forFactor}</h3><ul>${p.actions?.map(a => `<li>${a}</li>`).join('')}</ul>`).join('')}</div>`;
+            html += `<div><h2>${aiInsight.nextSteps?.title}</h2><p>${aiInsight.nextSteps?.content}</p></div>`;
         }
         
         exportToExcel(html, 'Relatorio_Dashboard_Progredire');
-    }, [data, aiInsight]);
+    }, [data, aiInsight, filters, leavePeriod]);
 
     const handlePrintReport = () => {
         const reportContent = document.getElementById('ai-report-content')?.innerHTML;

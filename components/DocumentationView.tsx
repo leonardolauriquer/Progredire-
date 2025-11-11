@@ -8,33 +8,32 @@ interface Document {
   branch: 'Matriz' | 'Filial SP' | 'Filial RJ' | 'Filial MG';
   uploadDate: string;
   expiryDate: string;
-  fileUrl: string; // Mock URL
 }
 
 const mockDocuments: Document[] = [
   // Matriz
-  { id: 1, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 2, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 3, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 4, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
+  { id: 1, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 2, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 3, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 4, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
 
   // Filial SP
-  { id: 5, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 6, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 7, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 8, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
+  { id: 5, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 6, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 7, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 8, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
 
   // Filial RJ
-  { id: 9, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 10, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 11, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 12, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
+  { id: 9, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 10, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 11, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 12, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
 
   // Filial MG
-  { id: 13, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 14, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 15, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
-  { id: 16, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], fileUrl: '#' },
+  { id: 13, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 14, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 15, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 16, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
 ];
 
 
@@ -68,6 +67,48 @@ const getStatusStyles = (status: DocumentStatus): string => {
         case 'Vencido': return 'bg-red-100 text-red-800';
     }
 };
+
+const exportToExcel = (htmlContent: string, filename: string) => {
+    const template = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <!--[if gte mso 9]>
+            <xml>
+                <x:ExcelWorkbook>
+                    <x:ExcelWorksheets>
+                        <x:ExcelWorksheet>
+                            <x:Name>Relatorio</x:Name>
+                            <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+                        </x:ExcelWorksheet>
+                    </x:ExcelWorksheets>
+                </x:ExcelWorkbook>
+            </xml>
+            <![endif]-->
+            <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+            <style>
+                table { border-collapse: collapse; margin-bottom: 20px; }
+                td, th { border: 1px solid #dee2e6; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; font-weight: bold; }
+                h2 { font-size: 1.2rem; font-weight: bold; margin-top: 20px; margin-bottom: 10px; }
+                h3 { font-size: 1.1rem; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+        </body>
+        </html>`;
+
+    const blob = new Blob([`\uFEFF${template}`], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
 
 const KpiCard: React.FC<{ title: string; value: number; icon: React.ElementType; colorClass?: string }> = ({ title, value, icon: Icon, colorClass = "text-slate-600" }) => (
     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex items-center gap-4">
@@ -169,30 +210,61 @@ export const DocumentationView: React.FC = () => {
     return sortableItems;
   }, [selectedBranch, selectedCategory, selectedStatus, searchTerm, sortConfig]);
 
-  const handleExportCSV = () => {
+  const handleDownload = (doc: Document) => {
+    const fileContent = `Este é um arquivo de exemplo para o documento:\n\nNome: ${doc.name}\nCategoria: ${doc.category}\nFilial: ${doc.branch}\nData de Validade: ${new Date(doc.expiryDate).toLocaleDateString('pt-BR')}`;
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const fileName = `${doc.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportXls = () => {
     if (sortedAndFilteredDocuments.length === 0) {
       alert("Nenhum documento para exportar.");
       return;
     }
 
     const headers = ['Nome do Documento', 'Status', 'Validade', 'Categoria', 'Filial'];
-    const rows = sortedAndFilteredDocuments.map(doc => [
-      `"${doc.name.replace(/"/g, '""')}"`,
-      getDocumentStatus(doc.expiryDate).status,
-      new Date(doc.expiryDate).toLocaleDateString('pt-BR'),
-      doc.category,
-      doc.branch
-    ]);
+    
+    let html = '<h2>Relatório de Documentos</h2>';
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const activeFilters: Record<string, string> = {};
+    if (selectedBranch !== 'Todas') activeFilters['Filial'] = selectedBranch;
+    if (selectedCategory !== 'Todas') activeFilters['Categoria'] = selectedCategory;
+    if (selectedStatus !== 'Todos') activeFilters['Status'] = selectedStatus;
+    if (searchTerm) activeFilters['Busca'] = searchTerm;
 
-    const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
-    link.setAttribute('download', 'documentos_progredire.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (Object.keys(activeFilters).length > 0) {
+        html += '<h3>Filtros Aplicados</h3><table><tbody>';
+        for (const key in activeFilters) {
+            html += `<tr><td><strong>${key}</strong></td><td>${activeFilters[key]}</td></tr>`;
+        }
+        html += '</tbody></table>';
+    }
+
+    html += '<table><thead><tr>';
+    headers.forEach(h => html += `<th>${h}</th>`);
+    html += '</tr></thead><tbody>';
+
+    sortedAndFilteredDocuments.forEach(doc => {
+      html += '<tr>';
+      html += `<td>${doc.name}</td>`;
+      html += `<td>${getDocumentStatus(doc.expiryDate).status}</td>`;
+      html += `<td>${new Date(doc.expiryDate).toLocaleDateString('pt-BR')}</td>`;
+      html += `<td>${doc.category}</td>`;
+      html += `<td>${doc.branch}</td>`;
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+
+    exportToExcel(html, 'documentos_progredire');
   };
 
   return (
@@ -205,11 +277,11 @@ export const DocumentationView: React.FC = () => {
             </p>
         </div>
         <button
-            onClick={handleExportCSV}
+            onClick={handleExportXls}
             className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
             <ArrowDownTrayIcon className="w-5 h-5" />
-            Exportar (CSV)
+            Exportar (XLS)
         </button>
       </div>
 
@@ -317,10 +389,10 @@ export const DocumentationView: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.category}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.branch}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href={doc.fileUrl} download className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md">
+                        <button onClick={() => handleDownload(doc)} className="flex items-center justify-center gap-2 text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md">
                           <ArrowDownTrayIcon className="w-4 h-4" />
                           Baixar
-                        </a>
+                        </button>
                       </td>
                     </tr>
                   );

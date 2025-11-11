@@ -7,6 +7,13 @@ import { UserRole } from '../App';
 // Data for Company Role
 const companyFaqData = [
     {
+        question: "Como utilizar o painel da empresa? (Vídeo Tutorial)",
+        answer: `Preparamos um vídeo tutorial completo para guiar você por todas as funcionalidades do painel da empresa, desde a análise do dashboard até a criação de planos de ação. Assista abaixo:
+        <div class="w-full aspect-video rounded-lg overflow-hidden mt-4 shadow-lg">
+            <iframe class="w-full h-full" src="https://www.youtube.com/embed/Nn_Z_h54y5s" title="Tutorial Painel da Empresa" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>`
+    },
+    {
         question: "O que é o Progredire+?",
         answer: "Progredire+ é uma aplicação de software projetada para auxiliar na análise e gestão de riscos psicossociais. Utilizando inteligência artificial, a ferramenta fornece um dashboard para diagnósticos organizacionais, facilita a criação de planos de ação e acompanha a evolução do clima ao longo do tempo."
     },
@@ -46,6 +53,13 @@ const companyFaqData = [
 
 // Data for Collaborator Role
 const collaboratorFaqData = [
+    {
+        question: "Como utilizar a plataforma? (Vídeo Tutorial)",
+        answer: `Este vídeo rápido mostra como você pode usar o Progredire+ para registrar suas emoções, responder aos questionários de forma confidencial e acompanhar sua evolução pessoal. Confira:
+        <div class="w-full aspect-video rounded-lg overflow-hidden mt-4 shadow-lg">
+            <iframe class="w-full h-full" src="https://www.youtube.com/embed/Nn_Z_h54y5s" title="Tutorial do Colaborador" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        </div>`
+    },
      {
         question: "O que é o Progredire+?",
         answer: "Progredire+ é uma ferramenta de bem-estar que ajuda você a refletir sobre seus sentimentos e a participar de pesquisas confidenciais da sua empresa para melhorar o ambiente de trabalho."
@@ -94,11 +108,12 @@ const FaqItem: React.FC<{
                 />
             </button>
             <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+                className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0'}`}
             >
-                <div className="prose prose-slate max-w-none p-4 pt-0 text-slate-600">
-                   {item.answer}
-                </div>
+                <div 
+                    className="prose prose-slate max-w-none p-4 pt-0 text-slate-600"
+                    dangerouslySetInnerHTML={{ __html: item.answer }}
+                />
             </div>
         </div>
     );

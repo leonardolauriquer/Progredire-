@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
 import { runActionPlanGeneration } from '../services/geminiService';
@@ -301,6 +299,17 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView, ini
         };
 
         let html = `<h1>Plano de Ação - ${dimensions[selectedFactorId]?.name}</h1>`;
+        
+        const segmentDescription = Object.entries(filters)
+            .filter(([, value]) => value)
+            .map(([key, value]) => `<strong>${mockFilters.find(f => f.id === key)?.label || key}:</strong> ${value}`)
+            .join('<br>');
+
+        if (segmentDescription) {
+            html += `<h2>Público-Alvo</h2><p>${segmentDescription}</p>`;
+        } else {
+            html += `<h2>Público-Alvo</h2><p>Toda a empresa</p>`;
+        }
         
         html += `<h2>${planData.diagnosis.title}</h2><p>${planData.diagnosis.content}</p>`;
         html += `<h2>${planData.strategicObjective.title}</h2><p>${planData.strategicObjective.content}</p>`;

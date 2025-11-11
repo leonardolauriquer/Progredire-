@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
@@ -22,7 +23,7 @@ const allNavigation = [
   { name: 'Reflexão Pessoal', view: 'personal_reflection', icon: BrainIcon },
   { name: 'Diário de Emoções', view: 'journal', icon: BookOpenIcon },
   { name: 'Dashboard', view: 'dashboard', icon: ChartBarIcon },
-  { name: 'Questionário Psicossocial', view: 'corporate_survey', icon: PencilSquareIcon },
+  { name: 'Questionário', view: 'corporate_survey', icon: PencilSquareIcon },
   { name: 'Campanhas', view: 'campaigns', icon: PaperAirplaneIcon },
   { name: 'Evolução', view: 'history', icon: ArrowTrendingUpIcon },
   { name: 'Plano de Ação', view: 'plano_acao', icon: ClipboardDocumentListIcon },
