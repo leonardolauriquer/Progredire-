@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { getCampaigns, approveCampaign, getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, Branch, getBranches, addBranch, deleteBranch } from '../services/dataService';
+import { getCampaigns, approveCampaign, getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, Branch, getBranches, addBranch, deleteBranch, addBranches } from '../services/dataService';
 import { Campaign } from './dashboardMockData';
 import { 
     ShieldCheckIcon, 
@@ -1182,6 +1182,7 @@ const BranchManagement: React.FC<{ companies: Company[] }> = ({ companies }) => 
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
     const fetchBranches = useCallback(async (companyId: number) => {
         setIsLoading(true);
@@ -1216,7 +1217,10 @@ const BranchManagement: React.FC<{ companies: Company[] }> = ({ companies }) => 
         <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
             <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                 <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><BuildingOfficeIcon className="w-6 h-6"/>Gestão de Filiais</h2>
-                <button onClick={() => setIsAddModalOpen(true)} disabled={!selectedCompanyId} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircleIcon className="w-5 h-5"/> Adicionar Filial</button>
+                <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setIsAddModalOpen(true)} disabled={!selectedCompanyId} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"><PlusCircleIcon className="w-5 h-5"/> Adicionar Filial</button>
+                    <button onClick={() => setIsImportModalOpen(true)} disabled={!selectedCompanyId} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
+                </div>
             </div>
             <div className="mb-4">
                 <label htmlFor="company-select-branch" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Selecione uma Empresa</label>
@@ -1242,6 +1246,12 @@ const BranchManagement: React.FC<{ companies: Company[] }> = ({ companies }) => 
                 )
             ) : <p className="text-center text-sm text-slate-500 py-4">Selecione uma empresa para ver suas filiais.</p>}
             <AddBranchModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddBranch} />
+            <ImportBranchesXlsModal 
+                isOpen={isImportModalOpen} 
+                onClose={() => setIsImportModalOpen(false)} 
+                onImportSuccess={() => { if(selectedCompanyId) fetchBranches(Number(selectedCompanyId)) }}
+                companyId={selectedCompanyId}
+            />
         </div>
     );
 };
@@ -1258,8 +1268,6 @@ const AddBranchModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (da
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // FIX: The onAdd callback expects an object with a nested `address` property.
-        // The original code passed a flat object, causing a type error.
         onAdd({
             name: formData.name,
             address: {
@@ -1271,7 +1279,6 @@ const AddBranchModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (da
                 cep: formData.cep,
             },
         });
-        // Reset form
         setFormData({ name: '', logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: '' });
     };
 
@@ -1317,6 +1324,86 @@ const AddBranchModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (da
                     <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">Cadastrar Filial</button>
                 </div>
             </form>
+        </Modal>
+    );
+};
+
+const ImportBranchesXlsModal: React.FC<{
+    isOpen: boolean; 
+    onClose: () => void; 
+    onImportSuccess: () => void;
+    companyId: number | '';
+}> = ({isOpen, onClose, onImportSuccess, companyId}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const downloadTemplate = () => {
+        const headers = ['name', 'logradouro', 'numero', 'bairro', 'cidade', 'estado', 'cep'];
+        const ws = XLSX.utils.json_to_sheet([{}], { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Modelo Filiais");
+        XLSX.writeFile(wb, "modelo_filiais.xls");
+    };
+
+    const handleImport = () => {
+        if (!companyId) {
+            alert("Por favor, selecione uma empresa primeiro.");
+            return;
+        }
+
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) {
+            alert("Por favor, selecione um arquivo.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+                const newBranches: Omit<Branch, 'id' | 'companyId'>[] = json.map(row => ({
+                    name: String(row.name || ''),
+                    address: {
+                        logradouro: String(row.logradouro || ''),
+                        numero: String(row.numero || ''),
+                        bairro: String(row.bairro || ''),
+                        cidade: String(row.cidade || ''),
+                        estado: String(row.estado || ''),
+                        cep: String(row.cep || ''),
+                    }
+                })).filter(b => b.name); // Basic validation
+
+                if (newBranches.length > 0) {
+                    await addBranches(Number(companyId), newBranches);
+                    alert(`${newBranches.length} filiais importadas com sucesso!`);
+                    onImportSuccess();
+                    onClose();
+                } else {
+                    alert("Nenhuma filial válida encontrada no arquivo.");
+                }
+            } catch (error) {
+                console.error("Error parsing XLS file:", error);
+                alert("Ocorreu um erro ao ler o arquivo. Verifique se o formato está correto.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Importar Filiais via XLS">
+            <div className="space-y-4">
+                <p className="text-sm text-slate-600">Selecione um arquivo XLS com os cabeçalhos corretos.</p>
+                <input type="file" accept=".xls, .xlsx" ref={fileInputRef} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                <button onClick={downloadTemplate} className="text-sm text-blue-600 hover:underline">Baixar modelo de XLS</button>
+                <div className="flex justify-end gap-2 pt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-md">Cancelar</button>
+                    <button type="button" onClick={handleImport} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">Importar</button>
+                </div>
+            </div>
         </Modal>
     );
 };

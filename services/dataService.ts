@@ -899,3 +899,11 @@ export const deleteBranch = async (id: number): Promise<void> => {
     const updated = allBranches.filter(b => b.id !== id);
     localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
 };
+
+export const addBranches = async (companyId: number, branchesData: Omit<Branch, 'id' | 'companyId'>[]): Promise<void> => {
+    const data = localStorage.getItem(BRANCHES_KEY);
+    const allBranches: Branch[] = data ? JSON.parse(data) : [];
+    const newBranches: Branch[] = branchesData.map(b => ({ ...b, id: Date.now() + Math.random(), companyId }));
+    const updated = [...allBranches, ...newBranches];
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
+};
