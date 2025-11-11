@@ -359,7 +359,7 @@ export const CompanyEvolutionView: React.FC = () => {
     const { topMovers, bottomMovers } = useMemo(() => {
         const factors = Object.entries(allFactorsEvolutionData)
             .filter(([id]) => id !== 'geral')
-// FIX: Explicitly cast `a` and `b` to `EvolutionData` to resolve TypeScript's type inference issue within the sort callback, which was causing the `.change` property access to fail.
+            // FIX: Explicitly cast `a` and `b` to `EvolutionData` to resolve TypeScript's type inference issue within the sort callback, which was causing the `.change` property access to fail.
             .sort(([, a], [, b]) => (b as EvolutionData).change - (a as EvolutionData).change);
         return {
             topMovers: factors.slice(0, 5),
@@ -654,7 +654,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     <h2 className="text-xl font-semibold text-slate-800 mb-4">📈 Maiores Avanços</h2>
                     <div className="space-y-4">
                         {topMovers.map(([id, data]) => (
-                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data} />
+                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data as EvolutionData} />
                         ))}
                     </div>
                 </div>
@@ -662,7 +662,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     <h2 className="text-xl font-semibold text-slate-800 mb-4">📉 Principais Pontos de Atenção</h2>
                     <div className="space-y-4">
                         {bottomMovers.map(([id, data]) => (
-                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data} />
+                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data as EvolutionData} />
                         ))}
                     </div>
                 </div>

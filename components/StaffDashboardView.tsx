@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getCampaigns, approveCampaign } from '../services/dataService';
 import { Campaign } from './dashboardMockData';
@@ -10,9 +11,12 @@ import {
     ExclamationTriangleIcon, 
     ExclamationCircleIcon,
     PlusCircleIcon,
-    XIcon
+    XIcon,
+    BuildingOfficeIcon,
+    UserIcon,
 } from './icons';
 import { Modal } from './Modal';
+import { UserRole } from '../App';
 
 
 // --- TYPES AND MOCK DATA FOR DOCUMENTATION (INTEGRATED) ---
@@ -56,6 +60,10 @@ const statuses = ['Todos', 'Em dia', 'Próximo ao Vencimento', 'Vencido'];
 
 type DocumentStatus = 'Em dia' | 'Próximo ao Vencimento' | 'Vencido';
 type SortableKeys = keyof Document | 'status';
+
+interface StaffDashboardViewProps {
+    onImpersonate: (role: UserRole) => void;
+}
 
 // --- HELPER FUNCTIONS ---
 
@@ -279,19 +287,25 @@ const UploadDocumentModal: React.FC<{ isOpen: boolean; onClose: () => void; onUp
 };
 
 
-export const StaffDashboardView: React.FC = () => {
+export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpersonate }) => {
+    // --- State for Tabs ---
+    const [activeTab, setActiveTab] = useState<'campaigns' | 'documents' | 'impersonation'>('campaigns');
+    
     // --- State for Campaigns ---
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [isCampaignsLoading, setIsCampaignsLoading] = useState(true);
 
     // --- State for Documents ---
     const [documents, setDocuments] = useState<Document[]>(initialMockDocuments);
-    const [selectedCompany, setSelectedCompany] = useState('Todas');
+    const [selectedCompanyDoc, setSelectedCompanyDoc] = useState('Todas');
     const [selectedBranch, setSelectedBranch] = useState('Todas');
     const [selectedStatus, setSelectedStatus] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' } | null>({ key: 'expiryDate', direction: 'ascending' });
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    
+    // --- State for Impersonation ---
+    const [impersonateCompany, setImpersonateCompany] = useState('InovaCorp');
 
     // --- Logic for Campaigns ---
     const fetchCampaigns = useCallback(async () => {
@@ -314,15 +328,15 @@ export const StaffDashboardView: React.FC = () => {
     
     // --- Logic for Documents ---
     const availableBranches = useMemo(() => {
-        if (selectedCompany === 'Todas') {
+        if (selectedCompanyDoc === 'Todas') {
             return allBranches;
         }
-        return ['Todas', ...(companyBranches[selectedCompany] || [])];
-    }, [selectedCompany]);
+        return ['Todas', ...(companyBranches[selectedCompanyDoc] || [])];
+    }, [selectedCompanyDoc]);
 
     useEffect(() => {
         setSelectedBranch('Todas');
-    }, [selectedCompany]);
+    }, [selectedCompanyDoc]);
 
     const summary = useMemo(() => {
         const total = documents.length;
@@ -346,7 +360,7 @@ export const StaffDashboardView: React.FC = () => {
 
     const sortedAndFilteredDocuments = useMemo(() => {
         let sortableItems = [...documents].filter(doc => {
-            const companyMatch = selectedCompany === 'Todas' || doc.company === selectedCompany;
+            const companyMatch = selectedCompanyDoc === 'Todas' || doc.company === selectedCompanyDoc;
             const branchMatch = selectedBranch === 'Todas' || doc.branch === selectedBranch;
             const statusMatch = selectedStatus === 'Todos' || getDocumentStatus(doc.expiryDate).status === selectedStatus;
             const searchMatch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -369,7 +383,7 @@ export const StaffDashboardView: React.FC = () => {
           });
         }
         return sortableItems;
-    }, [documents, selectedCompany, selectedBranch, selectedStatus, searchTerm, sortConfig]);
+    }, [documents, selectedCompanyDoc, selectedBranch, selectedStatus, searchTerm, sortConfig]);
 
     const handleDownload = (doc: Document) => {
         const fileContent = `Arquivo de exemplo para:\n\n${doc.name}\nFilial: ${doc.branch}`;
@@ -394,7 +408,7 @@ export const StaffDashboardView: React.FC = () => {
         let html = '<h2>Relatório de Documentos da Staff</h2>';
     
         const activeFilters: Record<string, string> = {};
-        if (selectedCompany !== 'Todas') activeFilters['Empresa'] = selectedCompany;
+        if (selectedCompanyDoc !== 'Todas') activeFilters['Empresa'] = selectedCompanyDoc;
         if (selectedBranch !== 'Todas') activeFilters['Filial'] = selectedBranch;
         if (selectedStatus !== 'Todos') activeFilters['Status'] = selectedStatus;
         if (searchTerm) activeFilters['Busca'] = searchTerm;
@@ -436,133 +450,213 @@ export const StaffDashboardView: React.FC = () => {
         setDocuments(prev => [...prev, newDoc]);
     };
 
+    const TabButton: React.FC<{
+        tab: 'campaigns' | 'documents' | 'impersonation';
+        title: string;
+        icon: React.ElementType;
+        count: number;
+    }> = ({ tab, title, icon: Icon, count }) => {
+        const isActive = activeTab === tab;
+        return (
+            <button
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-2 px-3 py-2 font-semibold text-sm rounded-t-lg border-b-2 transition-colors ${
+                    isActive
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
+                }`}
+                role="tab"
+                aria-selected={isActive}
+            >
+                <Icon className="w-5 h-5" />
+                <span>{title}</span>
+                {count > 0 && (
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                        isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'
+                    }`}>
+                        {count}
+                    </span>
+                )}
+            </button>
+        );
+    };
+
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div>
                 <h1 className="text-3xl font-bold text-slate-900">Painel da Staff</h1>
-                <p className="text-slate-600 mt-1">Gerencie as solicitações e a documentação de todas as unidades.</p>
+                <p className="text-slate-600 mt-1">Gerencie as solicitações, documentação e simule acessos de clientes.</p>
+            </div>
+            
+            {/* Tab Navigation */}
+            <div className="border-b border-slate-200">
+                <nav className="-mb-px flex space-x-4" aria-label="Tabs">
+                    <TabButton tab="campaigns" title="Aprovação de Campanhas" icon={ClockIcon} count={pendingCampaigns.length} />
+                    <TabButton tab="documents" title="Gestão de Documentos" icon={ArchiveBoxIcon} count={0} />
+                    <TabButton tab="impersonation" title="Acesso Delegado" icon={UserIcon} count={0} />
+                </nav>
             </div>
 
-            {/* Section: Campaign Approval */}
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
-                <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-3">
-                    <ClockIcon className="w-6 h-6 text-orange-500"/>
-                    Campanhas Pendentes de Aprovação
-                </h2>
-                {isCampaignsLoading ? <p>Carregando...</p> : pendingCampaigns.length > 0 ? (
-                    <div className="space-y-4">
-                        {pendingCampaigns.map(campaign => (
-                            <div key={campaign.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                <div>
-                                    <h3 className="font-bold text-slate-800">{campaign.name}</h3>
-                                    <p className="text-sm text-slate-500 mt-1">
-                                        Público: {campaign.targetAudience} | Período: {new Date(campaign.startDate).toLocaleDateString()} a {new Date(campaign.endDate).toLocaleDateString()}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => handleApprove(campaign.id)}
-                                    className="flex-shrink-0 w-full sm:w-auto bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-green-700 text-sm transition-colors flex items-center justify-center gap-2"
-                                >
-                                    <ShieldCheckIcon className="w-5 h-5"/>
-                                    Aprovar
-                                </button>
+            {/* Tab Content */}
+            <div className="mt-6">
+                {activeTab === 'campaigns' && (
+                    <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                        <h2 className="text-xl font-semibold text-slate-800 mb-4">
+                            Campanhas Pendentes de Aprovação
+                        </h2>
+                        {isCampaignsLoading ? <p>Carregando...</p> : pendingCampaigns.length > 0 ? (
+                            <div className="space-y-4">
+                                {pendingCampaigns.map(campaign => (
+                                    <div key={campaign.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800">{campaign.name}</h3>
+                                            <p className="text-sm text-slate-500 mt-1">
+                                                Público: {campaign.targetAudience} | Período: {new Date(campaign.startDate).toLocaleDateString()} a {new Date(campaign.endDate).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleApprove(campaign.id)}
+                                            className="flex-shrink-0 w-full sm:w-auto bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-sm hover:bg-green-700 text-sm transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <ShieldCheckIcon className="w-5 h-5"/>
+                                            Aprovar
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-8 text-slate-500">
-                        <ShieldCheckIcon className="w-12 h-12 mx-auto text-slate-300 mb-2"/>
-                        <p>Nenhuma campanha pendente no momento.</p>
+                        ) : (
+                            <div className="text-center py-8 text-slate-500">
+                                <ShieldCheckIcon className="w-12 h-12 mx-auto text-slate-300 mb-2"/>
+                                <p>Nenhuma campanha pendente no momento.</p>
+                            </div>
+                        )}
                     </div>
                 )}
-            </div>
-
-            {/* Section: Document Management */}
-            <div className="space-y-6">
-                 <div className="flex flex-wrap justify-between items-start gap-4">
-                    <h2 className="text-2xl font-bold text-slate-800">Gerenciamento de Documentos</h2>
-                    <div className="flex gap-2">
-                         <button onClick={() => setIsUploadModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">
-                            <PlusCircleIcon className="w-5 h-5"/> Enviar Documento
-                        </button>
-                        <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50">
-                            <ArrowDownTrayIcon className="w-5 h-5" /> Exportar (XLS)
-                        </button>
+                
+                {activeTab === 'documents' && (
+                     <div className="space-y-6">
+                        <div className="flex flex-wrap justify-between items-start gap-4">
+                           <h2 className="text-2xl font-bold text-slate-800">Gerenciamento de Documentos</h2>
+                           <div className="flex gap-2">
+                                <button onClick={() => setIsUploadModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700">
+                                   <PlusCircleIcon className="w-5 h-5"/> Enviar Documento
+                               </button>
+                               <button onClick={handleExportXls} className="flex items-center gap-2 bg-white text-slate-700 font-semibold py-2 px-4 rounded-lg shadow-sm border border-slate-300 hover:bg-slate-50">
+                                   <ArrowDownTrayIcon className="w-5 h-5" /> Exportar (XLS)
+                               </button>
+                           </div>
+                       </div>
+       
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                           <KpiCard title="Total de Documentos" value={summary.total} icon={ArchiveBoxIcon} />
+                           <KpiCard title="Em Dia" value={summary.inGoodStanding} icon={ShieldCheckIcon} colorClass="text-green-600" />
+                           <KpiCard title="Próximo ao Vencimento" value={summary.expiringSoon} icon={ExclamationTriangleIcon} colorClass="text-yellow-600" />
+                           <KpiCard title="Vencidos" value={summary.expired} icon={ExclamationCircleIcon} colorClass="text-red-600" />
+                       </div>
+       
+                       <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200 space-y-4">
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                               <div className="relative">
+                                   <label htmlFor="search-filter" className="block text-sm font-medium text-slate-700 mb-1">Buscar por Nome</label>
+                                   <input id="search-filter" type="text" placeholder="Ex: PGR, PCMSO..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-2 pl-10 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"/>
+                                   <MagnifyingGlassIcon className="absolute left-3 top-9 w-5 h-5 text-slate-400" />
+                               </div>
+                               <div>
+                                   <label htmlFor="company-filter" className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+                                   <select id="company-filter" value={selectedCompanyDoc} onChange={e => setSelectedCompanyDoc(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                       {companies.map(c => <option key={c} value={c}>{c}</option>)}
+                                   </select>
+                               </div>
+                               <div>
+                                   <label htmlFor="branch-filter" className="block text-sm font-medium text-slate-700 mb-1">Filial</label>
+                                   <select id="branch-filter" value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                       {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
+                                   </select>
+                               </div>
+                               <div>
+                                   <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                                   <select id="status-filter" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                       {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+                                   </select>
+                               </div>
+                           </div>
+                       </div>
+       
+                       <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                           <div className="overflow-x-auto">
+                           <table className="min-w-full divide-y divide-slate-200">
+                               <thead className="bg-slate-50">
+                               <tr>
+                                   <SortableHeader column="name" title="Nome do Documento" sortConfig={sortConfig} requestSort={requestSort} />
+                                   <SortableHeader column="status" title="Status" sortConfig={sortConfig} requestSort={requestSort} />
+                                   <SortableHeader column="expiryDate" title="Validade" sortConfig={sortConfig} requestSort={requestSort} />
+                                   <SortableHeader column="company" title="Empresa" sortConfig={sortConfig} requestSort={requestSort} />
+                                   <SortableHeader column="branch" title="Filial" sortConfig={sortConfig} requestSort={requestSort} />
+                                   <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
+                               </tr>
+                               </thead>
+                               <tbody className="bg-white divide-y divide-slate-200">
+                               {sortedAndFilteredDocuments.map(doc => {
+                                   const { status, days } = getDocumentStatus(doc.expiryDate);
+                                   return (
+                                       <tr key={doc.id} className="hover:bg-slate-50">
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{doc.name}</td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                               <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusStyles(status)}`}>{status}</span>
+                                           </td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{new Date(doc.expiryDate).toLocaleDateString('pt-BR')}</td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.company}</td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.branch}</td>
+                                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                               <button onClick={() => handleDownload(doc)} className="flex items-center gap-2 text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md">
+                                                   <ArrowDownTrayIcon className="w-4 h-4"/> Baixar
+                                               </button>
+                                           </td>
+                                       </tr>
+                                   );
+                               })}
+                               </tbody>
+                           </table>
+                           </div>
+                       </div>
+                   </div>
+                )}
+                
+                {activeTab === 'impersonation' && (
+                     <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
+                         <h2 className="text-xl font-semibold text-slate-800 mb-4">
+                            Acesso Delegado (Simulação)
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Impersonate Company */}
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>Acessar como Empresa</h3>
+                                 <div className="flex items-end gap-2">
+                                    <div className="flex-grow">
+                                        <label htmlFor="impersonate-company" className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+                                        <select id="impersonate-company" value={impersonateCompany} onChange={e => setImpersonateCompany(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                            {companies.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                     <button onClick={() => onImpersonate('company')} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 h-10">Acessar</button>
+                                </div>
+                            </div>
+                             {/* Impersonate Collaborator */}
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2"><UserIcon className="w-5 h-5"/>Acessar como Colaborador</h3>
+                                 <div className="flex items-end gap-2">
+                                     <div className="flex-grow">
+                                        <label htmlFor="impersonate-collab" className="block text-sm font-medium text-slate-700 mb-1">Colaborador</label>
+                                        <select id="impersonate-collab" className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                                            <option>Colaborador de Teste (Padrão)</option>
+                                        </select>
+                                    </div>
+                                    <button onClick={() => onImpersonate('collaborator')} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 h-10">Acessar</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <KpiCard title="Total de Documentos" value={summary.total} icon={ArchiveBoxIcon} />
-                    <KpiCard title="Em Dia" value={summary.inGoodStanding} icon={ShieldCheckIcon} colorClass="text-green-600" />
-                    <KpiCard title="Próximo ao Vencimento" value={summary.expiringSoon} icon={ExclamationTriangleIcon} colorClass="text-yellow-600" />
-                    <KpiCard title="Vencidos" value={summary.expired} icon={ExclamationCircleIcon} colorClass="text-red-600" />
-                </div>
-
-                <div className="bg-white p-4 rounded-xl shadow-lg border border-slate-200 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div className="relative">
-                            <label htmlFor="search-filter" className="block text-sm font-medium text-slate-700 mb-1">Buscar por Nome</label>
-                            <input id="search-filter" type="text" placeholder="Ex: PGR, PCMSO..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-2 pl-10 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"/>
-                            <MagnifyingGlassIcon className="absolute left-3 top-9 w-5 h-5 text-slate-400" />
-                        </div>
-                        <div>
-                            <label htmlFor="company-filter" className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
-                            <select id="company-filter" value={selectedCompany} onChange={e => setSelectedCompany(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
-                                {companies.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="branch-filter" className="block text-sm font-medium text-slate-700 mb-1">Filial</label>
-                            <select id="branch-filter" value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
-                                {availableBranches.map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="status-filter" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                            <select id="status-filter" value={selectedStatus} onChange={e => setSelectedStatus(e.target.value)} className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
-                                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
-                        <tr>
-                            <SortableHeader column="name" title="Nome do Documento" sortConfig={sortConfig} requestSort={requestSort} />
-                            <SortableHeader column="status" title="Status" sortConfig={sortConfig} requestSort={requestSort} />
-                            <SortableHeader column="expiryDate" title="Validade" sortConfig={sortConfig} requestSort={requestSort} />
-                            <SortableHeader column="company" title="Empresa" sortConfig={sortConfig} requestSort={requestSort} />
-                            <SortableHeader column="branch" title="Filial" sortConfig={sortConfig} requestSort={requestSort} />
-                            <th scope="col" className="relative px-6 py-3"><span className="sr-only">Ações</span></th>
-                        </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-slate-200">
-                        {sortedAndFilteredDocuments.map(doc => {
-                            const { status, days } = getDocumentStatus(doc.expiryDate);
-                            return (
-                                <tr key={doc.id} className="hover:bg-slate-50">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{doc.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusStyles(status)}`}>{status}</span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{new Date(doc.expiryDate).toLocaleDateString('pt-BR')}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.company}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{doc.branch}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onClick={() => handleDownload(doc)} className="flex items-center gap-2 text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md">
-                                            <ArrowDownTrayIcon className="w-4 h-4"/> Baixar
-                                        </button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                    </div>
-                </div>
+                )}
             </div>
 
             <UploadDocumentModal 

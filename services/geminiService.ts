@@ -1,5 +1,6 @@
 
 
+
 import { GoogleGenAI, Type, FunctionDeclaration, Chat } from "@google/genai";
 import * as dataService from './dataService';
 
@@ -159,7 +160,7 @@ Além dos dados brutos, você tem acesso a visualizações:
 - **summary:** Crie um parágrafo conciso resumindo o estado geral. Mencione a pontuação geral e o nível de risco, e se o grupo filtrado se desvia muito da média da empresa (baseado no gráfico de radar). Use o título 'Sumário Executivo'.
 - **strengths:** Identifique os 2-3 fatores com as maiores pontuações. Descreva por que são pontos fortes, talvez mencionando um forte consenso positivo do gráfico de distribuição. Use o título 'Principais Pontos Fortes'.
 - **attentionPoints:** Identifique os 2-3 fatores com as menores pontuações. Descreva o impacto potencial. Se o gráfico de distribuição mostrar polarização (muitos extremos e poucos neutros), mencione isso como um ponto de atenção adicional. Use o título 'Principais Pontos de Atenção'.
-- **recommendations:** Para cada ponto de atenção, forneça 1-2 recomendações acionáveis e estratégicas. Use o título 'Recomendações Estratégicas'.
+- **recommendations:** Para cada ponto de atenção, forneça 1-2 recomendações acionáveis e estratégicas. Use o título 'Recomendacões Estratégicas'.
 - **nextSteps:** Sugira um próximo passo claro, como focar em um fator de risco específico para uma análise mais profunda ou discutir os insights com as lideranças diretas do grupo analisado. Use o título 'Próximos Passos'.
 
 **REGRAS:**

@@ -23,6 +23,7 @@ import { Notification, generateAndFetchNotifications, markAllAsRead } from './se
 import { JournalView } from './components/JournalView';
 import { StaffDashboardView } from './components/StaffDashboardView';
 import { DocumentationView } from './components/DocumentationView';
+import { ImpersonationBanner } from './components/ImpersonationBanner';
 
 export type ActiveView = 'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 'plano_acao' | 'settings' | 'faq' | 'action_tracking' | 'campaigns' | 'support_team' | 'initiatives' | 'assistant' | 'journal' | 'staff_dashboard' | 'documentation';
 export type UserRole = 'company' | 'collaborator' | 'staff';
@@ -34,6 +35,7 @@ const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [impersonationOrigin, setImpersonationOrigin] = useState<AuthData | null>(null);
   
   // State for contextual navigation
   const [dashboardFilters, setDashboardFilters] = useState<Record<string, string> | undefined>(undefined);
@@ -43,6 +45,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkAuth = () => {
       const authData = authService.getAuth();
+      const originData = authService.getImpersonationOrigin();
+      
+      setImpersonationOrigin(originData);
+
       if (authData) {
         setUser(authData);
         // Generate notifications only for authenticated company users
@@ -58,6 +64,7 @@ const App: React.FC = () => {
 
   const handleLogin = (authData: AuthData) => {
     setUser(authData);
+    setImpersonationOrigin(null); // Clear impersonation on normal login
     if (authData.role === 'staff') {
         setActiveView('staff_dashboard');
     } else {
@@ -68,6 +75,21 @@ const App: React.FC = () => {
   const handleLogout = () => {
     authService.logout();
     setUser(null);
+    setImpersonationOrigin(null);
+  };
+  
+  const handleImpersonateLogin = async (role: UserRole) => {
+    const newAuthData = await authService.impersonateLogin(role);
+    setImpersonationOrigin(user);
+    setUser(newAuthData);
+    setActiveView('home');
+  };
+  
+  const handleStopImpersonation = async () => {
+    const originalAuthData = await authService.stopImpersonation();
+    setImpersonationOrigin(null);
+    setUser(originalAuthData);
+    setActiveView('staff_dashboard');
   };
 
   const handleDirectNavigation = (view: ActiveView) => {
@@ -113,10 +135,10 @@ const App: React.FC = () => {
       case 'home':
         if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
-        if (user.role === 'staff') return <StaffDashboardView />;
+        if (user.role === 'staff') return <StaffDashboardView onImpersonate={handleImpersonateLogin} />;
         return null;
       case 'staff_dashboard':
-        return user.role === 'staff' ? <StaffDashboardView /> : null; // Only for staff
+        return user.role === 'staff' ? <StaffDashboardView onImpersonate={handleImpersonateLogin} /> : null; // Only for staff
       case 'personal_reflection':
         return <AnalysisView />;
       case 'dashboard':
@@ -151,7 +173,7 @@ const App: React.FC = () => {
       default:
         if (user.role === 'collaborator') return <CollaboratorHomeView setActiveView={handleDirectNavigation} />;
         if (user.role === 'company') return <CompanyHomeView setActiveView={handleDirectNavigation} onNavigateToDashboard={handleNavigateToDashboard} />;
-        if (user.role === 'staff') return <StaffDashboardView />;
+        if (user.role === 'staff') return <StaffDashboardView onImpersonate={handleImpersonateLogin} />;
         return null;
     }
   };
@@ -167,6 +189,12 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[--color-background] text-[--color-foreground]">
+      {impersonationOrigin && (
+        <ImpersonationBanner 
+            impersonatedRole={user.role}
+            onStopImpersonation={handleStopImpersonation}
+        />
+      )}
       <Sidebar
         activeView={activeView}
         setActiveView={(view) => {
@@ -184,7 +212,7 @@ const App: React.FC = () => {
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
-      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} transition-all duration-300 flex flex-col min-h-screen`}>
+      <div className={`${isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'} ${impersonationOrigin ? 'pt-12' : ''} transition-all duration-300 flex flex-col min-h-screen`}>
         <Header 
             onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)}
             notifications={notifications}

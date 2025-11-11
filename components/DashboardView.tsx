@@ -313,11 +313,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 factor.name,
                 factor.score,
                 companyFactor ? companyFactor.score : 'N/A',
-                distribution[0]?.value.toFixed(1) ?? 0,
-                distribution[1]?.value.toFixed(1) ?? 0,
-                distribution[2]?.value.toFixed(1) ?? 0,
-                distribution[3]?.value.toFixed(1) ?? 0,
-                distribution[4]?.value.toFixed(1) ?? 0,
+                // FIX: Changed fallback from number 0 to string '0' to ensure type consistency, as toFixed() returns a string. This can prevent subtle type inference issues.
+                distribution[0]?.value.toFixed(1) ?? '0',
+                distribution[1]?.value.toFixed(1) ?? '0',
+                distribution[2]?.value.toFixed(1) ?? '0',
+                distribution[3]?.value.toFixed(1) ?? '0',
+                distribution[4]?.value.toFixed(1) ?? '0',
             ];
         });
         html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows as (string|number)[][]);
