@@ -2,9 +2,9 @@
 
 ## 1. Visão Geral e Estado Atual
 
-**Onde estamos:** Atualmente, o projeto Progredire+ existe como um **protótipo de frontend de alta fidelidade e totalmente funcional**. A interface do usuário (UI), a experiência do usuário (UX) e todas as interações do lado do cliente estão implementadas.
+**Onde estamos:** Atualmente, o projeto Progredire+ existe como um **protótipo de frontend de alta fidelidade e totalmente funcional**. A interface do usuário (UI), a experiência do usuário (UX) e todas as interações do lado do cliente, incluindo o novo **Painel de Staff**, estão implementadas.
 
-**Arquitetura Atual:** Seguimos uma abordagem "frontend-first". Isso significa que toda a lógica de negócio, manipulação de dados e chamadas à API de IA (Gemini) estão **simuladas diretamente no frontend**. Arquivos como `services/dataService.ts` e `components/dashboardMockData.ts` atuam como um "backend falso", permitindo que a interface seja desenvolvida e testada de forma independente.
+**Arquitetura Atual:** Seguimos uma abordagem "frontend-first". Isso significa que toda a lógica de negócio, manipulação de dados multi-tenant (múltiplas empresas, colaboradores, filiais) e chamadas à API de IA (Gemini) estão **simuladas diretamente no frontend**. Arquivos como `services/dataService.ts` atuam como um "backend falso", permitindo que a interface completa seja desenvolvida e testada de forma independente.
 
 **Próximo Grande Passo:** A próxima fase crítica do projeto é a **construção do backend** e a **refatoração do frontend** para se comunicar com ele, efetivamente transformando o protótipo em uma aplicação full-stack. O `BACKEND_IMPLEMENTATION_GUIDE.md` é o nosso mapa para essa fase.
 
@@ -15,67 +15,67 @@
 Esta seção detalha o propósito de cada arquivo/módulo principal e o que precisa ser feito para conectá-lo ao backend.
 
 ### `App.tsx`
--   **O que é:** O componente raiz da aplicação. Gerencia o estado de autenticação, a navegação entre as diferentes "telas" (views) e a estrutura principal do layout (Sidebar, Header).
+-   **O que é:** O componente raiz. Gerencia o estado de autenticação (incluindo o novo `role` de `staff`), a navegação, e a lógica de "personificação" (acesso delegado) iniciada pelo Staff.
 -   **Próximas Etapas:**
-    1.  **Autenticação Real:** Modificar as funções `handleLogin` e `handleLogout` para fazer chamadas à API do backend (`POST /api/auth/login`, `POST /api/auth/logout`) em vez de usar o `authService` que manipula o `localStorage` diretamente.
-    2.  **Verificação de Sessão:** Na inicialização, em vez de apenas ler o `localStorage`, fazer uma chamada a um endpoint como `GET /api/auth/verify` para validar o token no servidor.
-    3.  **Notificações:** Substituir a chamada `generateAndFetchNotifications` por uma chamada a `GET /api/notifications` para buscar notificações reais do banco de dados.
+    1.  **Autenticação Real:** Modificar `handleLogin` para fazer chamadas a `POST /api/auth/login`, enviando email/senha para o `staff`.
+    2.  **Acesso Delegado:** As funções `handleImpersonateLogin` e `handleStopImpersonation` devem interagir com a API do backend (ex: `POST /api/auth/impersonate`) para obter tokens JWT com permissões temporárias.
+    3.  **Notificações:** A busca de notificações deve vir de um endpoint `GET /api/notifications`.
 
 ### `services/dataService.ts`
--   **O que é:** **O arquivo mais crítico a ser modificado.** Atualmente, ele é o nosso **backend simulado**. Contém dados mockados e toda a lógica de cálculo de KPIs, scores, distribuições e tendências para os dashboards.
+-   **O que é:** **O arquivo mais crítico a ser modificado.** Atualmente, é o nosso **backend simulado multi-tenant**. Contém dados mockados e toda a lógica para gerenciar empresas, filiais, colaboradores, documentos, campanhas, e calcular KPIs para os dashboards.
 -   **Próximas Etapas:**
-    1.  **Remoção Completa da Lógica:** Toda a lógica de cálculo (ex: `calculateDashboardData`, `calculateMultiSectorEvolution`) deve ser movida para o backend, conforme especificado no `BACKEND_IMPLEMENTATION_GUIDE.md`.
-    2.  **Transformação em API Client:** As funções exportadas (ex: `getDashboardData`, `saveCollaboratorSurvey`) devem ser reescritas para se tornarem "clientes HTTP". Em vez de calcular dados, elas farão chamadas `fetch` para os endpoints correspondentes da nossa API backend (ex: `fetch('/api/dashboard?setor=Engenharia')`).
-    3.  **Remoção de Dados Mockados:** Os `mockResponses` e outras simulações devem ser removidos, pois os dados virão do banco de dados via API.
+    1.  **Remoção Completa da Lógica:** Toda a lógica de cálculo e gerenciamento de dados deve ser movida para o backend.
+    2.  **Transformação em API Client:** As funções (`getDashboardData`, `getCompanies`, `addEmployee`, `approveCampaign`, etc.) devem ser reescritas para fazerem chamadas `fetch` aos endpoints correspondentes da nossa API backend (ex: `GET /api/dashboard`, `POST /api/staff/companies`, `PATCH /api/staff/campaigns/:id/approve`).
+    3.  **Remoção de Dados Mockados:** Os dados mockados devem ser removidos, pois os dados virão do banco de dados via API.
 
 ### `services/geminiService.ts`
--   **O que é:** O serviço que atualmente faz chamadas **diretas** para a API do Google Gemini. **Esta é uma prática insegura para produção**, pois expõe a chave de API no lado do cliente.
+-   **O que é:** O serviço que atualmente faz chamadas diretas para a API do Google Gemini.
 -   **Próximas Etapas:**
-    1.  **Criar um Proxy no Backend:** O backend deve implementar os endpoints da seção `/api/ai/*` (ex: `/api/ai/dashboard-insight`).
-    2.  **Refatorar Funções:** Cada função neste arquivo (`runAnalysis`, `runDashboardAnalysis`, etc.) deve ser alterada. Em vez de chamar `ai.models.generateContent`, ela deve fazer uma chamada `fetch` para o seu endpoint correspondente no nosso backend (ex: `fetch('/api/ai/analysis', { method: 'POST', body: ... })`).
-    3.  **Remover a `GoogleGenAI`:** A inicialização `new GoogleGenAI(...)` e a chave de API devem ser completamente removidas do frontend. O frontend não saberá mais que está falando com o Gemini; ele apenas se comunicará com o nosso backend.
+    1.  **Refatorar para Proxy:** Alterar todas as funções para fazerem chamadas `fetch` aos endpoints de proxy no nosso backend (ex: `POST /api/ai/analysis`).
+    2.  **Remover `GoogleGenAI`:** A inicialização do SDK e a chave de API devem ser completamente removidas do frontend.
 
-### `components/DashboardView.tsx`
--   **O que é:** A principal tela de visualização de dados para o perfil "Empresa".
+### `components/StaffDashboardView.tsx`
+-   **O que é:** O novo hub central para usuários do tipo `staff`. Ele consolida a aprovação de campanhas, gestão de documentos, e o gerenciamento completo de empresas, filiais e colaboradores (CRUD e importação).
 -   **Próximas Etapas:**
-    1.  **Fonte de Dados:** Alterar o `useEffect` para chamar a nova versão de `getDashboardData` (que buscará os dados da API `GET /api/dashboard`).
-    2.  **Geração de Insight:** A função `handleGenerateInsight` deve chamar a nova versão de `runDashboardAnalysis` (que enviará os dados para `POST /api/ai/dashboard-insight`).
+    1.  **Conectar à API de Staff:** Todas as funcionalidades (aprovar campanha, buscar empresas, adicionar colaborador, deletar filial, etc.) devem ser conectadas aos seus respectivos endpoints `staff` no backend (ex: `GET /api/staff/companies`, `DELETE /api/staff/employees/:id`).
+    2.  **Upload de Arquivos:** A funcionalidade de upload de documentos e importação de XLS/CSV deve ser implementada para enviar os arquivos para o backend, que será responsável por processá-los e salvá-los.
 
-### `components/CompanyEvolutionView.tsx` / `CollaboratorEvolutionView.tsx`
--   **O que é:** Telas que exibem a evolução dos indicadores ao longo do tempo.
+### `components/DashboardView.tsx`, `CompanyEvolutionView.tsx`, `CampaignView.tsx`
+-   **O que são:** As principais telas de visualização para o perfil "Empresa".
 -   **Próximas Etapas:**
-    1.  **Fonte de Dados:** Substituir a lógica de cálculo (`calculate...`) por chamadas aos endpoints `GET /api/evolution/company` e `GET /api/evolution/collaborator`. Os componentes receberão os dados já formatados para os gráficos.
-    2.  **Análise por IA:** A geração do relatório de evolução deve chamar o endpoint `POST /api/ai/evolution-insight`.
+    1.  **Fonte de Dados:** Alterar o `useEffect` para chamar as novas versões dos serviços que buscarão dados dos endpoints da API (`GET /api/dashboard`, `GET /api/evolution/company`, `GET /api/campaigns`). O backend garantirá que os dados retornados sejam apenas os da empresa autenticada.
+
+### `components/DocumentationView.tsx`
+-   **O que é:** A tela para o usuário `company` visualizar os documentos de sua própria empresa.
+-   **Próximas Etapas:** Conectar a busca e listagem de documentos a um endpoint `GET /api/documents`, que retornará apenas os documentos associados ao `companyId` do usuário logado.
 
 ### `components/CorporateSurveyView.tsx`
 -   **O que é:** O questionário que o colaborador responde.
--   **Próximas Etapas:**
-    1.  **Submissão de Respostas:** A função `handleSubmit` deve ser modificada para enviar os dados (`answers` e `segmentation`) via `POST /api/surveys/responses` em vez de salvá-los no `localStorage`. O backend será então responsável por calcular e salvar a entrada de evolução.
+-   **Próximas Etapas:** A função `handleSubmit` deve ser modificada para enviar os dados via `POST /api/surveys/responses`.
 
 ### `components/PlanoAcaoView.tsx` e `PlanoAcaoHistoryView.tsx`
--   **O que é:** Telas para criar, gerenciar e visualizar o histórico de planos de ação.
--   **Próximas Etapas:**
-    1.  **Salvar e Buscar Planos:** Substituir toda a manipulação do `localStorage` por chamadas à API para `GET`, `POST` e `PATCH` nos endpoints `/api/action-plans/*`.
-    2.  **Publicar Iniciativas:** A função `handlePublishPlan` deve chamar `POST /api/initiatives` para salvar a iniciativa no banco de dados e torná-la visível para os colaboradores.
+-   **O que são:** Telas para criar e gerenciar planos de ação.
+-   **Próximas Etapas:** Substituir a manipulação do `localStorage` por chamadas à API para `GET`, `POST`, e `PATCH` nos endpoints `/api/action-plans/*`, que também serão escopados por `companyId`.
 
 ### `BACKEND_IMPLEMENTATION_GUIDE.md`
 -   **O que é:** O documento mais importante para a próxima fase. É o **plano de construção** para o nosso servidor.
--   **Próximas Etapas:**
-    1.  **Implementação:** Utilizar este guia como a fonte da verdade para desenvolver cada modelo de dados, endpoint e lógica de negócio no backend.
+-   **Próximas Etapas:** Utilizar este guia como a fonte da verdade para desenvolver cada modelo de dados, endpoint e lógica de negócio no backend, com foco especial na arquitetura multi-tenant e na diferenciação de permissões entre os papéis de usuário.
 
 ---
 
 ## 3. Resumo das Fases Futuras
 
-1.  **Fase 1: Construção do Backend (Core)**
-    -   Configurar o projeto Node.js/NestJS.
-    -   Implementar o schema do banco de dados com Prisma.
-    -   Criar os endpoints de autenticação e CRUD para os modelos principais (`SurveyResponse`, `ActionPlan`, etc.).
+1.  **Fase 1: Construção do Backend (Core Multi-Tenant)**
+    -   Configurar o projeto NestJS e o banco de dados com Prisma.
+    -   Implementar o schema do banco de dados multi-tenant (`User`, `Company`, `Branch`, `Employee`, `Document`, etc.).
+    -   Criar os endpoints de autenticação para todos os papéis e a lógica de personificação.
 
-2.  **Fase 2: Migração da Lógica de Negócio**
-    -   Mover toda a lógica de cálculo de `dataService.ts` para os serviços do backend, garantindo que o endpoint `GET /api/dashboard` retorne a estrutura de dados completa e correta.
+2.  **Fase 2: Migração da Lógica de Negócio e Endpoints de Staff**
+    -   Mover toda a lógica de cálculo de `dataService.ts` para os services do backend.
+    -   Implementar o endpoint `GET /api/dashboard`, garantindo o isolamento de dados por `companyId`.
+    -   Implementar todos os endpoints de `staff` para gerenciamento de clientes.
 
 3.  **Fase 3: Refatoração do Frontend**
-    -   Criar um cliente de API centralizado no frontend (ex: `apiService.ts`) para lidar com as chamadas `fetch`.
-    -   Substituir todas as chamadas aos serviços mockados (`dataService`, `geminiService`) pelas chamadas ao novo cliente de API.
+    -   Criar um cliente de API centralizado no frontend.
+    -   Substituir todas as chamadas aos serviços mockados pelas chamadas ao novo cliente de API.
     -   Remover completamente os arquivos de dados mockados e a lógica de cálculo do frontend.

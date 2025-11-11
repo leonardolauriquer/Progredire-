@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { getCampaigns, approveCampaign, getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, Branch, getBranches, addBranch, deleteBranch, addBranches } from '../services/dataService';
+import { getCampaigns, approveCampaign, getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, Branch, getBranches, addBranch, deleteBranch, addBranches, CompanyUser, getCompanyUsers, addCompanyUser, deleteCompanyUser, addCompanyUsers } from '../services/dataService';
 import { Campaign } from './dashboardMockData';
 import { 
     ShieldCheckIcon, 
@@ -340,6 +340,15 @@ export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpers
     const [isImportCompanyXlsModalOpen, setIsImportCompanyXlsModalOpen] = useState(false);
     const [isImportEmployeeXlsModalOpen, setIsImportEmployeeXlsModalOpen] = useState(false);
 
+    // --- State for Company User Management ---
+    const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
+    const [companyUserSearchTerm, setCompanyUserSearchTerm] = useState('');
+    const [companyUserPage, setCompanyUserPage] = useState(1);
+    const [companyUserTotalPages, setCompanyUserTotalPages] = useState(1);
+    const [isCompanyUserLoading, setIsCompanyUserLoading] = useState(false);
+    const [isAddCompanyUserModalOpen, setIsAddCompanyUserModalOpen] = useState(false);
+    const [isImportCompanyUserXlsModalOpen, setIsImportCompanyUserXlsModalOpen] = useState(false);
+
 
     // --- Logic for Campaigns ---
     const fetchCampaigns = useCallback(async () => {
@@ -467,12 +476,21 @@ export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpers
         setIsEmployeeLoading(false);
     }, []);
 
+    const fetchCompanyUsers = useCallback(async (page: number, searchTerm: string) => {
+        setIsCompanyUserLoading(true);
+        const { users, pages } = await getCompanyUsers({ page, limit: 5, searchTerm });
+        setCompanyUsers(users);
+        setCompanyUserTotalPages(pages);
+        setIsCompanyUserLoading(false);
+    }, []);
+
     useEffect(() => {
         if (activeTab === 'user_management') {
             fetchCompanies();
             fetchEmployees(employeePage, employeeSearchTerm);
+            fetchCompanyUsers(companyUserPage, companyUserSearchTerm);
         }
-    }, [activeTab, fetchCompanies, fetchEmployees, employeePage, employeeSearchTerm]);
+    }, [activeTab, fetchCompanies, fetchEmployees, employeePage, employeeSearchTerm, fetchCompanyUsers, companyUserPage, companyUserSearchTerm]);
     
     const handleAddCompany = async (companyData: Omit<Company, 'id'>) => {
         const updatedCompanies = await addCompany(companyData);
@@ -520,6 +538,25 @@ export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpers
         setCompanies(updatedCompanies);
         alert('Arquivo CSV de empresas importado com sucesso! (Simulação)');
         setIsImportCompanyCsvModalOpen(false);
+    };
+
+    const handleCompanyUserSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCompanyUserPage(1);
+        fetchCompanyUsers(1, companyUserSearchTerm);
+    };
+
+    const handleAddCompanyUser = async (userData: Omit<CompanyUser, 'id'>) => {
+        await addCompanyUser(userData);
+        fetchCompanyUsers(1, ''); // Refresh list
+        setIsAddCompanyUserModalOpen(false);
+    };
+
+    const handleDeleteCompanyUser = async (id: number) => {
+        if (window.confirm("Tem certeza que deseja revogar o acesso deste usuário?")) {
+            await deleteCompanyUser(id);
+            fetchCompanyUsers(companyUserPage, companyUserSearchTerm); // Refresh current page
+        }
     };
     
     const TabButton: React.FC<{
@@ -707,10 +744,46 @@ export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpers
                         {/* Branch Management */}
                         <BranchManagement companies={companies} />
 
+                        {/* Company User Management */}
+                        <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
+                            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                                <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><IdentificationIcon className="w-6 h-6"/>Gestão de Usuários (Empresa)</h2>
+                                <div className="flex flex-wrap gap-2">
+                                    <button onClick={() => setIsAddCompanyUserModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
+                                    <button onClick={() => setIsImportCompanyUserXlsModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
+                                </div>
+                            </div>
+                            <form onSubmit={handleCompanyUserSearch} className="flex gap-2 mb-4">
+                                <input type="search" value={companyUserSearchTerm} onChange={e => setCompanyUserSearchTerm(e.target.value)} placeholder="Buscar por nome ou email..." className="flex-grow p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]" />
+                                <button type="submit" className="px-4 py-2 bg-slate-600 text-white font-semibold rounded-md hover:bg-slate-700">Buscar</button>
+                            </form>
+                            
+                            <div className="min-h-[16rem]">
+                                {isCompanyUserLoading ? <div className="text-center py-8">Carregando usuários...</div> : (
+                                    <ul className="space-y-2">
+                                        {companyUsers.map(u => (
+                                            <li key={u.id} className="grid grid-cols-4 gap-4 items-center p-2 bg-[--color-muted] rounded-md">
+                                                <span className="text-sm font-medium text-[--color-card-foreground] col-span-1 truncate">{u.name}</span>
+                                                <span className="text-sm text-[--color-card-muted-foreground] col-span-1 truncate">{u.email}</span>
+                                                <span className="text-sm text-[--color-card-muted-foreground] col-span-1">{u.companyName}</span>
+                                                <button onClick={() => handleDeleteCompanyUser(u.id)} className="text-red-500 hover:text-red-700 justify-self-end"><TrashIcon className="w-4 h-4" /></button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                            
+                            <div className="flex justify-between items-center mt-4">
+                                <button onClick={() => setCompanyUserPage(p => Math.max(1, p - 1))} disabled={companyUserPage === 1} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md disabled:opacity-50">Anterior</button>
+                                <span className="text-sm text-slate-500">Página {companyUserPage} de {companyUserTotalPages}</span>
+                                <button onClick={() => setCompanyUserPage(p => Math.min(companyUserTotalPages, p + 1))} disabled={companyUserPage === companyUserTotalPages} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md disabled:opacity-50">Próxima</button>
+                            </div>
+                        </div>
+
                         {/* Employee Management */}
                         <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
                              <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-                                <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><UserIcon className="w-6 h-6"/>Colaboradores</h2>
+                                <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><UserGroupIcon className="w-6 h-6"/>Gestão de Colaboradores</h2>
                                 <div className="flex flex-wrap gap-2">
                                     <button onClick={() => setIsAddEmployeeModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
                                     <button onClick={() => setIsImportEmployeeXlsModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
@@ -784,6 +857,8 @@ export const StaffDashboardView: React.FC<StaffDashboardViewProps> = ({ onImpers
             <ImportCompaniesCsvModal isOpen={isImportCompanyCsvModalOpen} onClose={() => setIsImportCompanyCsvModalOpen(false)} onImport={handleImportCompanyCsv} />
             <ImportCompaniesXlsModal isOpen={isImportCompanyXlsModalOpen} onClose={() => setIsImportCompanyXlsModalOpen(false)} onImportSuccess={fetchCompanies} />
             <ImportEmployeesXlsModal isOpen={isImportEmployeeXlsModalOpen} onClose={() => setIsImportEmployeeXlsModalOpen(false)} onImportSuccess={() => fetchEmployees(1, '')} />
+            <AddCompanyUserModal isOpen={isAddCompanyUserModalOpen} onClose={() => setIsAddCompanyUserModalOpen(false)} onAdd={handleAddCompanyUser} companyList={companies} />
+            <ImportCompanyUserXlsModal isOpen={isImportCompanyUserXlsModalOpen} onClose={() => setIsImportCompanyUserXlsModalOpen(false)} onImportSuccess={() => fetchCompanyUsers(1, '')} companyList={companies} />
         </div>
     );
 };
@@ -1397,6 +1472,158 @@ const ImportBranchesXlsModal: React.FC<{
         <Modal isOpen={isOpen} onClose={onClose} title="Importar Filiais via XLS">
             <div className="space-y-4">
                 <p className="text-sm text-slate-600">Selecione um arquivo XLS com os cabeçalhos corretos.</p>
+                <input type="file" accept=".xls, .xlsx" ref={fileInputRef} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                <button onClick={downloadTemplate} className="text-sm text-blue-600 hover:underline">Baixar modelo de XLS</button>
+                <div className="flex justify-end gap-2 pt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm bg-white border border-slate-300 rounded-md">Cancelar</button>
+                    <button type="button" onClick={handleImport} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">Importar</button>
+                </div>
+            </div>
+        </Modal>
+    );
+};
+
+const AddCompanyUserModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<CompanyUser, 'id'>) => void; companyList: Company[]}> = ({isOpen, onClose, onAdd, companyList}) => {
+    const [formData, setFormData] = useState({
+        name: '', email: '', companyId: companyList[0]?.id || 0, role: 'Leader', status: 'Ativo'
+    });
+
+    useEffect(() => {
+        if(companyList.length > 0 && formData.companyId === 0) {
+            setFormData(prev => ({ ...prev, companyId: companyList[0].id }));
+        }
+    }, [companyList, formData.companyId]);
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const company = companyList.find(c => c.id === Number(formData.companyId));
+        if (!company) {
+            alert('Empresa inválida selecionada.');
+            return;
+        }
+        onAdd({
+            name: formData.name,
+            email: formData.email,
+            companyId: company.id,
+            companyName: company.name,
+            role: formData.role as CompanyUser['role'],
+            status: formData.status as CompanyUser['status'],
+        });
+        // Reset form
+        setFormData({
+            name: '', email: '', companyId: companyList[0]?.id || 0, role: 'Leader', status: 'Ativo'
+        });
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Usuário da Empresa">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-[--color-card-muted-foreground]">Nome Completo</label>
+                        <input type="text" id="name" value={formData.name} onChange={handleChange} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md"/>
+                    </div>
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-[--color-card-muted-foreground]">Email</label>
+                        <input type="email" id="email" value={formData.email} onChange={handleChange} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md"/>
+                    </div>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="companyId" className="block text-sm font-medium text-[--color-card-muted-foreground]">Empresa</label>
+                        <select id="companyId" value={formData.companyId} onChange={handleChange} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md">
+                            {companyList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+                     <div>
+                        <label htmlFor="role" className="block text-sm font-medium text-[--color-card-muted-foreground]">Nível de Acesso</label>
+                        <select id="role" value={formData.role} onChange={handleChange} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md">
+                            <option>Admin</option><option>RH</option><option>Leader</option>
+                        </select>
+                    </div>
+                </div>
+                 <div className="flex justify-end gap-2 pt-4">
+                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm bg-transparent border border-[--color-border] rounded-md">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md">Cadastrar Usuário</button>
+                </div>
+            </form>
+        </Modal>
+    );
+};
+
+const ImportCompanyUserXlsModal: React.FC<{
+    isOpen: boolean; 
+    onClose: () => void; 
+    onImportSuccess: () => void;
+    companyList: Company[];
+}> = ({isOpen, onClose, onImportSuccess, companyList}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const companyMap = useMemo(() => new Map(companyList.map(c => [c.name.toLowerCase(), c.id])), [companyList]);
+
+    const downloadTemplate = () => {
+        const headers = ['name', 'email', 'companyName', 'role', 'status'];
+        const ws = XLSX.utils.json_to_sheet([{}], { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Modelo Usuários Empresa");
+        XLSX.writeFile(wb, "modelo_usuarios_empresa.xls");
+    };
+
+    const handleImport = () => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) {
+            alert("Por favor, selecione um arquivo.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+                const newUsers: Omit<CompanyUser, 'id'>[] = json.map(row => {
+                    const companyName = String(row.companyName || '');
+                    const companyId = companyMap.get(companyName.toLowerCase());
+                    if (!companyId) return null;
+
+                    return {
+                        name: String(row.name || ''),
+                        email: String(row.email || ''),
+                        companyId,
+                        companyName,
+                        role: (row.role || 'Leader'),
+                        status: (row.status || 'Ativo'),
+                    };
+                }).filter((u): u is Omit<CompanyUser, 'id'> => u !== null && !!u.name && !!u.email);
+
+                if (newUsers.length > 0) {
+                    await addCompanyUsers(newUsers);
+                    alert(`${newUsers.length} usuários importados com sucesso!`);
+                    onImportSuccess();
+                    onClose();
+                } else {
+                    alert("Nenhum usuário válido encontrado no arquivo. Verifique se os nomes das empresas ('companyName') correspondem exatamente aos cadastrados.");
+                }
+            } catch (error) {
+                console.error("Error parsing XLS file:", error);
+                alert("Ocorreu um erro ao ler o arquivo.");
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Importar Usuários da Empresa via XLS">
+             <div className="space-y-4">
+                <p className="text-sm text-slate-600">Selecione um arquivo XLS. A coluna `companyName` deve corresponder a uma empresa já cadastrada.</p>
                 <input type="file" accept=".xls, .xlsx" ref={fileInputRef} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
                 <button onClick={downloadTemplate} className="text-sm text-blue-600 hover:underline">Baixar modelo de XLS</button>
                 <div className="flex justify-end gap-2 pt-4">

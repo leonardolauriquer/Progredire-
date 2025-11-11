@@ -113,15 +113,18 @@ export interface Branch {
         cep: string;
     };
 }
+export interface CompanyUser {
+    id: number;
+    name: string;
+    email: string;
+    companyId: number;
+    companyName: string;
+    role: 'Admin' | 'RH' | 'Leader';
+    status: 'Ativo' | 'Inativo';
+}
 
 
-// --- Calculation Logic (Moved from DashboardView) ---
-const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
-const likertToScore: Record<string, number> = {
-  [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
-};
-const allDimensionIds = Object.keys(dimensions);
-const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
+// --- Constants ---
 const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
 const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
 const ACTION_PLAN_HISTORY_KEY = 'progredire-action-plan-history';
@@ -129,6 +132,16 @@ const CAMPAIGNS_KEY = 'progredire-campaigns';
 const COMPANIES_KEY = 'progredire-companies';
 const EMPLOYEES_KEY = 'progredire-employees';
 const BRANCHES_KEY = 'progredire-branches';
+const COMPANY_USERS_KEY = 'progredire-company-users';
+
+
+// --- Calculation Logic & Mock Data ---
+const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
+const likertToScore: Record<string, number> = {
+  [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
+};
+const allDimensionIds = Object.keys(dimensions);
+const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
 
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
@@ -707,7 +720,7 @@ export const approveCampaign = async (campaignId: number): Promise<Campaign[]> =
     return updatedCampaigns;
 };
 
-// --- User Management Service Functions ---
+// --- User Management Mock Data and Initializer ---
 const initialMockCompanies: Company[] = [
     { id: 1, name: 'InovaCorp', razaoSocial: 'InovaCorp Soluções S.A.', cnpj: '12.345.678/0001-99', setor: 'Tecnologia', numColaboradores: 150, contatoPrincipal: { nome: 'Ana Costa', email: 'ana.costa@inovacorp.com' }, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
     { id: 2, name: 'NexusTech', razaoSocial: 'Nexus Tecnologia Ltda.', cnpj: '98.765.432/0001-11', setor: 'Software', numColaboradores: 85, contatoPrincipal: { nome: 'Bruno Lima', email: 'bruno.lima@nexustech.com' }, address: { logradouro: 'Avenida Principal', numero: '456', bairro: 'Jardins', cidade: 'Rio de Janeiro', estado: 'RJ', cep: '22000-000' } },
@@ -757,6 +770,13 @@ const initialMockBranches: Branch[] = [
     { id: 4, name: 'AuraDigital BH', companyId: 3, address: { logradouro: 'Avenida Afonso Pena', numero: '4000', bairro: 'Cruzeiro', cidade: 'Belo Horizonte', estado: 'MG', cep: '30130-009' } }
 ];
 
+const initialMockCompanyUsers: CompanyUser[] = [
+    { id: 1, name: 'Ana Costa', email: 'ana.costa@inovacorp.com', companyId: 1, companyName: 'InovaCorp', role: 'Admin', status: 'Ativo' },
+    { id: 2, name: 'Bruno Lima', email: 'bruno.lima@nexustech.com', companyId: 2, companyName: 'NexusTech', role: 'RH', status: 'Ativo' },
+    { id: 3, name: 'Carla Dias', email: 'carla.dias@auradigital.com', companyId: 3, companyName: 'AuraDigital', role: 'Leader', status: 'Inativo' },
+];
+
+
 const initializeUserData = () => {
     try {
         if (!localStorage.getItem(COMPANIES_KEY)) {
@@ -772,9 +792,14 @@ const initializeUserData = () => {
         if (!localStorage.getItem(BRANCHES_KEY)) {
             localStorage.setItem(BRANCHES_KEY, JSON.stringify(initialMockBranches));
         }
+        if (!localStorage.getItem(COMPANY_USERS_KEY)) {
+            localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(initialMockCompanyUsers));
+        }
     } catch (e) { console.error("Error initializing user data:", e); }
 };
 initializeUserData();
+
+// --- User Management Service Functions ---
 
 export const getCompanies = async (): Promise<Company[]> => {
     return new Promise(resolve => {
@@ -906,4 +931,54 @@ export const addBranches = async (companyId: number, branchesData: Omit<Branch, 
     const newBranches: Branch[] = branchesData.map(b => ({ ...b, id: Date.now() + Math.random(), companyId }));
     const updated = [...allBranches, ...newBranches];
     localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
+};
+
+// --- Company User Management Service Functions ---
+export const getCompanyUsers = async (
+    { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
+): Promise<{ users: CompanyUser[]; total: number; pages: number }> => {
+    return new Promise(resolve => {
+        const data = localStorage.getItem(COMPANY_USERS_KEY);
+        const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
+
+        const filtered = searchTerm
+            ? allUsers.filter(u =>
+                u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                u.email.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            : allUsers;
+        
+        const total = filtered.length;
+        const pages = Math.ceil(total / limit);
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const users = filtered.slice(start, end);
+
+        setTimeout(() => {
+            resolve({ users, total, pages });
+        }, 300);
+    });
+};
+
+export const addCompanyUser = async (userData: Omit<CompanyUser, 'id'>): Promise<void> => {
+     const data = localStorage.getItem(COMPANY_USERS_KEY);
+     const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
+     const newUser: CompanyUser = { id: Date.now(), ...userData };
+     allUsers.unshift(newUser);
+     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(allUsers));
+};
+
+export const addCompanyUsers = async (usersData: Omit<CompanyUser, 'id'>[]): Promise<void> => {
+     const data = localStorage.getItem(COMPANY_USERS_KEY);
+     const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
+     const newUsers: CompanyUser[] = usersData.map(u => ({ ...u, id: Date.now() + Math.random() }));
+     const updated = [...newUsers, ...allUsers];
+     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(updated));
+};
+
+export const deleteCompanyUser = async (id: number): Promise<void> => {
+    const data = localStorage.getItem(COMPANY_USERS_KEY);
+    const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
+    const updated = allUsers.filter(u => u.id !== id);
+    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(updated));
 };
