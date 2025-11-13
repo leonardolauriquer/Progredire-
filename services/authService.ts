@@ -1,5 +1,5 @@
-
 import { UserRole } from '../App';
+import { findCompanyUserByEmail, findEmployeeByCpf } from './dataService';
 
 export interface AuthData {
   token: string;
@@ -9,49 +9,71 @@ export interface AuthData {
 const AUTH_KEY = 'progredire-auth';
 const IMPERSONATION_ORIGIN_KEY = 'progredire-impersonation-origin';
 
+interface LoginCredentials {
+    role: UserRole;
+    email?: string;
+    password?: string;
+    cpf?: string;
+}
 
-const login = (role: UserRole, email?: string): Promise<AuthData> => {
-  return new Promise((resolve, reject) => {
-    // Simulate network delay
-    setTimeout(() => {
-      // Staff-specific validation
-      if (role === 'staff') {
-        if (!email) {
-          return reject(new Error('Email é obrigatório para acesso Staff.'));
-        }
-        const allowedStaffEmails = [
-          'paula.progredire@gmail.com',
-          'natieli.progredire@gmail.com',
-          'leonardo.progredire@gmail.com'
-        ];
-        if (!allowedStaffEmails.includes(email.toLowerCase())) {
-          return reject(new Error('Acesso negado. Email não autorizado.'));
-        }
-      }
+const login = (credentials: LoginCredentials): Promise<AuthData> => {
+    return new Promise((resolve, reject) => {
+        // Simulate network delay
+        setTimeout(async () => {
+            try {
+                if (credentials.role === 'staff') {
+                    if (!credentials.email) {
+                        return reject(new Error('Email é obrigatório para acesso Staff.'));
+                    }
+                    const allowedStaffEmails = [
+                        'paula.progredire@gmail.com',
+                        'natieli.progredire@gmail.com',
+                        'leonardo.progredire@gmail.com'
+                    ];
+                    if (!allowedStaffEmails.includes(credentials.email.toLowerCase())) {
+                        return reject(new Error('Acesso negado. Email não autorizado.'));
+                    }
+                    // For mock purposes, staff login doesn't check password
+                } else if (credentials.role === 'collaborator') {
+                    if (!credentials.cpf || !credentials.password) {
+                        return reject(new Error('CPF e senha são obrigatórios.'));
+                    }
+                    // Find user by CPF and check password
+                    const user = await findEmployeeByCpf(credentials.cpf);
+                    if (!user || user.password !== credentials.password) {
+                        return reject(new Error('CPF ou senha inválidos.'));
+                    }
+                } else if (credentials.role === 'company') {
+                    if (!credentials.email || !credentials.password) {
+                        return reject(new Error('Email e senha são obrigatórios.'));
+                    }
+                     // Find user by email and check password
+                    const user = await findCompanyUserByEmail(credentials.email);
+                    if (!user || user.password !== credentials.password) {
+                        return reject(new Error('Email ou senha inválidos.'));
+                    }
+                } else {
+                     // Default mock for old company/collaborator login without credentials
+                     console.warn(`Login sem credenciais para ${credentials.role}. Usando mock.`);
+                }
+                
+                // On success, create mock auth data
+                const authData: AuthData = {
+                    token: `mock_token_${credentials.role}_${Date.now()}`,
+                    role: credentials.role,
+                };
 
-      // Simulate a possible failure
-      if (Math.random() > 0.95) { // 5% chance of failure
-        reject(new Error('Falha na autenticação. Tente novamente.'));
-        return;
-      }
-
-      // On success, create mock auth data
-      const authData: AuthData = {
-        token: `mock_token_${role}_${Date.now()}`,
-        role: role,
-      };
-
-      try {
-        localStorage.removeItem(IMPERSONATION_ORIGIN_KEY); // Clear any old impersonation
-        localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
-        resolve(authData);
-      } catch (error) {
-        console.error('Failed to save auth data to localStorage', error);
-        reject(new Error('Não foi possível salvar a sessão. Verifique as permissões do seu navegador.'));
-      }
-    }, 1000); // 1 second delay
-  });
+                localStorage.removeItem(IMPERSONATION_ORIGIN_KEY); // Clear any old impersonation
+                localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
+                resolve(authData);
+            } catch (error) {
+                console.error('Login process failed', error);
+                reject(new Error('Ocorreu um erro inesperado durante o login.'));
+            }
+        }, 1000); // 1 second delay
+    });
 };
+
 
 const logout = (): void => {
   try {

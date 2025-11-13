@@ -92,6 +92,7 @@ export interface Employee {
     email: string;
     company: string;
     cpf: string;
+    password?: string;
     dataNascimento: string; // YYYY-MM-DD
     genero: 'Masculino' | 'Feminino' | 'Outro' | 'Prefiro não informar';
     dataAdmissao: string; // YYYY-MM-DD
@@ -117,6 +118,7 @@ export interface CompanyUser {
     id: number;
     name: string;
     email: string;
+    password?: string;
     companyId: number;
     companyName: string;
     role: 'Admin' | 'RH' | 'Leader';
@@ -486,10 +488,10 @@ export const getDashboardData = (filters: Record<string, string>): Promise<Dashb
   return new Promise((resolve, reject) => {
     // 1. Check for authentication
     const authData = authService.getAuth();
-    if (!authData || authData.role !== 'company') {
+    if (!authData || (authData.role !== 'company' && authData.role !== 'staff')) {
       // Simulate a delay even for auth errors to prevent timing attacks
       setTimeout(() => {
-        reject(new Error('Acesso não autorizado. Apenas usuários do tipo "Empresa" podem ver o dashboard.'));
+        reject(new Error('Acesso não autorizado. Apenas usuários do tipo "Empresa" ou "Staff" podem ver o dashboard.'));
       }, 500);
       return;
     }
@@ -745,12 +747,14 @@ const generateMockEmployees = (): Employee[] => {
         const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         const company = companies[Math.floor(Math.random() * companies.length)];
+        const cpf = `${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}-${Math.floor(Math.random()*100).toString().padStart(2,'0')}`;
         employees.push({
             id: i,
             name: `${firstName} ${lastName} ${i}`,
             email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@${company.toLowerCase().replace(' ', '')}.com`,
             company: company,
-            cpf: `${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}-${Math.floor(Math.random()*100).toString().padStart(2,'0')}`,
+            cpf: cpf,
+            password: cpf.slice(-3),
             dataNascimento: randomDate(new Date(1970, 0, 1), new Date(2004, 0, 1)),
             genero: generos[Math.floor(Math.random() * generos.length)],
             dataAdmissao: randomDate(new Date(2015, 0, 1), new Date()),
@@ -771,9 +775,9 @@ const initialMockBranches: Branch[] = [
 ];
 
 const initialMockCompanyUsers: CompanyUser[] = [
-    { id: 1, name: 'Ana Costa', email: 'ana.costa@inovacorp.com', companyId: 1, companyName: 'InovaCorp', role: 'Admin', status: 'Ativo' },
-    { id: 2, name: 'Bruno Lima', email: 'bruno.lima@nexustech.com', companyId: 2, companyName: 'NexusTech', role: 'RH', status: 'Ativo' },
-    { id: 3, name: 'Carla Dias', email: 'carla.dias@auradigital.com', companyId: 3, companyName: 'AuraDigital', role: 'Leader', status: 'Inativo' },
+    { id: 1, name: 'Ana Costa', email: 'ana.costa@inovacorp.com', password: 'Mudar@123', companyId: 1, companyName: 'InovaCorp', role: 'Admin', status: 'Ativo' },
+    { id: 2, name: 'Bruno Lima', email: 'bruno.lima@nexustech.com', password: 'Mudar@123', companyId: 2, companyName: 'NexusTech', role: 'RH', status: 'Ativo' },
+    { id: 3, name: 'Carla Dias', email: 'carla.dias@auradigital.com', password: 'Mudar@123', companyId: 3, companyName: 'AuraDigital', role: 'Leader', status: 'Inativo' },
 ];
 
 
@@ -844,6 +848,30 @@ export const deleteCompany = async (id: number): Promise<Company[]> => {
     return updated;
 };
 
+export const findEmployeeByCpf = async (cpf: string): Promise<Employee | undefined> => {
+    // Hardcoded test user for easy access
+    if (cpf === '123.456.789-00') {
+        return {
+            id: 99999,
+            name: 'Colaborador de Teste',
+            email: 'colaborador.teste@inovacorp.com',
+            company: 'InovaCorp',
+            cpf: '123.456.789-00',
+            password: '900',
+            dataNascimento: '1990-01-01',
+            genero: 'Prefiro não informar',
+            dataAdmissao: '2022-01-01',
+            nivelCargo: 'Pleno',
+            status: 'Ativo',
+            unidade: 'Matriz',
+            liderDireto: 'Ana Costa'
+        };
+    }
+    const data = localStorage.getItem(EMPLOYEES_KEY);
+    const allEmployees: Employee[] = data ? JSON.parse(data) : [];
+    return allEmployees.find(e => e.cpf === cpf);
+};
+
 // This function simulates a paginated and searchable backend endpoint.
 export const getEmployees = async (
     { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
@@ -873,18 +901,19 @@ export const getEmployees = async (
     });
 };
 
-export const addEmployee = async (employeeData: Omit<Employee, 'id'>): Promise<void> => {
+export const addEmployee = async (employeeData: Omit<Employee, 'id' | 'password'>): Promise<void> => {
      const data = localStorage.getItem(EMPLOYEES_KEY);
      const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-     const newEmployee: Employee = { id: Date.now(), ...employeeData };
+     const password = employeeData.cpf.slice(-3);
+     const newEmployee: Employee = { id: Date.now(), ...employeeData, password };
      allEmployees.unshift(newEmployee);
      localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(allEmployees));
 };
 
-export const addEmployees = async (employeesData: Omit<Employee, 'id'>[]): Promise<void> => {
+export const addEmployees = async (employeesData: Omit<Employee, 'id' | 'password'>[]): Promise<void> => {
      const data = localStorage.getItem(EMPLOYEES_KEY);
      const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-     const newEmployees: Employee[] = employeesData.map(e => ({ ...e, id: Date.now() + Math.random() }));
+     const newEmployees: Employee[] = employeesData.map(e => ({ ...e, id: Date.now() + Math.random(), password: e.cpf.slice(-3) }));
      const updated = [...newEmployees, ...allEmployees];
      localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
 };
@@ -934,6 +963,13 @@ export const addBranches = async (companyId: number, branchesData: Omit<Branch, 
 };
 
 // --- Company User Management Service Functions ---
+
+export const findCompanyUserByEmail = async (email: string): Promise<CompanyUser | undefined> => {
+    const data = localStorage.getItem(COMPANY_USERS_KEY);
+    const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
+    return allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+};
+
 export const getCompanyUsers = async (
     { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
 ): Promise<{ users: CompanyUser[]; total: number; pages: number }> => {
@@ -960,18 +996,18 @@ export const getCompanyUsers = async (
     });
 };
 
-export const addCompanyUser = async (userData: Omit<CompanyUser, 'id'>): Promise<void> => {
+export const addCompanyUser = async (userData: Omit<CompanyUser, 'id' | 'password'>): Promise<void> => {
      const data = localStorage.getItem(COMPANY_USERS_KEY);
      const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-     const newUser: CompanyUser = { id: Date.now(), ...userData };
+     const newUser: CompanyUser = { id: Date.now(), ...userData, password: 'Mudar@123' };
      allUsers.unshift(newUser);
      localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(allUsers));
 };
 
-export const addCompanyUsers = async (usersData: Omit<CompanyUser, 'id'>[]): Promise<void> => {
+export const addCompanyUsers = async (usersData: Omit<CompanyUser, 'id' | 'password'>[]): Promise<void> => {
      const data = localStorage.getItem(COMPANY_USERS_KEY);
      const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-     const newUsers: CompanyUser[] = usersData.map(u => ({ ...u, id: Date.now() + Math.random() }));
+     const newUsers: CompanyUser[] = usersData.map(u => ({ ...u, id: Date.now() + Math.random(), password: 'Mudar@123' }));
      const updated = [...newUsers, ...allUsers];
      localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(updated));
 };

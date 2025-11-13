@@ -1,8 +1,6 @@
-
-
-
 import React, { useState } from 'react';
-import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon } from './icons';
+// FIX: The original code imported a non-existent 'ArrowLeftIcon'. It has been replaced with 'ChevronLeftIcon' to match the icon used and fix the import error.
+import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon, ChevronLeftIcon } from './icons';
 import { UserRole } from '../App';
 import { authService, AuthData } from '../services/authService';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -11,41 +9,25 @@ interface LoginViewProps {
   onLogin: (authData: AuthData) => void;
 }
 
-const LoginButton: React.FC<{
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  onClick: () => void;
-  isLoading: boolean;
-}> = ({ icon: Icon, title, description, onClick, isLoading }) => (
-    <button
-        onClick={onClick}
-        disabled={isLoading}
-        className="w-full text-left p-6 bg-[--color-card] rounded-2xl shadow-lg border border-[--color-border] hover:shadow-xl hover:border-[--color-primary-300] transition-all duration-300 flex items-center space-x-6 disabled:opacity-70 disabled:cursor-not-allowed group"
-    >
-        <div className="flex-shrink-0 w-16 h-16 bg-[--color-primary-50] p-4 rounded-full flex items-center justify-center transition-colors duration-300 group-hover:bg-[--color-primary-100]">
-            {isLoading ? <LoadingSpinner /> : <Icon className="h-8 w-8 text-[--color-primary-600]" />}
-        </div>
-        <div>
-            <h3 className="text-xl font-bold text-[--color-card-foreground]">
-                {isLoading ? 'Autenticando...' : title}
-            </h3>
-            <p className="text-[--color-card-muted-foreground] mt-1">{description}</p>
-        </div>
-    </button>
-);
+type ActiveForm = 'chooser' | 'collaborator' | 'company' | 'staff';
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
-  const [isLoading, setIsLoading] = useState<false | UserRole>(false);
+  const [activeForm, setActiveForm] = useState<ActiveForm>('chooser');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showStaffLogin, setShowStaffLogin] = useState(false);
+
+  // Form states
+  const [cpf, setCpf] = useState('123.456.789-00');
+  const [collaboratorPassword, setCollaboratorPassword] = useState('900');
+  const [companyEmail, setCompanyEmail] = useState('ana.costa@inovacorp.com');
+  const [companyPassword, setCompanyPassword] = useState('Mudar@123');
   const [staffEmail, setStaffEmail] = useState('');
 
-  const handleLoginAttempt = async (role: UserRole, email?: string) => {
-    setIsLoading(role);
+  const handleLoginAttempt = async (credentials: Parameters<typeof authService.login>[0]) => {
+    setIsLoading(true);
     setError(null);
     try {
-      const authData = await authService.login(role, email);
+      const authData = await authService.login(credentials);
       onLogin(authData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocorreu um erro desconhecido.');
@@ -53,110 +35,140 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       setIsLoading(false);
     }
   };
-
-  const handleStaffFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleLoginAttempt('staff', staffEmail);
-  };
   
-  if (showStaffLogin) {
-    return (
-      <div className="min-h-screen bg-[--color-background] text-[--color-foreground] flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm mx-auto text-center">
-          <div className="flex justify-center items-center space-x-3 mb-8">
-              <LogoIcon className="h-10 w-10 text-blue-600" />
-              <span className="text-3xl font-bold text-[--color-foreground] tracking-tight">
-                  Progredire<span className="text-blue-600">+</span>
-              </span>
-          </div>
-          <h1 className="text-2xl font-semibold text-[--color-foreground]">Acesso da Equipe</h1>
-          <p className="text-slate-500 mt-2 mb-8">
-              Use seu email de staff para acessar o painel de gerenciamento.
-          </p>
-          <form onSubmit={handleStaffFormSubmit} className="space-y-4">
+  const handleBackToChooser = () => {
+      setActiveForm('chooser');
+      setError(null);
+      // Keep form fields pre-filled for convenience
+      setCpf('123.456.789-00');
+      setCollaboratorPassword('900');
+      setCompanyEmail('ana.costa@inovacorp.com');
+      setCompanyPassword('Mudar@123');
+      setStaffEmail('');
+  };
+
+  const renderForm = () => {
+    switch (activeForm) {
+      case 'collaborator':
+        return (
+          <form onSubmit={(e) => { e.preventDefault(); handleLoginAttempt({ role: 'collaborator', cpf, password: collaboratorPassword }); }} className="space-y-4">
+            <h2 className="text-xl font-semibold text-center">Acesso do Colaborador</h2>
             <div>
-              <label htmlFor="staff-email" className="sr-only">Email</label>
-              <input 
-                id="staff-email"
-                type="email" 
-                value={staffEmail} 
-                onChange={e => setStaffEmail(e.target.value)}
-                placeholder="seu-email@progrediremais.com.br"
-                className="w-full p-3 bg-[--color-input] border border-[--color-border] rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
-                required
-              />
+              <label htmlFor="cpf" className="block text-sm font-medium text-slate-700 mb-1">CPF</label>
+              <input id="cpf" type="text" value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
             </div>
-            <button type="submit" disabled={isLoading === 'staff'} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-slate-400">
-              {isLoading === 'staff' ? <><LoadingSpinner /> Entrando...</> : 'Entrar'}
+            <div>
+              <label htmlFor="collab-password"  className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+              <input id="collab-password" type="password" value={collaboratorPassword} onChange={e => setCollaboratorPassword(e.target.value)} placeholder="••••••••" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
+            </div>
+            <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-slate-400">
+              {isLoading ? <><LoadingSpinner /> Entrando...</> : 'Entrar'}
             </button>
           </form>
-
-          {error && (
-            <div className="mt-6 bg-red-100 border border-red-200 text-red-700 p-3 rounded-lg flex items-center justify-center text-sm" role="alert">
-              <ExclamationCircleIcon className="w-5 h-5 mr-2" />
-              {error}
+        );
+      case 'company':
+        return (
+          <form onSubmit={(e) => { e.preventDefault(); handleLoginAttempt({ role: 'company', email: companyEmail, password: companyPassword }); }} className="space-y-4">
+            <h2 className="text-xl font-semibold text-center">Acesso da Empresa</h2>
+            <div>
+              <label htmlFor="company-email" className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <input id="company-email" type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} placeholder="seu.email@empresa.com" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
             </div>
-          )}
-
-          <button onClick={() => { setShowStaffLogin(false); setError(null); }} className="mt-6 text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
-            Voltar para o acesso principal
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+            <div>
+              <label htmlFor="company-password"  className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+              <input id="company-password" type="password" value={companyPassword} onChange={e => setCompanyPassword(e.target.value)} placeholder="••••••••" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
+            </div>
+            <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-slate-400">
+              {isLoading ? <><LoadingSpinner /> Entrando...</> : 'Entrar'}
+            </button>
+          </form>
+        );
+      case 'staff':
+        return (
+          <form onSubmit={(e) => { e.preventDefault(); handleLoginAttempt({ role: 'staff', email: staffEmail }); }} className="space-y-4">
+            <h2 className="text-xl font-semibold text-center">Acesso da Equipe</h2>
+            <div>
+              <label htmlFor="staff-email" className="block text-sm font-medium text-slate-700 mb-1">Email de Staff</label>
+              <input id="staff-email" type="email" value={staffEmail} onChange={e => setStaffEmail(e.target.value)} placeholder="seu-email@progrediremais.com.br" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
+            </div>
+            <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-slate-800 disabled:bg-slate-400">
+              {isLoading ? <><LoadingSpinner /> Entrando...</> : 'Entrar'}
+            </button>
+          </form>
+        );
+      default: // chooser
+        return (
+          <div className="space-y-6">
+            <button onClick={() => setActiveForm('collaborator')} className="w-full text-left p-6 bg-white rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex items-center space-x-6 group">
+                <div className="flex-shrink-0 w-16 h-16 bg-blue-50 p-4 rounded-full flex items-center justify-center transition-colors duration-300 group-hover:bg-blue-100">
+                    <UserIcon className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-bold text-slate-800">Sou Colaborador</h3>
+                    <p className="text-slate-500 mt-1">Acessar com meu CPF e senha.</p>
+                </div>
+            </button>
+             <button onClick={() => setActiveForm('company')} className="w-full text-left p-6 bg-white rounded-2xl shadow-lg border border-slate-200 hover:shadow-xl hover:border-blue-300 transition-all duration-300 flex items-center space-x-6 group">
+                <div className="flex-shrink-0 w-16 h-16 bg-blue-50 p-4 rounded-full flex items-center justify-center transition-colors duration-300 group-hover:bg-blue-100">
+                    <BuildingOfficeIcon className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                    <h3 className="text-xl font-bold text-slate-800">Sou da Empresa</h3>
+                    <p className="text-slate-500 mt-1">Acessar com meu email corporativo.</p>
+                </div>
+            </button>
+          </div>
+        );
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[--color-background] text-[--color-foreground] flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto text-center">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm mx-auto">
         <div className="flex justify-center items-center space-x-3 mb-8">
             <LogoIcon className="h-10 w-10 text-blue-600" />
-            <span className="text-3xl font-bold text-[--color-foreground] tracking-tight">
+            <span className="text-3xl font-bold text-slate-800 tracking-tight">
                 Progredire<span className="text-blue-600">+</span>
             </span>
         </div>
-        <h1 className="text-2xl font-semibold text-[--color-foreground]">Selecione seu tipo de acesso</h1>
-        <p className="text-slate-500 mt-2 mb-8">
-            Escolha como você deseja acessar a plataforma.
-        </p>
-
-        <div className="space-y-6">
-            <LoginButton 
-                icon={BuildingOfficeIcon}
-                title="Acessar como Empresa"
-                description="Visualize dashboards, gerencie campanhas e crie planos de ação."
-                onClick={() => handleLoginAttempt('company')}
-                isLoading={isLoading === 'company'}
-            />
-            <LoginButton 
-                icon={UserIcon}
-                title="Acessar como Colaborador"
-                description="Responda pesquisas e acesse ferramentas de reflexão pessoal."
-                onClick={() => handleLoginAttempt('collaborator')}
-                isLoading={isLoading === 'collaborator'}
-            />
-        </div>
         
+        {activeForm === 'chooser' && (
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-semibold text-slate-800">Seja bem-vindo(a)</h1>
+            <p className="text-slate-500 mt-2">Escolha seu perfil para continuar.</p>
+          </div>
+        )}
+        
+        <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+            {renderForm()}
+        </div>
+
         {error && (
-            <div className="mt-6 bg-red-100 border border-red-200 text-red-700 p-3 rounded-lg flex items-center justify-center text-sm" role="alert">
-              <ExclamationCircleIcon className="w-5 h-5 mr-2" />
-              {error}
-            </div>
+          <div className="mt-6 bg-red-100 border border-red-200 text-red-700 p-3 rounded-lg flex items-center justify-center text-sm" role="alert">
+            <ExclamationCircleIcon className="w-5 h-5 mr-2" />
+            {error}
+          </div>
         )}
 
-        <div className="mt-8 pt-4 border-t border-[--color-border]">
-            <button onClick={() => setShowStaffLogin(true)} className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
-                É membro da equipe? Acesse aqui.
-            </button>
+        <div className="mt-6 text-center">
+            {activeForm !== 'chooser' ? (
+                <button onClick={handleBackToChooser} className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
+                    {/* FIX: Replaced inline SVG with the 'ChevronLeftIcon' component for consistency and maintainability. */}
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    Voltar para seleção de perfil
+                </button>
+            ) : (
+                <button onClick={() => setActiveForm('staff')} className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors">
+                    É membro da equipe? Acesse aqui.
+                </button>
+            )}
         </div>
-
-        <footer className="mt-12">
-             <p className="text-sm text-slate-500">
-                Progredire+ | Ferramenta de análise psicológica organizacional.
-            </p>
-        </footer>
       </div>
+       <footer className="absolute bottom-6">
+            <p className="text-sm text-slate-500">
+               Progredire+ | Ferramenta de análise psicológica organizacional.
+           </p>
+       </footer>
     </div>
   );
 };

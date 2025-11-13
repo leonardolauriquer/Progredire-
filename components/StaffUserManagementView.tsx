@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
     getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, 
@@ -268,10 +267,12 @@ const AddCompanyModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (d
     return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Nova Empresa"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form content... */} </form> </Modal> );
 };
 const AddEmployeeModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<Employee, 'id'>) => void; companyList: string[]}> = ({isOpen, onClose, onAdd, companyList}) => {
-    const [formData, setFormData] = useState<Omit<Employee, 'id'>>({ name: '', email: '', company: companyList[0] || '', cpf: '', dataNascimento: '', genero: 'Prefiro não informar', dataAdmissao: '', nivelCargo: 'Júnior', status: 'Ativo' });
+    const [formData, setFormData] = useState<Omit<Employee, 'id' | 'password'>>({ name: '', email: '', company: companyList[0] || '', cpf: '', dataNascimento: '', genero: 'Prefiro não informar', dataAdmissao: '', nivelCargo: 'Júnior', status: 'Ativo' });
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setFormData(prev => ({ ...prev, [e.target.id]: e.target.value })); };
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onAdd(formData); };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Colaborador"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form content... */} </form> </Modal> );
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Colaborador"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form fields here */} 
+    <p className="text-xs text-slate-500 mt-2 p-2 bg-slate-100 rounded-md">Nota: A senha inicial será os 3 últimos dígitos do CPF.</p>
+    </form> </Modal> );
 };
 const ImportEmployeesCsvModal: React.FC<{isOpen: boolean; onClose: () => void; onImport: () => void;}> = ({isOpen, onClose, onImport}) => (
     <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via CSV"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal>
@@ -289,7 +290,12 @@ const ImportEmployeesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; o
     const fileInputRef = useRef<HTMLInputElement>(null);
     const downloadTemplate = () => { /* ... */ };
     const handleImport = async () => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via XLS"> <div className="space-y-4">
+        <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
+            A senha inicial para cada colaborador será gerada automaticamente com os **3 últimos dígitos do CPF**. Não é necessário incluir uma coluna de senha no arquivo.
+        </p>
+         {/* ... other modal content ... */}
+    </div> </Modal> );
 };
 const BranchManagement: React.FC<{ companies: Company[] }> = ({ companies }) => {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | ''>('');
@@ -320,12 +326,23 @@ const AddCompanyUserModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd
     useEffect(() => { /* ... */ }, [companyList, formData.companyId]);
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { /* ... */ };
     const handleSubmit = (e: React.FormEvent) => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Usuário da Empresa"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form content... */} </form> </Modal> );
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Usuário da Empresa"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form fields here */} 
+        <div>
+            <label htmlFor="default-password" className="block text-sm font-medium text-slate-600 mb-1">Senha Padrão</label>
+            <input id="default-password" type="text" value="Mudar@123" readOnly className="w-full p-2 bg-slate-100 border border-slate-300 rounded-md text-slate-500 cursor-not-allowed"/>
+            <p className="text-xs text-slate-500 mt-1">O usuário deverá alterar esta senha no primeiro login.</p>
+        </div>
+    </form> </Modal> );
 };
 const ImportCompanyUserXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void; companyList: Company[]}> = ({isOpen, onClose, onImportSuccess, companyList}) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const companyMap = useMemo(() => new Map(companyList.map(c => [c.name.toLowerCase(), c.id])), [companyList]);
     const downloadTemplate = () => { /* ... */ };
     const handleImport = async () => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Usuários da Empresa via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Usuários da Empresa via XLS"> <div className="space-y-4">
+        <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
+            A senha inicial para cada usuário será **'Mudar@123'**. Não é necessário incluir uma coluna de senha no arquivo.
+        </p>
+        {/* ... other modal content ... */}
+    </div> </Modal> );
 };
