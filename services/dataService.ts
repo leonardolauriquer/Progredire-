@@ -125,6 +125,11 @@ export interface CompanyUser {
     status: 'Ativo' | 'Inativo';
 }
 
+interface ImportContext {
+    companyId: string;
+    branchId?: string;
+}
+
 
 // --- Constants ---
 const MOCK_RESPONSES_KEY = 'progredire-mock-responses';
@@ -564,7 +569,7 @@ export const recordInitiativeSupport = async (id: number): Promise<PublishedInit
 };
 
 // Data Import Services for Staff
-export const importSurveyResponses = (data: any[]): Promise<void> => {
+export const importSurveyResponses = (data: any[], context: ImportContext): Promise<void> => {
     return new Promise(resolve => {
         const responses = data.map((row, index) => {
             const answers: Record<string, string> = {};
@@ -577,6 +582,7 @@ export const importSurveyResponses = (data: any[]): Promise<void> => {
                 id: Date.now() + index,
                 timestamp: Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
                 segmentation: {
+                    companyId: context.companyId, // Link to company
                     empresa: row.empresa,
                     diretoria: row.diretoria,
                     setor: row.setor,
@@ -585,30 +591,31 @@ export const importSurveyResponses = (data: any[]): Promise<void> => {
                 answers: answers
             }
         });
-        localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(responses));
+        localStorage.setItem(`${MOCK_RESPONSES_KEY}-${context.companyId}`, JSON.stringify(responses));
         resolve();
     });
 };
 
-export const importHistoricalIndicators = (data: any[]): Promise<void> => {
+export const importHistoricalIndicators = (data: any[], context: ImportContext): Promise<void> => {
     return new Promise(resolve => {
-        localStorage.setItem(HISTORICAL_INDICATORS_KEY, JSON.stringify(data));
+        localStorage.setItem(`${HISTORICAL_INDICATORS_KEY}-${context.companyId}`, JSON.stringify(data));
         resolve();
     });
 };
 
-export const importLeaveEvents = (data: any[]): Promise<void> => {
+export const importLeaveEvents = (data: any[], context: ImportContext): Promise<void> => {
      return new Promise(resolve => {
         const events = data.map(row => ({
             type: row['Tipo de Afastamento'],
-            date: row['Data (AAAA-MM-DD)']
+            date: row['Data (AAAA-MM-DD)'],
+            branchId: context.branchId, // Link to branch
         }));
-        localStorage.setItem(LEAVE_EVENTS_KEY, JSON.stringify(events));
+        localStorage.setItem(`${LEAVE_EVENTS_KEY}-${context.companyId}`, JSON.stringify(events));
         resolve();
     });
 };
 
-export const importLeadershipData = (data: any[]): Promise<void> => {
+export const importLeadershipData = (data: any[], context: ImportContext): Promise<void> => {
     return new Promise(resolve => {
         if (data.length > 0) {
             const firstRow = data[0];
@@ -617,13 +624,13 @@ export const importLeadershipData = (data: any[]): Promise<void> => {
                 leadershipScore: firstRow['Percepção da Liderança (1-5)'],
                 safetyScore: firstRow['Segurança Psicológica (1-5)']
             };
-            localStorage.setItem(LEADERSHIP_DATA_KEY, JSON.stringify(leadershipData));
+            localStorage.setItem(`${LEADERSHIP_DATA_KEY}-${context.companyId}`, JSON.stringify(leadershipData));
         }
         resolve();
     });
 };
 
-export const importFinancialData = (data: any[]): Promise<void> => {
+export const importFinancialData = (data: any[], context: ImportContext): Promise<void> => {
     return new Promise(resolve => {
         if (data.length > 0) {
             const firstRow = data[0];
@@ -632,7 +639,7 @@ export const importFinancialData = (data: any[]): Promise<void> => {
                 avgAnnualCost: firstRow['Custo Médio Anual por Colaborador (para ROI)'],
                 estimatedSavings: firstRow['Economia Estimada Anual (valor manual)']
             };
-            localStorage.setItem(FINANCIAL_DATA_KEY, JSON.stringify(financialData));
+            localStorage.setItem(`${FINANCIAL_DATA_KEY}-${context.companyId}`, JSON.stringify(financialData));
         }
         resolve();
     });

@@ -1,23 +1,55 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { UploadIcon, ArrowDownTrayIcon, SparklesIcon } from './icons';
-import { importSurveyResponses, importHistoricalIndicators, importLeaveEvents, importLeadershipData, importFinancialData } from '../services/dataService';
+import { 
+    importSurveyResponses, 
+    importHistoricalIndicators, 
+    importLeaveEvents, 
+    importLeadershipData, 
+    importFinancialData,
+    getCompanies,
+    getBranches,
+    Company,
+    Branch
+} from '../services/dataService';
 import { LoadingSpinner } from './LoadingSpinner';
 
 declare var XLSX: any;
+
+interface ImportContext {
+    companyId: string;
+    branchId?: string;
+}
 
 interface ImportCardProps {
     title: string;
     description: string;
     onDownloadTemplate: () => void;
-    onImport: (file: File) => Promise<{ count: number; message: string; }>;
+    onImport: (file: File, context: ImportContext) => Promise<{ count: number; message: string; }>;
+    requiresBranch?: boolean;
+    companies: Company[];
+    branches: Branch[];
+    context: Partial<ImportContext>;
+    onContextChange: (field: keyof ImportContext, value: string) => void;
 }
 
-const ImportCard: React.FC<ImportCardProps> = ({ title, description, onDownloadTemplate, onImport }) => {
+const ImportCard: React.FC<ImportCardProps> = ({ 
+    title, 
+    description, 
+    onDownloadTemplate, 
+    onImport,
+    requiresBranch = false,
+    companies,
+    branches,
+    context,
+    onContextChange
+ }) => {
     const [file, setFile] = useState<File | null>(null);
     const [fileName, setFileName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [importStatus, setImportStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const isImportDisabled = isLoading || !file || !context.companyId || (requiresBranch && !context.branchId);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -29,15 +61,20 @@ const ImportCard: React.FC<ImportCardProps> = ({ title, description, onDownloadT
     };
     
     const handleImportClick = useCallback(async () => {
-        if (!file) {
-            setImportStatus({ message: 'Por favor, selecione um arquivo para importar.', type: 'error' });
+        if (!file || !context.companyId) {
+            setImportStatus({ message: 'Por favor, selecione uma empresa e um arquivo para importar.', type: 'error' });
             return;
         }
+        if (requiresBranch && !context.branchId) {
+            setImportStatus({ message: 'Por favor, selecione uma filial para esta importação.', type: 'error' });
+            return;
+        }
+
         setIsLoading(true);
         setImportStatus(null);
         
         try {
-            const result = await onImport(file);
+            const result = await onImport(file, context as ImportContext);
             setImportStatus({ message: result.message, type: 'success' });
             setFile(null);
             setFileName('');
@@ -47,13 +84,42 @@ const ImportCard: React.FC<ImportCardProps> = ({ title, description, onDownloadT
         } finally {
             setIsLoading(false);
         }
-    }, [file, onImport]);
+    }, [file, onImport, context, requiresBranch]);
 
     return (
         <div className="bg-[--color-muted] p-6 rounded-xl border border-[--color-border] flex flex-col">
             <h3 className="text-lg font-semibold text-[--color-card-foreground]">{title}</h3>
             <p className="text-sm text-[--color-card-muted-foreground] mt-1 flex-grow">{description}</p>
+            
             <div className="mt-4 space-y-3">
+                 {/* Context Selectors */}
+                 <div className="space-y-2">
+                     <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Empresa</label>
+                        <select 
+                            value={context.companyId || ''} 
+                            onChange={(e) => onContextChange('companyId', e.target.value)}
+                            className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="" disabled>Selecione...</option>
+                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                     </div>
+                     {requiresBranch && context.companyId && (
+                         <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Filial</label>
+                            <select 
+                                value={context.branchId || ''} 
+                                onChange={(e) => onContextChange('branchId', e.target.value)}
+                                className="w-full p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="" disabled>Selecione...</option>
+                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                         </div>
+                     )}
+                 </div>
+
                 <button onClick={onDownloadTemplate} className="w-full flex items-center justify-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <ArrowDownTrayIcon className="w-5 h-5"/>
                     Baixar Template XLS
@@ -66,7 +132,7 @@ const ImportCard: React.FC<ImportCardProps> = ({ title, description, onDownloadT
                 </div>
                 <button
                     onClick={handleImportClick}
-                    disabled={isLoading || !file}
+                    disabled={isImportDisabled}
                     className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 disabled:bg-slate-400"
                 >
                     {isLoading ? <><LoadingSpinner/> Processando...</> : 'Importar Dados'}
@@ -83,6 +149,39 @@ const ImportCard: React.FC<ImportCardProps> = ({ title, description, onDownloadT
 
 
 export const StaffDataImportView: React.FC = () => {
+    const [companies, setCompanies] = useState<Company[]>([]);
+    const [branches, setBranches] = useState<Record<string, Branch[]>>({});
+    const [importContexts, setImportContexts] = useState<Record<string, Partial<ImportContext>>>({
+        survey: {},
+        historical: {},
+        leave: {},
+        leadership: {},
+        financial: {},
+    });
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            const companyList = await getCompanies();
+            setCompanies(companyList);
+            const branchData: Record<string, Branch[]> = {};
+            for (const company of companyList) {
+                branchData[company.id] = await getBranches(company.id);
+            }
+            setBranches(branchData);
+        };
+        fetchInitialData();
+    }, []);
+
+    const handleContextChange = (cardKey: string, field: keyof ImportContext, value: string) => {
+        setImportContexts(prev => {
+            const newContext = { ...prev[cardKey], [field]: value };
+            // Reset branch if company changes
+            if (field === 'companyId') {
+                delete newContext.branchId;
+            }
+            return { ...prev, [cardKey]: newContext };
+        });
+    };
     
     // --- Handlers for Survey Responses ---
     const downloadSurveyTemplate = () => {
@@ -94,7 +193,7 @@ export const StaffDataImportView: React.FC = () => {
         XLSX.writeFile(wb, "template_respostas_diagnostico.xlsx");
     };
     
-    const handleSurveyImport = (file: File) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
+    const handleSurveyImport = (file: File, context: ImportContext) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
@@ -103,7 +202,7 @@ export const StaffDataImportView: React.FC = () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
                 if (json.length === 0) throw new Error('O arquivo está vazio.');
-                await importSurveyResponses(json);
+                await importSurveyResponses(json, context);
                 resolve({ count: json.length, message: `${json.length} respostas importadas com sucesso!` });
             } catch (err) { reject(err); }
         };
@@ -124,7 +223,7 @@ export const StaffDataImportView: React.FC = () => {
         XLSX.writeFile(wb, "template_indicadores_historicos.xlsx");
     };
 
-    const handleHistoricalImport = (file: File) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
+    const handleHistoricalImport = (file: File, context: ImportContext) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
@@ -133,7 +232,7 @@ export const StaffDataImportView: React.FC = () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
                 if (json.length === 0) throw new Error('O arquivo está vazio.');
-                await importHistoricalIndicators(json);
+                await importHistoricalIndicators(json, context);
                 resolve({ count: json.length, message: `${json.length} meses de indicadores importados!` });
             } catch (err) { reject(err); }
         };
@@ -154,7 +253,7 @@ export const StaffDataImportView: React.FC = () => {
         XLSX.writeFile(wb, "template_tipos_afastamento.xlsx");
     };
 
-    const handleLeaveEventsImport = (file: File) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
+    const handleLeaveEventsImport = (file: File, context: ImportContext) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
@@ -163,7 +262,7 @@ export const StaffDataImportView: React.FC = () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
                 if (json.length === 0) throw new Error('O arquivo está vazio.');
-                await importLeaveEvents(json);
+                await importLeaveEvents(json, context);
                 resolve({ count: json.length, message: `${json.length} registros de afastamento importados!` });
             } catch (err) { reject(err); }
         };
@@ -181,7 +280,7 @@ export const StaffDataImportView: React.FC = () => {
         XLSX.writeFile(wb, "template_dados_lideranca.xlsx");
     };
 
-    const handleLeadershipImport = (file: File) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
+    const handleLeadershipImport = (file: File, context: ImportContext) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
@@ -190,7 +289,7 @@ export const StaffDataImportView: React.FC = () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
                 if (json.length === 0) throw new Error('O arquivo está vazio.');
-                await importLeadershipData(json);
+                await importLeadershipData(json, context);
                 resolve({ count: json.length, message: `Dados de liderança importados com sucesso!` });
             } catch (err) { reject(err); }
         };
@@ -208,7 +307,7 @@ export const StaffDataImportView: React.FC = () => {
         XLSX.writeFile(wb, "template_financeiro_demografico.xlsx");
     };
 
-    const handleFinancialImport = (file: File) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
+    const handleFinancialImport = (file: File, context: ImportContext) => new Promise<{ count: number; message: string; }>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
@@ -217,7 +316,7 @@ export const StaffDataImportView: React.FC = () => {
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
                 if (json.length === 0) throw new Error('O arquivo está vazio.');
-                await importFinancialData(json);
+                await importFinancialData(json, context);
                 resolve({ count: json.length, message: `Dados financeiros e demográficos importados!` });
             } catch (err) { reject(err); }
         };
@@ -247,30 +346,51 @@ export const StaffDataImportView: React.FC = () => {
                         description="Importe as respostas dos questionários. Isso alimenta os cálculos de fatores de risco, rankings e a maioria dos KPIs."
                         onDownloadTemplate={downloadSurveyTemplate}
                         onImport={handleSurveyImport}
+                        companies={companies}
+                        branches={[]}
+                        context={importContexts.survey}
+                        onContextChange={(f, v) => handleContextChange('survey', f, v)}
                     />
                     <ImportCard 
                         title="Indicadores Históricos"
                         description="Importe a série histórica de IRP Global, Turnover e Afastamentos INSS para popular os gráficos de tendência."
                         onDownloadTemplate={downloadHistoricalTemplate}
                         onImport={handleHistoricalImport}
+                        companies={companies}
+                        branches={[]}
+                        context={importContexts.historical}
+                        onContextChange={(f, v) => handleContextChange('historical', f, v)}
                     />
                      <ImportCard 
                         title="Tipos de Afastamento"
                         description="Importe o histórico de tipos de afastamento para alimentar o gráfico de distribuição de motivos."
                         onDownloadTemplate={downloadLeaveEventsTemplate}
                         onImport={handleLeaveEventsImport}
+                        requiresBranch={true}
+                        companies={companies}
+                        branches={branches[importContexts.leave.companyId || ''] || []}
+                        context={importContexts.leave}
+                        onContextChange={(f, v) => handleContextChange('leave', f, v)}
                     />
                      <ImportCard 
                         title="Dados de Liderança e Engajamento"
                         description="Defina diretamente os KPIs de Liderança, Segurança Psicológica e % de líderes em desenvolvimento para o dashboard."
                         onDownloadTemplate={downloadLeadershipTemplate}
                         onImport={handleLeadershipImport}
+                        companies={companies}
+                        branches={[]}
+                        context={importContexts.leadership}
+                        onContextChange={(f, v) => handleContextChange('leadership', f, v)}
                     />
                      <ImportCard 
                         title="Dados Financeiros e Demográficos"
                         description="Importe métricas de base como total de funcionários e custo médio, essenciais para cálculos de ROI e economia."
                         onDownloadTemplate={downloadFinancialTemplate}
                         onImport={handleFinancialImport}
+                        companies={companies}
+                        branches={[]}
+                        context={importContexts.financial}
+                        onContextChange={(f, v) => handleContextChange('financial', f, v)}
                     />
                 </div>
             </div>
