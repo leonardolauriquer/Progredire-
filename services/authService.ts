@@ -22,8 +22,8 @@ const login = (credentials: LoginCredentials): Promise<AuthData> => {
         setTimeout(async () => {
             try {
                 if (credentials.role === 'staff') {
-                    if (!credentials.email) {
-                        return reject(new Error('Email é obrigatório para acesso Staff.'));
+                    if (!credentials.email || !credentials.password) {
+                        return reject(new Error('Email e senha são obrigatórios para acesso Staff.'));
                     }
                     const allowedStaffEmails = [
                         'paula.progredire@gmail.com',
@@ -33,7 +33,9 @@ const login = (credentials: LoginCredentials): Promise<AuthData> => {
                     if (!allowedStaffEmails.includes(credentials.email.toLowerCase())) {
                         return reject(new Error('Acesso negado. Email não autorizado.'));
                     }
-                    // For mock purposes, staff login doesn't check password
+                    if (credentials.password !== '123') {
+                        return reject(new Error('Senha inválida.'));
+                    }
                 } else if (credentials.role === 'collaborator') {
                     if (!credentials.cpf || !credentials.password) {
                         return reject(new Error('CPF e senha são obrigatórios.'));

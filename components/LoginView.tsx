@@ -22,6 +22,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [companyEmail, setCompanyEmail] = useState('ana.costa@inovacorp.com');
   const [companyPassword, setCompanyPassword] = useState('Mudar@123');
   const [staffEmail, setStaffEmail] = useState('');
+  const [staffPassword, setStaffPassword] = useState('123');
 
   const handleLoginAttempt = async (credentials: Parameters<typeof authService.login>[0]) => {
     setIsLoading(true);
@@ -45,6 +46,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       setCompanyEmail('ana.costa@inovacorp.com');
       setCompanyPassword('Mudar@123');
       setStaffEmail('');
+      setStaffPassword('123');
   };
 
   const renderForm = () => {
@@ -85,11 +87,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         );
       case 'staff':
         return (
-          <form onSubmit={(e) => { e.preventDefault(); handleLoginAttempt({ role: 'staff', email: staffEmail }); }} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleLoginAttempt({ role: 'staff', email: staffEmail, password: staffPassword }); }} className="space-y-4">
             <h2 className="text-xl font-semibold text-center">Acesso da Equipe</h2>
             <div>
               <label htmlFor="staff-email" className="block text-sm font-medium text-slate-700 mb-1">Email de Staff</label>
               <input id="staff-email" type="email" value={staffEmail} onChange={e => setStaffEmail(e.target.value)} placeholder="seu-email@progrediremais.com.br" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
+            </div>
+             <div>
+              <label htmlFor="staff-password"  className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
+              <input id="staff-password" type="password" value={staffPassword} onChange={e => setStaffPassword(e.target.value)} placeholder="••••••••" required className="w-full p-3 bg-white border border-slate-300 rounded-lg shadow-sm" />
             </div>
             <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center gap-2 bg-slate-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-slate-800 disabled:bg-slate-400">
               {isLoading ? <><LoadingSpinner /> Entrando...</> : 'Entrar'}
