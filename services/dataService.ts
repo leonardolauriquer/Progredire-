@@ -145,19 +145,21 @@ const COMPANIES_KEY = 'progredire-companies';
 const EMPLOYEES_KEY = 'progredire-employees';
 const BRANCHES_KEY = 'progredire-branches';
 const COMPANY_USERS_KEY = 'progredire-company-users';
-
+const SIMULATED_COMPANY_ID = 1; // Corresponds to InovaCorp
 
 // --- Calculation Logic & Mock Data ---
 const getMockResponses = (): typeof initialMockResponses => {
     try {
-        const stored = localStorage.getItem(MOCK_RESPONSES_KEY);
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed;
-            }
+        const companyKey = `${MOCK_RESPONSES_KEY}-${SIMULATED_COMPANY_ID}`;
+        const companyStored = localStorage.getItem(companyKey);
+        if (companyStored) {
+             const parsed = JSON.parse(companyStored);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         }
-        // If nothing in storage, set initial data
+
+        const genericStored = localStorage.getItem(MOCK_RESPONSES_KEY);
+        if (genericStored) return JSON.parse(genericStored);
+
         localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(initialMockResponses));
         return initialMockResponses;
     } catch {
@@ -285,7 +287,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     let avgAnnualCost = 60000;
     let estimatedSavings = 'R$120.000';
 
-    const storedFinancial = localStorage.getItem(FINANCIAL_DATA_KEY);
+    const storedFinancial = localStorage.getItem(`${FINANCIAL_DATA_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(FINANCIAL_DATA_KEY);
     if (storedFinancial) {
         try {
             const financialData = JSON.parse(storedFinancial);
@@ -309,7 +311,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     let irpVsTurnover: { labels: string[]; datasets: { label: string; data: (number | null)[]; color: string; }[] };
     let leaveEvents: { type: string; date: string }[];
 
-    const storedHistorical = localStorage.getItem(HISTORICAL_INDICATORS_KEY);
+    const storedHistorical = localStorage.getItem(`${HISTORICAL_INDICATORS_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(HISTORICAL_INDICATORS_KEY);
     if (storedHistorical) {
         const historicalData: any[] = JSON.parse(storedHistorical);
         climateTrend = {
@@ -340,7 +342,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         };
     }
 
-    const storedLeaveEvents = localStorage.getItem(LEAVE_EVENTS_KEY);
+    const storedLeaveEvents = localStorage.getItem(`${LEAVE_EVENTS_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(LEAVE_EVENTS_KEY);
     if (storedLeaveEvents) {
         leaveEvents = JSON.parse(storedLeaveEvents);
     } else {
@@ -356,7 +358,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     let safetyScore = 3.8;
     let leadersInDevelopment = 75;
 
-    const storedLeadership = localStorage.getItem(LEADERSHIP_DATA_KEY);
+    const storedLeadership = localStorage.getItem(`${LEADERSHIP_DATA_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(LEADERSHIP_DATA_KEY);
     if (storedLeadership) {
         try {
             const leadershipData = JSON.parse(storedLeadership);
@@ -732,8 +734,27 @@ export const findCompanyUserByEmail = (email: string): Promise<CompanyUser | und
 
 // --- Staff CRUD Services (all using localStorage for simulation) ---
 
+const seedInitialCompanies = (): Company[] => {
+    const initialCompanies: Company[] = [
+        { id: 1, name: 'InovaCorp', razaoSocial: 'InovaCorp Soluções LTDA', cnpj: '11.222.333/0001-44', setor: 'Tecnologia', numColaboradores: 35, contatoPrincipal: { nome: 'Ana Costa', email: 'ana.costa@inovacorp.com' }, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
+        { id: 2, name: 'NexusTech', razaoSocial: 'NexusTech SA', cnpj: '22.333.444/0001-55', setor: 'Tecnologia', numColaboradores: 10, contatoPrincipal: { nome: 'Carlos Souza', email: 'carlos@nexustech.com' }, address: { logradouro: 'Av. Principal', numero: '456', bairro: 'Boa Viagem', cidade: 'Recife', estado: 'PE', cep: '51020-000' } },
+        { id: 3, name: 'AuraDigital', razaoSocial: 'Aura Marketing Digital', cnpj: '33.444.555/0001-66', setor: 'Marketing', numColaboradores: 5, contatoPrincipal: { nome: 'Beatriz Lima', email: 'bia@auradigital.com' }, address: { logradouro: 'Praça da Liberdade', numero: '789', bairro: 'Savassi', cidade: 'Belo Horizonte', estado: 'MG', cep: '30140-010' } },
+        { id: 4, name: 'Vértice', razaoSocial: 'Vértice Consultoria', cnpj: '44.555.666/0001-77', setor: 'Consultoria', numColaboradores: 5, contatoPrincipal: { nome: 'Daniel Almeida', email: 'daniel@vertice.com' }, address: { logradouro: 'Rua da Consolação', numero: '1011', bairro: 'Consolação', cidade: 'São Paulo', estado: 'SP', cep: '01301-000' } }
+    ];
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(initialCompanies));
+    return initialCompanies;
+};
+
+
 // Companies
-export const getCompanies = (): Promise<Company[]> => new Promise(r => r(JSON.parse(localStorage.getItem(COMPANIES_KEY) || '[]')));
+export const getCompanies = (): Promise<Company[]> => new Promise(r => {
+    const stored = localStorage.getItem(COMPANIES_KEY);
+    if (stored && JSON.parse(stored).length > 0) {
+        r(JSON.parse(stored));
+    } else {
+        r(seedInitialCompanies());
+    }
+});
 export const addCompany = async (data: Omit<Company, 'id'>) => {
     const items = await getCompanies();
     const newItem = { ...data, id: Date.now() };
