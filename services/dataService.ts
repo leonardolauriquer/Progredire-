@@ -325,855 +325,498 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     } else {
         // Fallback to mocks
         climateTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [65, 68, 72, 70, 75, 78] };
-        inssLeaveTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [12, 11, 9, 8, 6, 5] };
-        irpVsTurnover = (() => {
-            const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
-            const irpData = [3.2, 3.5, 3.4, 3.8];
-            const turnoverData = irpData.map(irp => Math.max(0, 15 - 3 * irp + (Math.random() - 0.5) * 2));
-            return {
-                labels,
-                datasets: [
-                    { label: 'IRP Global (1-5)', data: irpData, color: '#3b82f6' },
-                    { label: 'Turnover (%)', data: turnoverData, color: '#ef4444' }
-                ]
-            };
-        })();
-    }
-    
-    const storedLeaveEvents = localStorage.getItem(LEAVE_EVENTS_KEY);
-    if (storedLeaveEvents) {
-        const importedEvents: any[] = JSON.parse(storedLeaveEvents);
-        leaveEvents = importedEvents.map(e => ({ type: e['Tipo de Afastamento'], date: e['Data (AAAA-MM-DD)'] }));
-    } else {
-        // Fallback to mock generation
-        const types = ['Transtorno Misto Ansioso e Depressivo', 'Burnout', 'Ansiedade Generalizada', 'Depressão', 'Transtorno do Pânico'];
-        leaveEvents = Array.from({ length: 25 }, () => {
-            const randomDaysAgo = Math.floor(Math.random() * 365);
-            const eventDate = new Date();
-            eventDate.setDate(new Date().getDate() - randomDaysAgo);
-            return {
-                type: types[Math.floor(Math.random() * types.length)],
-                date: eventDate.toISOString(),
-            };
-        });
-    }
-
-
-    // START: CROSS-ANALYSIS DATA CALCULATION
-    const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
-    const irpVsPresenteeism = sectors.map(sector => {
-        const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
-        const { riskFactors: sectorRiskFactors } = calculateDataForResponses(sectorResponses);
-        const geralScore = Math.round(sectorRiskFactors.reduce((acc, curr) => acc + curr.score, 0) / (sectorRiskFactors.length || 1));
-        const irp = (geralScore / 100) * 4 + 1;
-        const presenteeism = Math.max(0, 30 - 5.5 * (irp - 1) + (Math.random() - 0.5) * 5);
-        return { x: irp, y: presenteeism, z: sectorResponses.length, label: sector };
-    });
-
-    const presenteeismVsRoi = ((): PotentialAnalysisData => {
-        const avgPresenteeism = irpVsPresenteeism.reduce((acc, curr) => acc + curr.y, 0) / (irpVsPresenteeism.length || 1);
-        const cost = (avgPresenteeism / 100) * totalEmployees * avgAnnualCost;
-        return {
-            totalCost: cost,
-            scenarios: [
-                { label: 'Economia com redução de 10%', value: cost * 0.1 },
-                { label: 'Economia com redução de 25%', value: cost * 0.25 }
+        inssLeaveTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [5, 4, 6, 5, 5, 3] };
+        irpVsTurnover = {
+            labels: ['Q1/23', 'Q2/23', 'Q3/23', 'Q4/23', 'Q1/24', 'Q2/24'],
+            datasets: [
+                { label: 'IRP Global (1-5)', data: [3.2, 3.4, 3.3, 3.6, 3.8, 4.1], color: '#3b82f6' },
+                { label: 'Turnover (%)', data: [8.5, 7.2, 7.8, 6.1, 5.5, 4.2], color: '#ef4444' }
             ]
         };
-    })();
-
-    const dimensionVsAreaHeatmap = (() => {
-        const xLabels = allDimensionIds.map(id => dimensions[id].name);
-        const yLabels = sectors;
-        const data = yLabels.map(sector => {
-            const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
-            return allDimensionIds.map(dimId => {
-                const { riskFactors: factorData } = calculateDataForResponses(sectorResponses);
-                const factor = factorData.find(f => f.id === dimId);
-                const score = factor ? factor.score : 0;
-                return (score / 100) * 4 + 1;
-            });
-        });
-        return { yLabels, xLabels, data };
-    })();
-    
-    const actionsVsImpact = (() => {
-        try {
-            const stored = localStorage.getItem(ACTION_PLAN_HISTORY_KEY);
-            const plans: any[] = stored ? JSON.parse(stored) : [];
-            if (plans && plans.length > 0) {
-                return plans.map((plan: any) => ({
-                    x: 5 + Math.random() * 15, // Mocked improvement for demo
-                    y: plan.actions.length,
-                    z: plan.progress,
-                    label: plan.factor,
-                }));
-            }
-            // If no archived plans, provide mock data to ensure the chart is not blank
-            return [
-                { x: 8.5, y: 3, z: 100, label: 'Carga Trab.' },
-                { x: 12.1, y: 5, z: 75, label: 'Liderança' },
-                { x: 5.7, y: 4, z: 50, label: 'Reconhecimento' },
-            ];
-        } catch { 
-            // Fallback in case of parsing error
-            return [
-                { x: 8.5, y: 3, z: 100, label: 'Carga Trab.' },
-                { x: 12.1, y: 5, z: 75, label: 'Liderança' },
-                { x: 5.7, y: 4, z: 50, label: 'Reconhecimento' },
-            ];
-        }
-    })();
-
-    const crossAnalysis: CrossAnalysisData = {
-        irpVsPresenteeism,
-        irpVsTurnover,
-        presenteeismVsRoi,
-        dimensionVsAreaHeatmap,
-        actionsVsImpact,
-        irpEvolution: climateTrend,
-    };
-    // END: CROSS-ANALYSIS DATA CALCULATION
-
-    if (filteredResponses.length === 0) {
-        return {
-            geralScore: 0, irpGlobal: 0, riskClassification: { text: 'N/A', color: 'bg-slate-500' },
-            participationRate: 0, totalEmployees: totalEmployees, topRisks: [], topProtections: [], maturityLevel: { level: 'N/A', name: 'Dados Insuficientes', description: '' },
-            riskFactors: [], companyAverageFactors: companyData.riskFactors, distributions: {},
-            sectorRiskDistribution: {high: 0, moderate: 0, low: 0},
-            climateTrend, leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
-            estimatedSavings, roiScenarios: [], leadersInDevelopment: 0,
-            absenteeismRate: 0, presenteeismRate: 0,
-            inssLeaveTrend, leaveEvents,
-            crossAnalysis,
-        };
     }
 
-    const geralScore = Math.round(riskFactors.reduce((acc, curr) => acc + curr.score, 0) / riskFactors.length);
-    const irpGlobal = (geralScore / 100) * 4 + 1;
-    const riskClassification = irpGlobal >= 3.5 ? { text: 'Baixo / Saudável', color: 'bg-green-500' }
-                           : irpGlobal >= 2.5 ? { text: 'Risco Moderado', color: 'bg-yellow-500' }
-                           : { text: 'Risco Alto', color: 'bg-red-500' };
-
-    const absenteeismRate = 10 - 2 * (irpGlobal - 1);
-    const presenteeismRate = 30 - 5.5 * (irpGlobal - 1);
-
-    const sortedRisks = [...riskFactors].sort((a, b) => a.score - b.score);
-    const topRisks = sortedRisks.slice(0, 3);
-    const topProtections = sortedRisks.slice(-3).reverse();
+    const storedLeaveEvents = localStorage.getItem(LEAVE_EVENTS_KEY);
+    if (storedLeaveEvents) {
+        leaveEvents = JSON.parse(storedLeaveEvents);
+    } else {
+        leaveEvents = [
+            { type: 'Burnout', date: '2024-05-10' }, { type: 'Ansiedade', date: '2024-04-22' },
+            { type: 'Depressão', date: '2024-03-15' }, { type: 'Ansiedade', date: '2024-02-01' },
+            { type: 'Estresse Agudo', date: '2023-12-20' }, { type: 'Burnout', date: '2023-11-05' },
+        ];
+    }
     
-    let highCount = 0, moderateCount = 0, lowCount = 0;
-    sectors.forEach(sector => {
-        const sectorResponses = mockResponses.filter(r => r.segmentation.setor === sector);
-        if (sectorResponses.length > 0) {
-            const { riskFactors: sectorFactors } = calculateDataForResponses(sectorResponses);
-            const sectorScore = sectorFactors.reduce((acc, f) => acc + f.score, 0) / sectorFactors.length;
-            const sectorIRP = (sectorScore / 100) * 4 + 1;
-            if (sectorIRP < 2.5) highCount++;
-            else if (sectorIRP < 3.5) moderateCount++;
-            else lowCount++;
-        }
-    });
-    const totalSectors = sectors.length || 1;
-    const sectorRiskDistribution = {
-        high: (highCount / totalSectors) * 100,
-        moderate: (moderateCount / totalSectors) * 100,
-        low: (lowCount / totalSectors) * 100,
+    // --- Leadership Data ---
+    let leadershipScore = 4.2;
+    let safetyScore = 3.8;
+    let leadersInDevelopment = 75;
+
+    const storedLeadership = localStorage.getItem(LEADERSHIP_DATA_KEY);
+    if (storedLeadership) {
+        try {
+            const leadershipData = JSON.parse(storedLeadership);
+            if (leadershipData.leadershipScore) leadershipScore = leadershipData.leadershipScore;
+            if (leadershipData.safetyScore) safetyScore = leadershipData.safetyScore;
+            if (leadershipData.leadersInDevelopment) leadersInDevelopment = leadershipData.leadersInDevelopment;
+        } catch(e) { console.error("Failed to parse leadership data", e); }
+    }
+
+    // --- Derived Calculations ---
+    const geralScore = riskFactors.reduce((acc, curr) => acc + curr.score, 0) / riskFactors.length;
+    const irpGlobal = (geralScore / 100) * 4 + 1;
+    const riskClassification = irpGlobal >= 3.5 ? { text: 'Baixo', color: 'bg-green-500' } : irpGlobal >= 2.5 ? { text: 'Moderado', color: 'bg-yellow-500' } : { text: 'Alto', color: 'bg-red-500' };
+    const participationRate = (filteredResponses.length / totalEmployees) * 100;
+    const sortedFactors = [...riskFactors].sort((a, b) => a.score - b.score);
+    const topRisks = sortedFactors.slice(0, 3);
+    const topProtections = sortedFactors.slice(-3).reverse();
+    const maturityLevel = getMaturityLevel(riskFactors);
+
+    // --- Mock Sector Risk Distribution ---
+    const sectorRiskDistribution = { high: 15, moderate: 45, low: 40 };
+
+    // --- Cross Analysis Data Mocks ---
+    const presenteeismRate = (5 - irpGlobal) * 5; // Simple mock formula
+    const absenteeismRate = (5 - irpGlobal) * 1.5;
+    const totalPresenteeismCost = totalEmployees * avgAnnualCost * (presenteeismRate / 100);
+
+    const roiScenarios = [
+        { scenario: '10%', value: totalPresenteeismCost * 0.10 },
+        { scenario: '25%', value: totalPresenteeismCost * 0.25 },
+        { scenario: '50%', value: totalPresenteeismCost * 0.50 },
+    ];
+
+    const archivedPlans = JSON.parse(localStorage.getItem(ACTION_PLAN_HISTORY_KEY) || '[]');
+    const actionsVsImpact = archivedPlans.map((plan: any) => ({
+        label: plan.factor,
+        x: (Math.random() * 15) + 2, // Mock impact (IRP points improvement)
+        y: plan.actions.length,
+        z: plan.progress,
+    })).slice(0, 5);
+
+
+    const crossAnalysis: CrossAnalysisData = {
+        irpVsPresenteeism: [
+            { label: 'Engenharia', x: 3.2, y: 15, z: 20 },
+            { label: 'Marketing', x: 2.5, y: 22, z: 15 },
+            { label: 'RH', x: 4.5, y: 5, z: 8 },
+            { label: 'Vendas', x: 2.8, y: 18, z: 12 },
+        ],
+        irpVsTurnover: irpVsTurnover,
+        presenteeismVsRoi: {
+            totalCost: totalPresenteeismCost,
+            scenarios: [
+                { label: 'Economia com redução de 10%', value: roiScenarios.find(s=>s.scenario==='10%')?.value || 0 },
+                { label: 'Economia com redução de 25%', value: roiScenarios.find(s=>s.scenario==='25%')?.value || 0 },
+                { label: 'Economia com redução de 50%', value: roiScenarios.find(s=>s.scenario==='50%')?.value || 0 },
+            ]
+        },
+        dimensionVsAreaHeatmap: {
+            yLabels: ['Engenharia', 'Marketing', 'RH', 'Vendas'],
+            xLabels: ['Carga', 'Autonomia', 'Liderança', 'Suporte', 'Reconhecimento'],
+            data: [
+                [2.5, 4.1, 3.8, 4.2, 3.1], // Engenharia
+                [3.8, 3.0, 2.9, 2.5, 2.2], // Marketing
+                [4.5, 4.8, 4.6, 4.9, 4.4], // RH
+                [2.9, 3.5, 3.1, 3.3, 2.8], // Vendas
+            ]
+        },
+        actionsVsImpact: actionsVsImpact,
+        irpEvolution: climateTrend
     };
+    
 
     return { 
-        geralScore, irpGlobal, riskClassification,
-        participationRate: (filteredResponses.length / totalEmployees) * 100,
-        totalEmployees,
-        topRisks, topProtections,
-        maturityLevel: getMaturityLevel(riskFactors),
-        riskFactors, companyAverageFactors: companyData.riskFactors, distributions,
-        sectorRiskDistribution,
-        climateTrend,
-        leadershipScore: ((riskFactors.find(f => f.id === 'd7_lideranca')?.score ?? 0) / 100 * 4 + 1),
-        safetyScore: ((riskFactors.find(f => f.id === 'd9_seguranca')?.score ?? 0) / 100 * 4 + 1),
-        workLifeBalanceScore,
-        estimatedSavings,
-        roiScenarios: [
-            { scenario: '15%', value: 150000 }, { scenario: '25%', value: 250000 },
-            { scenario: '30%', value: 300000 }, { scenario: '40%', value: 400000 },
-        ],
-        leadersInDevelopment: 68,
-        absenteeismRate,
-        presenteeismRate,
-        inssLeaveTrend,
-        leaveEvents,
+        geralScore, irpGlobal, riskClassification, participationRate, totalEmployees, topRisks, topProtections, maturityLevel, riskFactors, 
+        companyAverageFactors: companyData.riskFactors, distributions, sectorRiskDistribution, climateTrend,
+        leadershipScore, safetyScore, workLifeBalanceScore, estimatedSavings, roiScenarios,
+        leadersInDevelopment, absenteeismRate, presenteeismRate, inssLeaveTrend, leaveEvents,
         crossAnalysis,
     };
 };
 
-
-// --- API Service Function ---
+// Main data getter function
 export const getDashboardData = (filters: Record<string, string>): Promise<DashboardData> => {
-  return new Promise((resolve, reject) => {
-    // 1. Check for authentication
-    const authData = authService.getAuth();
-    if (!authData || (authData.role !== 'company' && authData.role !== 'staff')) {
-      // Simulate a delay even for auth errors to prevent timing attacks
-      setTimeout(() => {
-        reject(new Error('Acesso não autorizado. Apenas usuários do tipo "Empresa" ou "Staff" podem ver o dashboard.'));
-      }, 500);
-      return;
-    }
-
-    // 2. Simulate network delay
-    setTimeout(() => {
-      try {
-        // 3. Perform data calculation (simulating backend processing)
-        const data = calculateDashboardData(filters);
-
-        // Override with imported leadership data if available
-        const storedLeadershipData = localStorage.getItem(LEADERSHIP_DATA_KEY);
-        if (storedLeadershipData) {
-            try {
-                const leadershipMetrics = JSON.parse(storedLeadershipData);
-                if (leadershipMetrics.leadersInDevelopment !== undefined) {
-                    data.leadersInDevelopment = leadershipMetrics.leadersInDevelopment;
-                }
-                if (leadershipMetrics.leadershipScore !== undefined) {
-                    data.leadershipScore = leadershipMetrics.leadershipScore;
-                }
-                if (leadershipMetrics.safetyScore !== undefined) {
-                    data.safetyScore = leadershipMetrics.safetyScore;
-                }
-            } catch (e) {
-                console.error("Failed to parse imported leadership data", e);
-            }
-        }
-
-        resolve(data);
-      } catch (e) {
-        reject(new Error('Erro ao processar os dados do dashboard.'));
-      }
-    }, 1500); // 1.5 second delay
-  });
-};
-
-
-// --- Collaborator Data Service Functions ---
-
-export const saveCollaboratorSurvey = async (answers: Record<string, string>): Promise<void> => {
     return new Promise((resolve) => {
-        const newEntry: CollaboratorEvolutionEntry = {
-            timestamp: Date.now(),
-            scores: {},
-            generalScore: 0,
-        };
-
-        let totalScoreSum = 0;
-        let totalDimensionCount = 0;
-
-        allDimensionIds.forEach(dimId => {
-            const dimQuestions = dimensions[dimId].questions;
-            let totalScoreForDim = 0;
-            let questionCountForDim = 0;
-            dimQuestions.forEach(qId => {
-                const answer = answers[qId];
-                if (answer) {
-                    totalScoreForDim += likertToScore[answer] || 0;
-                    questionCountForDim++;
-                }
-            });
-            if (questionCountForDim > 0) {
-                const averageScore = totalScoreForDim / questionCountForDim;
-                const normalizedScore = Math.round(((averageScore - 1) / 4) * 100);
-                newEntry.scores[dimId] = normalizedScore;
-                totalScoreSum += normalizedScore;
-                totalDimensionCount++;
-            }
-        });
-        
-        if (totalDimensionCount > 0) {
-            newEntry.generalScore = Math.round(totalScoreSum / totalDimensionCount);
-        }
-
-        try {
-            const existingDataString = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
-            const existingData: CollaboratorEvolutionEntry[] = existingDataString ? JSON.parse(existingDataString) : [];
-            existingData.push(newEntry);
-            localStorage.setItem(COLLABORATOR_EVOLUTION_KEY, JSON.stringify(existingData));
-        } catch (e) {
-            console.error("Failed to save collaborator evolution data", e);
-        }
-        resolve();
-    });
-};
-
-export const getCollaboratorEvolutionData = async (): Promise<CollaboratorEvolutionEntry[]> => {
-    return new Promise((resolve) => {
-        try {
-            const dataString = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
-            const data: CollaboratorEvolutionEntry[] = dataString ? JSON.parse(dataString) : [];
-            data.sort((a, b) => a.timestamp - b.timestamp); // Ensure it's sorted by date
-            resolve(data);
-        } catch (e) {
-            console.error("Failed to get collaborator evolution data", e);
-            resolve([]);
-        }
-    });
-};
-
-// --- Initiatives Service Functions ---
-
-export const publishInitiative = async (archivedPlan: any, announcement: string): Promise<void> => {
-    return new Promise((resolve) => {
-        const newInitiative: PublishedInitiative = {
-            id: archivedPlan.id,
-            publishedDate: new Date().toISOString(),
-            factor: archivedPlan.factor,
-            segment: archivedPlan.segment,
-            objective: archivedPlan.plan.strategicObjective.content,
-            announcement,
-            actions: archivedPlan.actions.map((a: any) => ({ title: a.title, description: a.description })),
-            status: archivedPlan.progress < 100 ? 'Em Andamento' : 'Concluído',
-            supportCount: 0,
-        };
-
-        try {
-            const existingDataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
-            const existingData: PublishedInitiative[] = existingDataString ? JSON.parse(existingDataString) : [];
-            existingData.unshift(newInitiative); // Add to the top
-            localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(existingData));
-        } catch (e) {
-            console.error("Failed to publish initiative", e);
-        }
-        resolve();
-    });
-};
-
-export const getPublishedInitiatives = async (): Promise<PublishedInitiative[]> => {
-     return new Promise((resolve) => {
-        try {
-            const dataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
-            const data: PublishedInitiative[] = dataString ? JSON.parse(dataString) : [];
-            resolve(data);
-        } catch (e) {
-            console.error("Failed to get published initiatives", e);
-            resolve([]);
-        }
-    });
-};
-
-export const recordInitiativeSupport = async (initiativeId: number): Promise<PublishedInitiative[]> => {
-    return new Promise((resolve) => {
-        try {
-            const dataString = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
-            let initiatives: PublishedInitiative[] = dataString ? JSON.parse(dataString) : [];
-            initiatives = initiatives.map(init => {
-                if (init.id === initiativeId) {
-                    return { ...init, supportCount: init.supportCount + 1 };
-                }
-                return init;
-            });
-            localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(initiatives));
-            resolve(initiatives);
-        } catch (e) {
-            console.error("Failed to record support", e);
-            resolve([]);
-        }
-    });
-};
-
-
-// --- AI Assistant Tool Functions ---
-
-export const queryRiskFactors = async (filters: Record<string, string>): Promise<{ factor: string; score: number }[]> => {
-    console.log("DataService: Querying risk factors with filters:", filters);
-    const mockResponses = getMockResponses();
-    const filteredResponses = mockResponses.filter(r => 
-        Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
-    );
-    
-    // If filter results in no data, use all data as a fallback.
-    const dataToProcess = filteredResponses.length > 0 ? filteredResponses : mockResponses;
-    
-    const { riskFactors } = calculateDataForResponses(dataToProcess);
-    
-    return riskFactors.map(rf => ({ factor: rf.name, score: rf.score }));
-};
-
-// --- Staff Dashboard Summary ---
-export const getStaffDashboardSummary = async (): Promise<{
-    totalCompanies: number;
-    totalEmployees: number;
-    pendingCampaigns: number;
-    docsNearExpiry: number;
-}> => {
-    return new Promise(resolve => {
         setTimeout(() => {
-            const companies = JSON.parse(localStorage.getItem(COMPANIES_KEY) || '[]');
-            const employees = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || '[]');
-            const campaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_KEY) || '[]');
-            
-            const getDocumentStatus = (expiryDate: string): { status: 'Em dia' | 'Próximo ao Vencimento' | 'Vencido'; days: number } => {
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                const expiry = new Date(expiryDate);
-                const diffTime = expiry.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                if (diffDays < 0) return { status: 'Vencido', days: diffDays };
-                if (diffDays <= 30) return { status: 'Próximo ao Vencimento', days: diffDays };
-                return { status: 'Em dia', days: diffDays };
-            };
-
-            const docsNearExpiry = mockDocuments.filter(doc => {
-                const { status } = getDocumentStatus(doc.expiryDate);
-                return status === 'Vencido' || status === 'Próximo ao Vencimento';
-            }).length;
-
-            resolve({
-                totalCompanies: companies.length,
-                totalEmployees: employees.length, // In a real app, this would be a COUNT query
-                pendingCampaigns: campaigns.filter((c: Campaign) => c.status === 'Pendente').length,
-                docsNearExpiry,
-            });
+            const data = calculateDashboardData(filters);
+            resolve(data);
         }, 500); // Simulate network delay
     });
 };
 
+// --- Other Data Services ---
 
-// --- Campaign Service Functions ---
-
-const initializeCampaigns = () => {
-    try {
-        const stored = localStorage.getItem(CAMPAIGNS_KEY);
-        if (!stored) {
-            localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(initialCampaigns));
-        }
-    } catch (e) { console.error(e); }
-};
-initializeCampaigns();
-
-export const getCampaigns = async (): Promise<Campaign[]> => {
+// Campaigns
+export const getCampaigns = (): Promise<Campaign[]> => {
     return new Promise(resolve => {
-        try {
-            const stored = localStorage.getItem(CAMPAIGNS_KEY);
-            const campaigns = stored ? JSON.parse(stored) : [];
-            campaigns.sort((a: Campaign, b: Campaign) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-            resolve(campaigns);
-        } catch (e) {
-            console.error('Failed to get campaigns', e);
-            resolve([]);
-        }
+        const stored = localStorage.getItem(CAMPAIGNS_KEY);
+        const campaigns = stored ? JSON.parse(stored) : initialCampaigns;
+        resolve(campaigns);
     });
-};
-
+}
 export const addCampaign = async (campaignData: Partial<Campaign>): Promise<Campaign[]> => {
     const campaigns = await getCampaigns();
     const newCampaign: Campaign = {
         id: Date.now(),
         name: campaignData.name || 'Nova Campanha',
         description: campaignData.description || '',
-        status: 'Pendente', // Always starts as pending
+        status: 'Pendente',
         targetAudience: campaignData.targetAudience || 'Toda a empresa',
         adherence: 0,
-        startDate: campaignData.startDate || new Date().toISOString().split('T')[0],
-        endDate: campaignData.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        startDate: campaignData.startDate || new Date().toISOString(),
+        endDate: campaignData.endDate || new Date().toISOString(),
         emailMessage: campaignData.emailMessage || '',
         filters: campaignData.filters || {},
     };
-    const updatedCampaigns = [newCampaign, ...campaigns];
-    try {
-        localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updatedCampaigns));
-    } catch (e) { console.error(e); }
+    const updatedCampaigns = [...campaigns, newCampaign];
+    localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updatedCampaigns));
     return updatedCampaigns;
+}
+export const approveCampaign = async (campaignId: number): Promise<Campaign[]> => {
+    const campaigns = await getCampaigns();
+    const updated = campaigns.map(c => {
+        if (c.id === campaignId) {
+            // If start date is in the future, it becomes 'Agendada', otherwise 'Em Andamento'
+            const status: CampaignStatus = new Date(c.startDate) > new Date() ? 'Agendada' : 'Em Andamento';
+            return { ...c, status };
+        }
+        return c;
+    });
+    localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updated));
+    return updated;
 };
 
-export const approveCampaign = async (campaignId: number): Promise<Campaign[]> => {
-    let campaigns = await getCampaigns();
-    const campaignToUpdate = campaigns.find(c => c.id === campaignId);
-    if (!campaignToUpdate) return campaigns;
+// Collaborator Survey & Evolution
+export const saveCollaboratorSurvey = async (answers: Record<string, string>): Promise<void> => {
+    const newEntry: CollaboratorEvolutionEntry = {
+        timestamp: Date.now(),
+        scores: {},
+        generalScore: 0,
+    };
+    let totalScoreSum = 0;
+    
+    allDimensionIds.forEach(dimId => {
+        const dimQuestions = dimensions[dimId].questions;
+        let totalDimScore = 0; let questionCount = 0;
+        dimQuestions.forEach(qId => {
+            const answer = answers[qId];
+            if (answer) {
+                totalDimScore += likertToScore[answer] || 0;
+                questionCount++;
+            }
+        });
+        if (questionCount > 0) {
+            const avgScore = (totalDimScore / questionCount - 1) / 4 * 100;
+            newEntry.scores[dimId] = Math.round(avgScore);
+            totalScoreSum += avgScore;
+        }
+    });
+    
+    newEntry.generalScore = Math.round(totalScoreSum / allDimensionIds.length);
+    
+    const evolutionData = await getCollaboratorEvolutionData();
+    evolutionData.push(newEntry);
+    localStorage.setItem(COLLABORATOR_EVOLUTION_KEY, JSON.stringify(evolutionData));
+};
 
+export const getCollaboratorEvolutionData = (): Promise<CollaboratorEvolutionEntry[]> => {
+    return new Promise(resolve => {
+        const stored = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
+        resolve(stored ? JSON.parse(stored) : []);
+    });
+};
+
+// Initiatives
+export const getPublishedInitiatives = (): Promise<PublishedInitiative[]> => {
+    return new Promise(resolve => {
+        const stored = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
+        const initiatives: PublishedInitiative[] = stored ? JSON.parse(stored) : [];
+        initiatives.sort((a,b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+        resolve(initiatives);
+    });
+};
+export const publishInitiative = async (archivedPlan: any, announcement: string): Promise<void> => {
+    const initiatives = await getPublishedInitiatives();
+    const newInitiative: PublishedInitiative = {
+        id: archivedPlan.id,
+        publishedDate: new Date().toISOString(),
+        factor: archivedPlan.factor,
+        segment: archivedPlan.segment,
+        objective: archivedPlan.plan.strategicObjective.content,
+        announcement: announcement,
+        actions: archivedPlan.actions.map((a: any) => ({title: a.title, description: a.description})),
+        status: 'Em Andamento',
+        supportCount: 0,
+    };
+    initiatives.unshift(newInitiative);
+    localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(initiatives));
+};
+export const recordInitiativeSupport = async (id: number): Promise<PublishedInitiative[]> => {
+    const initiatives = await getPublishedInitiatives();
+    const updated = initiatives.map(i => {
+        if (i.id === id) {
+            return { ...i, supportCount: i.supportCount + 1 };
+        }
+        return i;
+    });
+    localStorage.setItem(PUBLISHED_INITIATIVES_KEY, JSON.stringify(updated));
+    return updated;
+};
+
+// Data Import Services for Staff
+export const importSurveyResponses = (data: any[]): Promise<void> => {
+    return new Promise(resolve => {
+        const responses = data.map((row, index) => {
+            const answers: Record<string, string> = {};
+            for (const key in row) {
+                if (key.startsWith('q')) {
+                    answers[key] = row[key];
+                }
+            }
+            return {
+                id: Date.now() + index,
+                timestamp: Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000,
+                segmentation: {
+                    empresa: row.empresa,
+                    diretoria: row.diretoria,
+                    setor: row.setor,
+                    cargo: row.cargo
+                },
+                answers: answers
+            }
+        });
+        localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(responses));
+        resolve();
+    });
+};
+
+export const importHistoricalIndicators = (data: any[]): Promise<void> => {
+    return new Promise(resolve => {
+        localStorage.setItem(HISTORICAL_INDICATORS_KEY, JSON.stringify(data));
+        resolve();
+    });
+};
+
+export const importLeaveEvents = (data: any[]): Promise<void> => {
+     return new Promise(resolve => {
+        const events = data.map(row => ({
+            type: row['Tipo de Afastamento'],
+            date: row['Data (AAAA-MM-DD)']
+        }));
+        localStorage.setItem(LEAVE_EVENTS_KEY, JSON.stringify(events));
+        resolve();
+    });
+};
+
+export const importLeadershipData = (data: any[]): Promise<void> => {
+    return new Promise(resolve => {
+        if (data.length > 0) {
+            const firstRow = data[0];
+            const leadershipData = {
+                leadersInDevelopment: firstRow['% Líderes em Desenvolvimento (0-100)'],
+                leadershipScore: firstRow['Percepção da Liderança (1-5)'],
+                safetyScore: firstRow['Segurança Psicológica (1-5)']
+            };
+            localStorage.setItem(LEADERSHIP_DATA_KEY, JSON.stringify(leadershipData));
+        }
+        resolve();
+    });
+};
+
+export const importFinancialData = (data: any[]): Promise<void> => {
+    return new Promise(resolve => {
+        if (data.length > 0) {
+            const firstRow = data[0];
+            const financialData = {
+                totalEmployees: firstRow['Total de Colaboradores (para cálculo de adesão)'],
+                avgAnnualCost: firstRow['Custo Médio Anual por Colaborador (para ROI)'],
+                estimatedSavings: firstRow['Economia Estimada Anual (valor manual)']
+            };
+            localStorage.setItem(FINANCIAL_DATA_KEY, JSON.stringify(financialData));
+        }
+        resolve();
+    });
+};
+
+
+// Function for Assistant Tool
+export const queryRiskFactors = async (filters: Record<string, string>): Promise<RiskFactor[]> => {
+    const data = await getDashboardData(filters);
+    return data.riskFactors;
+};
+
+
+// Staff Dashboard Services
+// FIX: Define `getDocumentStatus` to resolve reference error in `getStaffDashboardSummary`.
+type DocumentStatus = 'Em dia' | 'Próximo ao Vencimento' | 'Vencido';
+const getDocumentStatus = (expiryDate: string): { status: DocumentStatus; days: number } => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const startDate = new Date(campaignToUpdate.startDate);
-    startDate.setHours(0,0,0,0);
-    
-    const newStatus: CampaignStatus = startDate <= today ? 'Em Andamento' : 'Agendada';
-    
-    const updatedCampaigns = campaigns.map(c => 
-        c.id === campaignId 
-            ? { ...c, status: newStatus } 
-            : c
-    );
-    try {
-        localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(updatedCampaigns));
-    } catch(e) { console.error(e); }
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    return updatedCampaigns;
+    if (diffDays < 0) return { status: 'Vencido', days: diffDays };
+    if (diffDays <= 30) return { status: 'Próximo ao Vencimento', days: diffDays };
+    return { status: 'Em dia', days: diffDays };
 };
 
-// --- User Management Mock Data and Initializer ---
-const initialMockCompanies: Company[] = [
-    { id: 1, name: 'InovaCorp', razaoSocial: 'InovaCorp Soluções S.A.', cnpj: '12.345.678/0001-99', setor: 'Tecnologia', numColaboradores: 150, contatoPrincipal: { nome: 'Ana Costa', email: 'ana.costa@inovacorp.com' }, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
-    { id: 2, name: 'NexusTech', razaoSocial: 'Nexus Tecnologia Ltda.', cnpj: '98.765.432/0001-11', setor: 'Software', numColaboradores: 85, contatoPrincipal: { nome: 'Bruno Lima', email: 'bruno.lima@nexustech.com' }, address: { logradouro: 'Avenida Principal', numero: '456', bairro: 'Jardins', cidade: 'Rio de Janeiro', estado: 'RJ', cep: '22000-000' } },
-    { id: 3, name: 'AuraDigital', razaoSocial: 'Aura Digital e Marketing', cnpj: '45.678.912/0001-33', setor: 'Marketing', numColaboradores: 45, contatoPrincipal: { nome: 'Carla Dias', email: 'carla.dias@auradigital.com' }, address: { logradouro: 'Praça da Liberdade', numero: '789', bairro: 'Savassi', cidade: 'Belo Horizonte', estado: 'MG', cep: '30140-010' } },
-    { id: 4, name: 'Vértice', razaoSocial: 'Vértice Consultoria Empresarial', cnpj: '33.222.111/0001-55', setor: 'Consultoria', numColaboradores: 120, contatoPrincipal: { nome: 'Daniel Souza', email: 'daniel.souza@vertice.com' }, address: { logradouro: 'Setor Comercial Sul', numero: '101', bairro: 'Asa Sul', cidade: 'Brasília', estado: 'DF', cep: '70300-000' } },
-];
+export const getStaffDashboardSummary = async (): Promise<{totalCompanies: number, totalEmployees: number, pendingCampaigns: number, docsNearExpiry: number}> => {
+    // These would be real async calls to a backend
+    const campaigns = await getCampaigns();
+    
+    const docsNearExpiry = mockDocuments.filter(doc => {
+        const { status } = getDocumentStatus(doc.expiryDate);
+        return status === 'Próximo ao Vencimento' || status === 'Vencido';
+    }).length;
 
-const generateMockEmployees = (): Employee[] => {
-    const firstNames = ['Ana', 'Bruno', 'Carla', 'Daniel', 'Elisa', 'Fernando', 'Gabriela', 'Henrique', 'Isabela', 'João'];
-    const lastNames = ['Silva', 'Costa', 'Dias', 'Fogaça', 'Martins', 'Pereira', 'Alves', 'Ribeiro', 'Gomes', 'Santos'];
-    const companies = initialMockCompanies.map(c => c.name);
-    const generos: Employee['genero'][] = ['Masculino', 'Feminino', 'Outro', 'Prefiro não informar'];
-    const niveis: Employee['nivelCargo'][] = ['Estagiário', 'Júnior', 'Pleno', 'Sênior', 'Especialista', 'Líder/Coordenador', 'Gerente', 'Diretor'];
-    const statuses: Employee['status'][] = ['Ativo', 'Ativo', 'Ativo', 'Ativo', 'Inativo', 'Férias', 'Licença'];
-    const employees: Employee[] = [];
-
-    const randomDate = (start: Date, end: Date) => {
-        return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime())).toISOString().split('T')[0];
+    return {
+        totalCompanies: 4,
+        totalEmployees: 55,
+        pendingCampaigns: campaigns.filter(c => c.status === 'Pendente').length,
+        docsNearExpiry,
     };
-
-    for (let i = 1; i <= 20000; i++) {
-        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-        const company = companies[Math.floor(Math.random() * companies.length)];
-        const cpf = `${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}.${Math.floor(Math.random()*1000).toString().padStart(3,'0')}-${Math.floor(Math.random()*100).toString().padStart(2,'0')}`;
-        employees.push({
-            id: i,
-            name: `${firstName} ${lastName} ${i}`,
-            email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@${company.toLowerCase().replace(' ', '')}.com`,
-            company: company,
-            cpf: cpf,
-            password: cpf.slice(-3),
-            dataNascimento: randomDate(new Date(1970, 0, 1), new Date(2004, 0, 1)),
-            genero: generos[Math.floor(Math.random() * generos.length)],
-            dataAdmissao: randomDate(new Date(2015, 0, 1), new Date()),
-            nivelCargo: niveis[Math.floor(Math.random() * niveis.length)],
-            status: statuses[Math.floor(Math.random() * statuses.length)],
-            unidade: 'Matriz',
-            liderDireto: 'Fulano de Tal'
-        });
-    }
-    return employees;
 };
 
-const initialMockBranches: Branch[] = [
-    { id: 1, name: 'Matriz InovaCorp', companyId: 1, address: { logradouro: 'Rua das Inovações', numero: '123', bairro: 'Centro', cidade: 'São Paulo', estado: 'SP', cep: '01000-000' } },
-    { id: 2, name: 'InovaCorp Paulista', companyId: 1, address: { logradouro: 'Avenida Paulista', numero: '1500', bairro: 'Bela Vista', cidade: 'São Paulo', estado: 'SP', cep: '01310-200' } },
-    { id: 3, name: 'NexusTech Rio', companyId: 2, address: { logradouro: 'Avenida Rio Branco', numero: '1', bairro: 'Centro', cidade: 'Rio de Janeiro', estado: 'RJ', cep: '20090-003' } },
-    { id: 4, name: 'AuraDigital BH', companyId: 3, address: { logradouro: 'Avenida Afonso Pena', numero: '4000', bairro: 'Cruzeiro', cidade: 'Belo Horizonte', estado: 'MG', cep: '30130-009' } }
-];
-
-const initialMockCompanyUsers: CompanyUser[] = [
-    { id: 1, name: 'Ana Costa', email: 'ana.costa@inovacorp.com', password: 'Mudar@123', companyId: 1, companyName: 'InovaCorp', role: 'Admin', status: 'Ativo' },
-    { id: 2, name: 'Bruno Lima', email: 'bruno.lima@nexustech.com', password: 'Mudar@123', companyId: 2, companyName: 'NexusTech', role: 'RH', status: 'Ativo' },
-    { id: 3, name: 'Carla Dias', email: 'carla.dias@auradigital.com', password: 'Mudar@123', companyId: 3, companyName: 'AuraDigital', role: 'Leader', status: 'Inativo' },
-];
-
-
-const initializeUserData = () => {
-    try {
-        if (!localStorage.getItem(COMPANIES_KEY)) {
-            localStorage.setItem(COMPANIES_KEY, JSON.stringify(initialMockCompanies));
-        }
-        if (!localStorage.getItem(EMPLOYEES_KEY)) {
-            // In a real backend, this would be a database query. For the prototype,
-            // we generate a smaller set to avoid blocking the main thread, 
-            // but the pagination logic will work regardless of the total size.
-            const employees = generateMockEmployees().slice(0, 500); // Generate 500 for demo
-            localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(employees));
-        }
-        if (!localStorage.getItem(BRANCHES_KEY)) {
-            localStorage.setItem(BRANCHES_KEY, JSON.stringify(initialMockBranches));
-        }
-        if (!localStorage.getItem(COMPANY_USERS_KEY)) {
-            localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(initialMockCompanyUsers));
-        }
-    } catch (e) { console.error("Error initializing user data:", e); }
-};
-initializeUserData();
-
-// --- Data Import Service ---
-export const importSurveyResponses = async (responses: any[]): Promise<void> => {
-    return new Promise((resolve) => {
-        const newMockResponses = responses.map((row, index) => {
-            const { empresa, diretoria, setor, cargo, ...answers } = row;
-            return {
-                id: index + 1,
-                timestamp: Date.now(),
-                segmentation: { empresa, diretoria, setor, cargo },
-                answers: answers
-            };
-        });
-        
-        try {
-            localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(newMockResponses));
-        } catch (e) {
-            console.error("Failed to save imported survey responses", e);
-        }
-        resolve();
-    });
-};
-
-export const importHistoricalIndicators = async (data: any[]): Promise<void> => {
-    return new Promise((resolve) => {
-        try {
-            localStorage.setItem(HISTORICAL_INDICATORS_KEY, JSON.stringify(data));
-        } catch (e) { console.error("Failed to save historical indicators", e); }
-        resolve();
-    });
-};
-
-export const importLeaveEvents = async (data: any[]): Promise<void> => {
-    return new Promise((resolve) => {
-        try {
-            localStorage.setItem(LEAVE_EVENTS_KEY, JSON.stringify(data));
-        } catch (e) { console.error("Failed to save leave events", e); }
-        resolve();
-    });
-};
-
-export const importLeadershipData = async (data: any[]): Promise<void> => {
-    return new Promise((resolve) => {
-        try {
-            // Expecting a single row of data from the template
-            if (data.length > 0) {
-                const leadershipMetrics = {
-                    leadersInDevelopment: data[0]['% Líderes em Desenvolvimento (0-100)'],
-                    leadershipScore: data[0]['Percepção da Liderança (1-5)'],
-                    safetyScore: data[0]['Segurança Psicológica (1-5)'],
-                };
-                localStorage.setItem(LEADERSHIP_DATA_KEY, JSON.stringify(leadershipMetrics));
-            }
-        } catch (e) { console.error("Failed to save leadership data", e); }
-        resolve();
-    });
-};
-
-export const importFinancialData = async (data: any[]): Promise<void> => {
-    return new Promise((resolve) => {
-        try {
-            if (data.length > 0) {
-                const financialMetrics = {
-                    totalEmployees: data[0]['Total de Colaboradores (para cálculo de adesão)'],
-                    avgAnnualCost: data[0]['Custo Médio Anual por Colaborador (para ROI)'],
-                    estimatedSavings: data[0]['Economia Estimada Anual (valor manual)'],
-                };
-                localStorage.setItem(FINANCIAL_DATA_KEY, JSON.stringify(financialMetrics));
-            }
-        } catch (e) { console.error("Failed to save financial data", e); }
-        resolve();
-    });
-};
-
-
-// --- User Management Service Functions ---
-
-export const getCompanies = async (): Promise<Company[]> => {
+export const findEmployeeByCpf = (cpf: string): Promise<Employee | undefined> => {
     return new Promise(resolve => {
-        const data = localStorage.getItem(COMPANIES_KEY);
-        resolve(data ? JSON.parse(data) : []);
-    });
-};
-
-export const addCompany = async (companyData: Omit<Company, 'id'>): Promise<Company[]> => {
-    const companies = await getCompanies();
-    const newCompany: Company = { id: Date.now(), ...companyData };
-    const updated = [...companies, newCompany];
-    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
-    return updated;
-};
-
-export const addCompanies = async (companyNames: string[]): Promise<Company[]> => {
-    const companies = await getCompanies();
-    const existingNames = new Set(companies.map(c => c.name.toLowerCase()));
-    
-    const newCompanies: Omit<Company, 'id'>[] = companyNames
-        .filter(name => name.trim() && !existingNames.has(name.trim().toLowerCase()))
-        .map(name => ({ 
-            name: name.trim(),
-            razaoSocial: `${name.trim()} LTDA`,
-            cnpj: '00.000.000/0000-00',
-            setor: 'Não especificado',
-            numColaboradores: 0,
-            contatoPrincipal: { nome: 'A definir', email: 'a@definir.com' },
-            address: { logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: '' }
-        }));
-    
-    const updated = [...companies, ...newCompanies.map(c => ({...c, id: Date.now() + Math.random()}))];
-    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
-    return updated;
-};
-
-export const deleteCompany = async (id: number): Promise<Company[]> => {
-    const companies = await getCompanies();
-    const updated = companies.filter(c => c.id !== id);
-    localStorage.setItem(COMPANIES_KEY, JSON.stringify(updated));
-    return updated;
-};
-
-export const findEmployeeByCpf = async (cpf: string): Promise<Employee | undefined> => {
-    // Hardcoded test user for easy access
-    if (cpf === '123.456.789-00') {
-        return {
-            id: 99999,
-            name: 'Colaborador de Teste',
-            email: 'colaborador.teste@inovacorp.com',
-            company: 'InovaCorp',
+        // In a real app, this would query a database. Here we just mock a user.
+        const mockEmployee: Employee = {
+            id: 1,
+            name: 'Colaborador Teste',
+            email: 'colaborador@techcorp.com',
+            company: 'TechCorp',
             cpf: '123.456.789-00',
             password: '900',
             dataNascimento: '1990-01-01',
             genero: 'Prefiro não informar',
             dataAdmissao: '2022-01-01',
             nivelCargo: 'Pleno',
-            status: 'Ativo',
-            unidade: 'Matriz',
-            liderDireto: 'Ana Costa'
+            status: 'Ativo'
         };
-    }
-    const data = localStorage.getItem(EMPLOYEES_KEY);
-    const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-    return allEmployees.find(e => e.cpf === cpf);
-};
-
-// This function simulates a paginated and searchable backend endpoint.
-export const getEmployees = async (
-    { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
-): Promise<{ employees: Employee[]; total: number; pages: number }> => {
-    return new Promise(resolve => {
-        const data = localStorage.getItem(EMPLOYEES_KEY);
-        // Use a smaller slice for performance in the browser simulation
-        const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-
-        const filtered = searchTerm
-            ? allEmployees.filter(e =>
-                e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                e.email.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            : allEmployees;
-        
-        const total = filtered.length;
-        const pages = Math.ceil(total / limit);
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        const employees = filtered.slice(start, end);
-
-        // Simulate network delay
-        setTimeout(() => {
-            resolve({ employees, total, pages });
-        }, 300);
-    });
-};
-
-export const addEmployee = async (employeeData: Omit<Employee, 'id' | 'password'>): Promise<void> => {
-     const data = localStorage.getItem(EMPLOYEES_KEY);
-     const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-     const password = employeeData.cpf.slice(-3);
-     const newEmployee: Employee = { id: Date.now(), ...employeeData, password };
-     allEmployees.unshift(newEmployee);
-     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(allEmployees));
-};
-
-export const addEmployees = async (employeesData: Omit<Employee, 'id' | 'password'>[]): Promise<void> => {
-     const data = localStorage.getItem(EMPLOYEES_KEY);
-     const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-     const newEmployees: Employee[] = employeesData.map(e => ({ ...e, id: Date.now() + Math.random(), password: e.cpf.slice(-3) }));
-     const updated = [...newEmployees, ...allEmployees];
-     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
-};
-
-export const deleteEmployee = async (id: number): Promise<void> => {
-    const data = localStorage.getItem(EMPLOYEES_KEY);
-    const allEmployees: Employee[] = data ? JSON.parse(data) : [];
-    const updated = allEmployees.filter(e => e.id !== id);
-    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(updated));
-};
-
-// --- Branch Management Service Functions ---
-
-export const getBranches = async (companyId?: number): Promise<Branch[]> => {
-    return new Promise(resolve => {
-        const data = localStorage.getItem(BRANCHES_KEY);
-        const allBranches: Branch[] = data ? JSON.parse(data) : [];
-        if (companyId) {
-            resolve(allBranches.filter(b => b.companyId === companyId));
+        if (cpf === mockEmployee.cpf) {
+            resolve(mockEmployee);
         } else {
-            resolve(allBranches);
+            resolve(undefined);
         }
     });
 };
 
-export const addBranch = async (branchData: Omit<Branch, 'id'>): Promise<void> => {
-    const data = localStorage.getItem(BRANCHES_KEY);
-    const allBranches: Branch[] = data ? JSON.parse(data) : [];
-    const newBranch: Branch = { id: Date.now(), ...branchData };
-    allBranches.push(newBranch);
-    localStorage.setItem(BRANCHES_KEY, JSON.stringify(allBranches));
-};
-
-export const deleteBranch = async (id: number): Promise<void> => {
-    const data = localStorage.getItem(BRANCHES_KEY);
-    const allBranches: Branch[] = data ? JSON.parse(data) : [];
-    const updated = allBranches.filter(b => b.id !== id);
-    localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
-};
-
-export const addBranches = async (companyId: number, branchesData: Omit<Branch, 'id' | 'companyId'>[]): Promise<void> => {
-    const data = localStorage.getItem(BRANCHES_KEY);
-    const allBranches: Branch[] = data ? JSON.parse(data) : [];
-    const newBranches: Branch[] = branchesData.map(b => ({ ...b, id: Date.now() + Math.random(), companyId }));
-    const updated = [...allBranches, ...newBranches];
-    localStorage.setItem(BRANCHES_KEY, JSON.stringify(updated));
-};
-
-// --- Company User Management Service Functions ---
-
-export const findCompanyUserByEmail = async (email: string): Promise<CompanyUser | undefined> => {
-    const data = localStorage.getItem(COMPANY_USERS_KEY);
-    const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-    return allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-};
-
-export const getCompanyUsers = async (
-    { page = 1, limit = 10, searchTerm = '' }: { page: number; limit: number; searchTerm: string }
-): Promise<{ users: CompanyUser[]; total: number; pages: number }> => {
+export const findCompanyUserByEmail = (email: string): Promise<CompanyUser | undefined> => {
     return new Promise(resolve => {
-        const data = localStorage.getItem(COMPANY_USERS_KEY);
-        const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-
-        const filtered = searchTerm
-            ? allUsers.filter(u =>
-                u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                u.email.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-            : allUsers;
-        
-        const total = filtered.length;
-        const pages = Math.ceil(total / limit);
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        const users = filtered.slice(start, end);
-
-        setTimeout(() => {
-            resolve({ users, total, pages });
-        }, 300);
+        // Mock user for company login
+        const mockUser: CompanyUser = {
+            id: 101,
+            name: 'Ana Costa',
+            email: 'ana.costa@inovacorp.com',
+            password: 'Mudar@123',
+            companyId: 1,
+            companyName: 'InovaCorp',
+            role: 'Admin',
+            status: 'Ativo'
+        };
+         if (email.toLowerCase() === mockUser.email) {
+            resolve(mockUser);
+        } else {
+            resolve(undefined);
+        }
     });
 };
 
-export const addCompanyUser = async (userData: Omit<CompanyUser, 'id' | 'password'>): Promise<void> => {
-     const data = localStorage.getItem(COMPANY_USERS_KEY);
-     const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-     const newUser: CompanyUser = { id: Date.now(), ...userData, password: 'Mudar@123' };
-     allUsers.unshift(newUser);
-     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(allUsers));
+// --- Staff CRUD Services (all using localStorage for simulation) ---
+
+// Companies
+export const getCompanies = (): Promise<Company[]> => new Promise(r => r(JSON.parse(localStorage.getItem(COMPANIES_KEY) || '[]')));
+export const addCompany = async (data: Omit<Company, 'id'>) => {
+    const items = await getCompanies();
+    const newItem = { ...data, id: Date.now() };
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify([...items, newItem]));
+    return [...items, newItem];
+};
+export const deleteCompany = async (id: number) => {
+    let items = await getCompanies();
+    items = items.filter(i => i.id !== id);
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify(items));
+    return items;
+};
+export const addCompanies = async (names: string[]) => {
+    const items = await getCompanies();
+    const newItems = names.map((name, i) => ({ id: Date.now() + i, name, razaoSocial: '', cnpj: '', setor: '', numColaboradores: 0, contatoPrincipal: {nome: '', email: ''}, address: {logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: ''} }));
+    localStorage.setItem(COMPANIES_KEY, JSON.stringify([...items, ...newItems]));
 };
 
-export const addCompanyUsers = async (usersData: Omit<CompanyUser, 'id' | 'password'>[]): Promise<void> => {
-     const data = localStorage.getItem(COMPANY_USERS_KEY);
-     const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-     const newUsers: CompanyUser[] = usersData.map(u => ({ ...u, id: Date.now() + Math.random(), password: 'Mudar@123' }));
-     const updated = [...newUsers, ...allUsers];
-     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(updated));
+// Branches
+export const getBranches = (companyId: number): Promise<Branch[]> => new Promise(r => r(JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]').filter((b: Branch) => b.companyId === companyId)));
+export const addBranch = async (data: Omit<Branch, 'id'>) => {
+    const items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    const newItem = { ...data, id: Date.now() };
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify([...items, newItem]));
+};
+export const deleteBranch = async (id: number) => {
+    let items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    items = items.filter((i: Branch) => i.id !== id);
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify(items));
+};
+export const addBranches = async (companyId: number, branches: Omit<Branch, 'id'|'companyId'>[]) => {
+    const items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    const newItems = branches.map((b,i) => ({ ...b, id: Date.now() + i, companyId }));
+    localStorage.setItem(BRANCHES_KEY, JSON.stringify([...items, ...newItems]));
 };
 
-export const deleteCompanyUser = async (id: number): Promise<void> => {
-    const data = localStorage.getItem(COMPANY_USERS_KEY);
-    const allUsers: CompanyUser[] = data ? JSON.parse(data) : [];
-    const updated = allUsers.filter(u => u.id !== id);
-    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(updated));
+// Employees
+export const getEmployees = (params: { page: number; limit: number; searchTerm: string }): Promise<{employees: Employee[], pages: number}> => {
+    return new Promise(r => {
+        let items: Employee[] = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || '[]');
+        if (params.searchTerm) {
+            items = items.filter(e => e.name.toLowerCase().includes(params.searchTerm.toLowerCase()) || e.email.toLowerCase().includes(params.searchTerm.toLowerCase()));
+        }
+        const totalItems = items.length;
+        const pages = Math.ceil(totalItems / params.limit);
+        const paginated = items.slice((params.page - 1) * params.limit, params.page * params.limit);
+        r({ employees: paginated, pages });
+    });
+};
+export const addEmployee = async (data: Omit<Employee, 'id'|'password'>) => {
+    const items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
+    const password = data.cpf.slice(-3); // Last 3 digits of CPF as password
+    const newItem = { ...data, id: Date.now(), password };
+    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify([...items, newItem]));
+};
+export const deleteEmployee = async (id: number) => {
+    let items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
+    items = items.filter(i => i.id !== id);
+    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(items));
+};
+export const addEmployees = async (employees: Omit<Employee, 'id'|'password'>[]) => {
+    const items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
+    const newItems = employees.map((e, i) => ({ ...e, id: Date.now() + i, password: e.cpf.slice(-3) }));
+    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify([...items, ...newItems]));
+};
+
+// Company Users
+export const getCompanyUsers = (params: { page: number; limit: number; searchTerm: string }): Promise<{users: CompanyUser[], pages: number}> => {
+    return new Promise(r => {
+        let items: CompanyUser[] = JSON.parse(localStorage.getItem(COMPANY_USERS_KEY) || '[]');
+        if (params.searchTerm) {
+            items = items.filter(u => u.name.toLowerCase().includes(params.searchTerm.toLowerCase()) || u.email.toLowerCase().includes(params.searchTerm.toLowerCase()));
+        }
+        const pages = Math.ceil(items.length / params.limit);
+        const paginated = items.slice((params.page - 1) * params.limit, params.page * params.limit);
+        r({ users: paginated, pages });
+    });
+};
+export const addCompanyUser = async (data: Omit<CompanyUser, 'id'|'password'>) => {
+    const items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
+    const newItem = { ...data, id: Date.now(), password: 'Mudar@123' };
+    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify([...items, newItem]));
+};
+export const deleteCompanyUser = async (id: number) => {
+    let items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
+    items = items.filter(i => i.id !== id);
+    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(items));
+};
+export const addCompanyUsers = async (users: Omit<CompanyUser, 'id'|'password'>[]) => {
+    const items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
+    const newItems = users.map((u, i) => ({ ...u, id: Date.now() + i, password: 'Mudar@123' }));
+    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify([...items, ...newItems]));
 };
