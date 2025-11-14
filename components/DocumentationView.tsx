@@ -1,40 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ArchiveBoxIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ShieldCheckIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from './icons';
-
-interface Document {
-  id: number;
-  name: string;
-  category: 'Segurança do Trabalho';
-  branch: 'Matriz' | 'Filial SP' | 'Filial RJ' | 'Filial MG';
-  uploadDate: string;
-  expiryDate: string;
-}
-
-const mockDocuments: Document[] = [
-  // Matriz
-  { id: 1, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 2, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 3, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 4, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-
-  // Filial SP
-  { id: 5, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 6, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 7, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 8, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-
-  // Filial RJ
-  { id: 9, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 10, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 11, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 12, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-
-  // Filial MG
-  { id: 13, name: 'PGR - Programa de Gerenciamento de Riscos', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 14, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 15, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 16, name: 'AET - Análise Ergonômica do Trabalho', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-];
+import { Document, mockDocuments as allMockDocuments } from './dashboardMockData';
 
 
 const branches = ['Todas', 'Matriz', 'Filial SP', 'Filial RJ', 'Filial MG'];
@@ -148,6 +114,9 @@ export const DocumentationView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' } | null>({ key: 'expiryDate', direction: 'ascending' });
 
+  // Filter documents for the specific company, simulating a logged-in user view
+  const mockDocuments = useMemo(() => allMockDocuments.filter(d => d.company === 'InovaCorp'), []);
+
   const summary = useMemo(() => {
     const total = mockDocuments.length;
     let inGoodStanding = 0;
@@ -166,7 +135,7 @@ export const DocumentationView: React.FC = () => {
     });
 
     return { total, inGoodStanding, expiringSoon, expired };
-  }, []);
+  }, [mockDocuments]);
 
   const requestSort = (key: SortableKeys) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -208,7 +177,7 @@ export const DocumentationView: React.FC = () => {
     }
 
     return sortableItems;
-  }, [selectedBranch, selectedCategory, selectedStatus, searchTerm, sortConfig]);
+  }, [mockDocuments, selectedBranch, selectedCategory, selectedStatus, searchTerm, sortConfig]);
 
   const handleDownload = (doc: Document) => {
     const fileContent = `Este é um arquivo de exemplo para o documento:\n\nNome: ${doc.name}\nCategoria: ${doc.category}\nFilial: ${doc.branch}\nData de Validade: ${new Date(doc.expiryDate).toLocaleDateString('pt-BR')}`;

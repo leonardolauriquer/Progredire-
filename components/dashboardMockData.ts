@@ -15,7 +15,6 @@ export interface Campaign {
     filters: Record<string, string>;
 }
 
-// FIX: Exported `initialCampaigns` to make it accessible to other modules.
 export const initialCampaigns: Campaign[] = [
     { id: 1, name: "Diagnóstico Q3 - Tecnologia", description: "Avaliação trimestral da equipe de tecnologia.", status: "Em Andamento", targetAudience: "Diretoria de Tecnologia", adherence: 65, startDate: "2024-07-15", endDate: "2024-08-15", emailMessage: "...", filters: {diretoria: 'Tecnologia'}},
     { id: 2, name: "Pesquisa de Clima - Vendas & Mkt", description: "Análise do clima e engajamento das equipes comerciais.", status: "Concluída", targetAudience: "Diretoria de Vendas & Mkt", adherence: 92, startDate: "2024-05-01", endDate: "2024-05-30", emailMessage: "...", filters: {diretoria: 'Vendas & Mkt'}},
@@ -49,6 +48,36 @@ export const dimensions: Record<string, { name: string, questions: string[] }> =
     'd10_mudancas': { name: 'Mudanças Organizacionais e Estabilidade', questions: ['q39', 'q40', 'q41', 'q42'] },
     'd11_ambiente': { name: 'Ambiente e Condições de Trabalho', questions: ['q43', 'q44', 'q45'] },
 };
+
+export interface Document {
+  id: number;
+  name: string;
+  company: 'InovaCorp' | 'NexusTech' | 'AuraDigital' | 'Vértice';
+  category: 'Segurança do Trabalho';
+  branch: 'Matriz' | 'Filial SP' | 'Filial RJ' | 'Filial MG';
+  uploadDate: string;
+  expiryDate: string;
+}
+
+export const mockDocuments: Document[] = [
+  // InovaCorp
+  { id: 1, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 2, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 3, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 4, name: 'AET - Análise Ergonômica do Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 5, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 6, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 7, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 8, name: 'AET - Análise Ergonômica do Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  
+  // NexusTech
+  { id: 9, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 10, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  
+  // AuraDigital
+  { id: 11, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'AuraDigital', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+  { id: 12, name: 'AET - Análise Ergonômica do Trabalho', company: 'AuraDigital', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+];
 
 
 const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];

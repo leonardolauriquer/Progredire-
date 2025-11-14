@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal } from './Modal';
 import { 
     ArchiveBoxIcon, 
@@ -10,41 +9,19 @@ import {
     ExclamationCircleIcon,
     PlusCircleIcon,
 } from './icons';
+import { Document, mockDocuments } from './dashboardMockData';
+
 
 // The xlsx library is loaded via a script tag and is available as a global.
 declare var XLSX: any;
 
 // --- TYPES AND MOCK DATA ---
-
-interface Document {
-  id: number;
-  name: string;
-  company: 'InovaCorp' | 'NexusTech';
-  category: 'Segurança do Trabalho';
-  branch: 'Matriz' | 'Filial SP' | 'Filial RJ' | 'Filial MG';
-  uploadDate: string;
-  expiryDate: string;
-}
-
-const initialMockDocuments: Document[] = [
-  { id: 1, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 2, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 3, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 4, name: 'AET - Análise Ergonômica do Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Matriz', uploadDate: '2024-01-10', expiryDate: new Date(Date.now() + 300 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 5, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 6, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 7, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 8, name: 'AET - Análise Ergonômica do Trabalho', company: 'InovaCorp', category: 'Segurança do Trabalho', branch: 'Filial SP', uploadDate: '2024-02-15', expiryDate: new Date(Date.now() + 250 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 9, name: 'PGR - Programa de Gerenciamento de Riscos', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 10, name: 'PCMSO - Prog. de Controle Médico de Saúde Ocupacional', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial RJ', uploadDate: '2024-03-20', expiryDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 11, name: 'LTCAT - Laudo Técnico das Condições do Ambiente de Trabalho', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-  { id: 12, name: 'AET - Análise Ergonômica do Trabalho', company: 'NexusTech', category: 'Segurança do Trabalho', branch: 'Filial MG', uploadDate: '2024-04-01', expiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
-];
-
-const allCompaniesList = ['InovaCorp', 'NexusTech', 'AuraDigital', 'Vértice'];
+const allCompaniesList = ['Todas', 'InovaCorp', 'NexusTech', 'AuraDigital', 'Vértice'];
 const companyBranches: Record<string, string[]> = {
     InovaCorp: ['Matriz', 'Filial SP'],
     NexusTech: ['Filial RJ', 'Filial MG'],
+    AuraDigital: ['Filial MG'],
+    Vértice: [],
 };
 const allBranches = ['Todas', 'Matriz', 'Filial SP', 'Filial RJ', 'Filial MG'];
 const statuses = ['Todos', 'Em dia', 'Próximo ao Vencimento', 'Vencido'];
@@ -191,7 +168,7 @@ const UploadDocumentModal: React.FC<{ isOpen: boolean; onClose: () => void; onUp
                     <div>
                         <label htmlFor="doc-company" className="block text-sm font-medium text-[--color-card-muted-foreground]">Empresa</label>
                         <select id="doc-company" value={company} onChange={e => setCompany(e.target.value)} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]">
-                            {allCompaniesList.map(c => <option key={c} value={c}>{c}</option>)}
+                            {allCompaniesList.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                      <div>
@@ -239,7 +216,7 @@ const UploadDocumentModal: React.FC<{ isOpen: boolean; onClose: () => void; onUp
 };
 
 export const StaffDocumentManagementView: React.FC = () => {
-    const [documents, setDocuments] = useState<Document[]>(initialMockDocuments);
+    const [documents, setDocuments] = useState<Document[]>(mockDocuments);
     const [selectedCompanyDoc, setSelectedCompanyDoc] = useState('Todas');
     const [selectedBranch, setSelectedBranch] = useState('Todas');
     const [selectedStatus, setSelectedStatus] = useState('Todos');

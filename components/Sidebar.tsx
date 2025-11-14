@@ -1,8 +1,9 @@
 
 
 
+
 import React, { useMemo } from 'react';
-import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon, ClockIcon, UserIcon } from './icons';
+import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon, ClockIcon, UserIcon, UploadIcon } from './icons';
 import { ActiveView, UserRole } from '../App';
 
 interface SidebarProps {
@@ -36,6 +37,7 @@ const allNavigation = [
   { name: 'Aprovar Campanhas', view: 'staff_campaign_approval', icon: ClockIcon },
   { name: 'Gestão de Documentos', view: 'staff_document_management', icon: ArchiveBoxIcon },
   { name: 'Gestão de Usuários', view: 'staff_user_management', icon: UserGroupIcon },
+  { name: 'Importação de dados', view: 'staff_data_import', icon: UploadIcon },
   { name: 'Acesso Delegado', view: 'staff_impersonation', icon: UserIcon },
   // Common
   { name: 'Equipe de Apoio', view: 'support_team', icon: UserGroupIcon },
@@ -45,7 +47,7 @@ const allNavigation = [
 
 const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'documentation', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
-const staffViews: ActiveView[] = ['staff_campaign_approval', 'staff_document_management', 'staff_user_management', 'staff_impersonation', 'settings', 'faq'];
+const staffViews: ActiveView[] = ['home', 'staff_campaign_approval', 'staff_document_management', 'staff_user_management', 'staff_data_import', 'staff_impersonation', 'settings', 'faq'];
 
 const NavItem: React.FC<{
   item: typeof allNavigation[0];
@@ -117,15 +119,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 overflow-y-auto">
                 <ul className="space-y-1">
-                    {navigation.map((item) => (
-                    <NavItem
-                        key={item.name}
-                        item={item as any}
-                        isActive={activeView === item.view}
-                        isCollapsed={collapsed}
-                        onClick={() => handleNavClick(item.view as ActiveView)}
-                    />
-                    ))}
+                    {navigation.map((item) => {
+                        const finalItem = { ...item };
+                        if (userRole === 'staff' && item.view === 'home') {
+                            finalItem.name = 'Painel de Controle';
+                        }
+                        return (
+                            <NavItem
+                                key={item.view}
+                                item={finalItem as any}
+                                isActive={activeView === item.view}
+                                isCollapsed={collapsed}
+                                onClick={() => handleNavClick(item.view as ActiveView)}
+                            />
+                        );
+                    })}
                 </ul>
             </nav>
 

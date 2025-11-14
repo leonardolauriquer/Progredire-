@@ -1,33 +1,20 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
-    getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee, addCompanies, addEmployees, 
-    Branch, getBranches, addBranch, deleteBranch, addBranches, CompanyUser, getCompanyUsers, addCompanyUser, deleteCompanyUser, addCompanyUsers 
+    getCompanies, addCompany, deleteCompany, getEmployees, addEmployee, deleteEmployee, Company, Employee,
+    Branch, getBranches, addBranch, deleteBranch, CompanyUser, getCompanyUsers, addCompanyUser, deleteCompanyUser,
+    addCompanies, addBranches, addCompanyUsers, addEmployees, 
 } from '../services/dataService';
 import { 
     PlusCircleIcon,
-    XIcon,
     BuildingOfficeIcon,
     UserGroupIcon,
-    UploadIcon,
     TrashIcon,
     IdentificationIcon,
+    UploadIcon,
 } from './icons';
 import { Modal } from './Modal';
 
 declare var XLSX: any;
-
-// --- HELPER FUNCTIONS ---
-
-const downloadCsvTemplate = (headers: string[], fileName: string) => {
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(',');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
 
 // --- MAIN COMPONENT ---
 
@@ -38,19 +25,19 @@ export const StaffUserManagementView: React.FC = () => {
     const [employeePage, setEmployeePage] = useState(1);
     const [employeeTotalPages, setEmployeeTotalPages] = useState(1);
     const [isEmployeeLoading, setIsEmployeeLoading] = useState(false);
-    const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
-    const [isAddEmployeeModalOpen, setIsAddEmployeeModalOpen] = useState(false);
-    const [isImportEmployeeCsvModalOpen, setIsImportEmployeeCsvModalOpen] = useState(false);
-    const [isImportCompanyCsvModalOpen, setIsImportCompanyCsvModalOpen] = useState(false);
-    const [isImportCompanyXlsModalOpen, setIsImportCompanyXlsModalOpen] = useState(false);
-    const [isImportEmployeeXlsModalOpen, setIsImportEmployeeXlsModalOpen] = useState(false);
     const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
     const [companyUserSearchTerm, setCompanyUserSearchTerm] = useState('');
     const [companyUserPage, setCompanyUserPage] = useState(1);
     const [companyUserTotalPages, setCompanyUserTotalPages] = useState(1);
     const [isCompanyUserLoading, setIsCompanyUserLoading] = useState(false);
+    
+    const [isAddCompanyModalOpen, setIsAddCompanyModalOpen] = useState(false);
+    const [isAddEmployeeModalOpen, setIsAddEmployeeModalOpen] = useState(false);
     const [isAddCompanyUserModalOpen, setIsAddCompanyUserModalOpen] = useState(false);
+    const [isImportCompanyXlsModalOpen, setIsImportCompanyXlsModalOpen] = useState(false);
+    const [isImportBranchXlsModalOpen, setIsImportBranchXlsModalOpen] = useState(false);
     const [isImportCompanyUserXlsModalOpen, setIsImportCompanyUserXlsModalOpen] = useState(false);
+    const [isImportEmployeeXlsModalOpen, setIsImportEmployeeXlsModalOpen] = useState(false);
 
     const fetchCompanies = useCallback(async () => {
         const data = await getCompanies();
@@ -98,7 +85,7 @@ export const StaffUserManagementView: React.FC = () => {
         fetchEmployees(1, employeeSearchTerm);
     };
 
-     const handleAddEmployee = async (employeeData: Omit<Employee, 'id'>) => {
+     const handleAddEmployee = async (employeeData: Omit<Employee, 'id'|'password'>) => {
         await addEmployee(employeeData);
         fetchEmployees(1, ''); // Refresh list
         setIsAddEmployeeModalOpen(false);
@@ -111,27 +98,13 @@ export const StaffUserManagementView: React.FC = () => {
         }
     };
 
-    const handleImportEmployeeCsv = () => {
-        alert('Arquivo CSV de colaboradores importado com sucesso! (Simulação)');
-        setIsImportEmployeeCsvModalOpen(false);
-        fetchEmployees(1, '');
-    };
-    
-    const handleImportCompanyCsv = async () => {
-        const mockNewCompanies = ['Empresa CSV 1', 'Empresa CSV 2'];
-        const updatedCompanies = await addCompanies(mockNewCompanies);
-        setCompanies(updatedCompanies);
-        alert('Arquivo CSV de empresas importado com sucesso! (Simulação)');
-        setIsImportCompanyCsvModalOpen(false);
-    };
-
     const handleCompanyUserSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setCompanyUserPage(1);
         fetchCompanyUsers(1, companyUserSearchTerm);
     };
 
-    const handleAddCompanyUser = async (userData: Omit<CompanyUser, 'id'>) => {
+    const handleAddCompanyUser = async (userData: Omit<CompanyUser, 'id'|'password'>) => {
         await addCompanyUser(userData);
         fetchCompanyUsers(1, '');
         setIsAddCompanyUserModalOpen(false);
@@ -144,21 +117,32 @@ export const StaffUserManagementView: React.FC = () => {
         }
     };
 
+
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-slate-900">Gestão de Usuários</h1>
-                <p className="text-slate-600 mt-1">Gerencie empresas, filiais, usuários da empresa e colaboradores.</p>
+                <h1 className="text-3xl font-bold text-slate-900">Gestão de Usuários e Cadastros</h1>
+                <p className="text-slate-600 mt-1">Gerencie empresas, filiais, usuários da empresa e colaboradores através de cadastros individuais ou importação em massa.</p>
             </div>
+
+            {/* Import Cards Section */}
+             <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
+                <h2 className="text-xl font-semibold text-[--color-card-foreground] mb-4">Importação em Massa (XLS)</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <ImportCard title="Importar Empresas" onImportClick={() => setIsImportCompanyXlsModalOpen(true)} />
+                    <ImportCard title="Importar Filiais" onImportClick={() => setIsImportBranchXlsModalOpen(true)} />
+                    <ImportCard title="Importar Usuários" onImportClick={() => setIsImportCompanyUserXlsModalOpen(true)} />
+                    <ImportCard title="Importar Colaboradores" onImportClick={() => setIsImportEmployeeXlsModalOpen(true)} />
+                </div>
+            </div>
+
+
             <div className="space-y-8">
+                {/* Company Management */}
                 <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
-                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                     <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><BuildingOfficeIcon className="w-6 h-6"/>Empresas</h2>
-                        <div className="flex flex-wrap gap-2">
-                                <button onClick={() => setIsAddCompanyModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
-                                <button onClick={() => setIsImportCompanyXlsModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
-                            <button onClick={() => setIsImportCompanyCsvModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar CSV</button>
-                        </div>
+                        <button onClick={() => setIsAddCompanyModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
                     </div>
                     <ul className="space-y-2 max-h-48 overflow-y-auto">
                         {companies.map(c => (
@@ -172,13 +156,11 @@ export const StaffUserManagementView: React.FC = () => {
 
                 <BranchManagement companies={companies} />
 
+                {/* Company User Management */}
                 <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
-                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                     <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><IdentificationIcon className="w-6 h-6"/>Gestão de Usuários (Empresa)</h2>
-                        <div className="flex flex-wrap gap-2">
-                            <button onClick={() => setIsAddCompanyUserModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
-                            <button onClick={() => setIsImportCompanyUserXlsModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
-                        </div>
+                        <button onClick={() => setIsAddCompanyUserModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
                     </div>
                     <form onSubmit={handleCompanyUserSearch} className="flex gap-2 mb-4">
                         <input type="search" value={companyUserSearchTerm} onChange={e => setCompanyUserSearchTerm(e.target.value)} placeholder="Buscar por nome ou email..." className="flex-grow p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]" />
@@ -207,14 +189,11 @@ export const StaffUserManagementView: React.FC = () => {
                     </div>
                 </div>
 
+                {/* Employee Management */}
                 <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
                         <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
                         <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><UserGroupIcon className="w-6 h-6"/>Gestão de Colaboradores</h2>
-                        <div className="flex flex-wrap gap-2">
-                            <button onClick={() => setIsAddEmployeeModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
-                            <button onClick={() => setIsImportEmployeeXlsModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar XLS</button>
-                            <button onClick={() => setIsImportEmployeeCsvModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-slate-600 py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg"><UploadIcon className="w-5 h-5"/> Importar CSV</button>
-                        </div>
+                        <button onClick={() => setIsAddEmployeeModalOpen(true)} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg"><PlusCircleIcon className="w-5 h-5"/> Cadastro Individual</button>
                     </div>
                     <form onSubmit={handleEmployeeSearch} className="flex gap-2 mb-4">
                         <input type="search" value={employeeSearchTerm} onChange={e => setEmployeeSearchTerm(e.target.value)} placeholder="Buscar por nome ou email..." className="flex-grow p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]" />
@@ -243,19 +222,31 @@ export const StaffUserManagementView: React.FC = () => {
                     </div>
                 </div>
             </div>
+            
+            {/* Modals for individual add */}
             <AddCompanyModal isOpen={isAddCompanyModalOpen} onClose={() => setIsAddCompanyModalOpen(false)} onAdd={handleAddCompany} />
             <AddEmployeeModal isOpen={isAddEmployeeModalOpen} onClose={() => setIsAddEmployeeModalOpen(false)} onAdd={handleAddEmployee} companyList={companies.map(c => c.name)} />
-            <ImportEmployeesCsvModal isOpen={isImportEmployeeCsvModalOpen} onClose={() => setIsImportEmployeeCsvModalOpen(false)} onImport={handleImportEmployeeCsv} />
-            <ImportCompaniesCsvModal isOpen={isImportCompanyCsvModalOpen} onClose={() => setIsImportCompanyCsvModalOpen(false)} onImport={handleImportCompanyCsv} />
-            <ImportCompaniesXlsModal isOpen={isImportCompanyXlsModalOpen} onClose={() => setIsImportCompanyXlsModalOpen(false)} onImportSuccess={fetchCompanies} />
-            <ImportEmployeesXlsModal isOpen={isImportEmployeeXlsModalOpen} onClose={() => setIsImportEmployeeXlsModalOpen(false)} onImportSuccess={() => fetchEmployees(1, '')} />
             <AddCompanyUserModal isOpen={isAddCompanyUserModalOpen} onClose={() => setIsAddCompanyUserModalOpen(false)} onAdd={handleAddCompanyUser} companyList={companies} />
+
+            {/* Modals for XLS import */}
+            <ImportCompaniesXlsModal isOpen={isImportCompanyXlsModalOpen} onClose={() => setIsImportCompanyXlsModalOpen(false)} onImportSuccess={fetchCompanies} />
+            <ImportBranchesXlsModal isOpen={isImportBranchXlsModalOpen} onClose={() => setIsImportBranchXlsModalOpen(false)} onImportSuccess={() => {}} companies={companies} />
             <ImportCompanyUserXlsModal isOpen={isImportCompanyUserXlsModalOpen} onClose={() => setIsImportCompanyUserXlsModalOpen(false)} onImportSuccess={() => fetchCompanyUsers(1, '')} companyList={companies} />
+            <ImportEmployeesXlsModal isOpen={isImportEmployeeXlsModalOpen} onClose={() => setIsImportEmployeeXlsModalOpen(false)} onImportSuccess={() => fetchEmployees(1, '')} />
+
         </div>
     );
 };
 
-// --- Modals and Sub-components for User Management ---
+// --- Sub-components ---
+
+const ImportCard: React.FC<{title: string; onImportClick: () => void}> = ({title, onImportClick}) => (
+    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-center">
+        <UploadIcon className="w-8 h-8 text-slate-500 mb-2" />
+        <h3 className="font-semibold text-slate-700">{title}</h3>
+        <button onClick={onImportClick} className="mt-2 text-sm text-blue-600 hover:underline">Importar XLS</button>
+    </div>
+);
 
 const AddCompanyModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<Company, 'id'>) => void;}> = ({isOpen, onClose, onAdd}) => {
     const [formData, setFormData] = useState({ name: '', razaoSocial: '', cnpj: '', setor: 'Tecnologia', numColaboradores: 0, contatoPrincipalNome: '', contatoPrincipalEmail: '', logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: '', });
@@ -266,7 +257,7 @@ const AddCompanyModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (d
     };
     return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Nova Empresa"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form content... */} </form> </Modal> );
 };
-const AddEmployeeModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<Employee, 'id'>) => void; companyList: string[]}> = ({isOpen, onClose, onAdd, companyList}) => {
+const AddEmployeeModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<Employee, 'id'|'password'>) => void; companyList: string[]}> = ({isOpen, onClose, onAdd, companyList}) => {
     const [formData, setFormData] = useState<Omit<Employee, 'id' | 'password'>>({ name: '', email: '', company: companyList[0] || '', cpf: '', dataNascimento: '', genero: 'Prefiro não informar', dataAdmissao: '', nivelCargo: 'Júnior', status: 'Ativo' });
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { setFormData(prev => ({ ...prev, [e.target.id]: e.target.value })); };
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onAdd(formData); };
@@ -274,58 +265,107 @@ const AddEmployeeModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (
     <p className="text-xs text-slate-500 mt-2 p-2 bg-slate-100 rounded-md">Nota: A senha inicial será os 3 últimos dígitos do CPF.</p>
     </form> </Modal> );
 };
-const ImportEmployeesCsvModal: React.FC<{isOpen: boolean; onClose: () => void; onImport: () => void;}> = ({isOpen, onClose, onImport}) => (
-    <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via CSV"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal>
-);
-const ImportCompaniesCsvModal: React.FC<{isOpen: boolean; onClose: () => void; onImport: () => void;}> = ({isOpen, onClose, onImport}) => (
-    <Modal isOpen={isOpen} onClose={onClose} title="Importar Empresas via CSV"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal>
-);
-const ImportCompaniesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void;}> = ({isOpen, onClose, onImportSuccess}) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const downloadTemplate = () => { /* ... */ };
-    const handleImport = async () => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Empresas via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
-};
-const ImportEmployeesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void;}> = ({isOpen, onClose, onImportSuccess}) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const downloadTemplate = () => { /* ... */ };
-    const handleImport = async () => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via XLS"> <div className="space-y-4">
-        <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
-            A senha inicial para cada colaborador será gerada automaticamente com os **3 últimos dígitos do CPF**. Não é necessário incluir uma coluna de senha no arquivo.
-        </p>
-         {/* ... other modal content ... */}
-    </div> </Modal> );
-};
+
 const BranchManagement: React.FC<{ companies: Company[] }> = ({ companies }) => {
     const [selectedCompanyId, setSelectedCompanyId] = useState<number | ''>('');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-    const fetchBranches = useCallback(async (companyId: number) => { /* ... */ }, []);
-    useEffect(() => { /* ... */ }, [selectedCompanyId, fetchBranches]);
-    const handleAddBranch = async (branchData: Omit<Branch, 'id' | 'companyId'>) => { /* ... */ };
-    const handleDeleteBranch = async (id: number) => { /* ... */ };
-    return ( <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]"> {/* Component content... */} </div> );
+
+    const fetchBranches = useCallback(async (companyId: number) => {
+        setIsLoading(true);
+        const data = await getBranches(companyId);
+        setBranches(data);
+        setIsLoading(false);
+     }, []);
+
+    useEffect(() => {
+        if (selectedCompanyId) {
+            fetchBranches(Number(selectedCompanyId));
+        } else {
+            setBranches([]);
+        }
+    }, [selectedCompanyId, fetchBranches]);
+
+    const handleAddBranch = async (branchData: Omit<Branch, 'id' | 'companyId'>) => {
+        if (selectedCompanyId) {
+            await addBranch({ ...branchData, companyId: Number(selectedCompanyId) });
+            fetchBranches(Number(selectedCompanyId));
+            setIsAddModalOpen(false);
+        }
+    };
+
+    const handleDeleteBranch = async (id: number) => {
+        if(window.confirm("Tem certeza que deseja excluir esta filial?")) {
+            await deleteBranch(id);
+            if (selectedCompanyId) fetchBranches(Number(selectedCompanyId));
+        }
+    };
+    return ( 
+        <div className="bg-[--color-card] p-6 rounded-2xl shadow-lg border border-[--color-border]">
+            <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                <h2 className="text-xl font-semibold text-[--color-card-foreground] flex items-center gap-2"><BuildingOfficeIcon className="w-6 h-6"/>Filiais</h2>
+                <div className="flex flex-wrap gap-2 items-center">
+                    <select value={selectedCompanyId} onChange={e => setSelectedCompanyId(Number(e.target.value))} className="p-2 bg-white border border-slate-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecione uma empresa</option>
+                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button onClick={() => setIsAddModalOpen(true)} disabled={!selectedCompanyId} className="flex items-center gap-2 text-sm font-medium text-blue-600 py-2 px-3 bg-blue-50 border border-blue-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                        <PlusCircleIcon className="w-5 h-5"/> Nova Filial
+                    </button>
+                </div>
+            </div>
+            <div className="min-h-[6rem]">
+                {isLoading ? <div className="text-center">Carregando...</div> : branches.length > 0 ? (
+                     <ul className="space-y-2 max-h-48 overflow-y-auto">
+                        {branches.map(b => (
+                            <li key={b.id} className="flex justify-between items-center p-2 bg-[--color-muted] rounded-md">
+                                <span className="text-sm font-medium text-[--color-card-foreground]">{b.name}</span>
+                                <button onClick={() => handleDeleteBranch(b.id)} className="text-red-500 hover:text-red-700"><TrashIcon className="w-4 h-4" /></button>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="text-sm text-center text-slate-500 pt-4">{selectedCompanyId ? 'Nenhuma filial cadastrada para esta empresa.' : 'Selecione uma empresa para ver as filiais.'}</p>
+                )}
+            </div>
+            <AddBranchModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddBranch} />
+        </div> 
+    );
 };
 const AddBranchModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<Branch, 'id' | 'companyId'>) => void;}> = ({isOpen, onClose, onAdd}) => {
     const [formData, setFormData] = useState({ name: '', logradouro: '', numero: '', bairro: '', cidade: '', estado: '', cep: '' });
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { /* ... */ };
-    const handleSubmit = (e: React.FormEvent) => { /* ... */ };
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { setFormData(prev => ({ ...prev, [e.target.id]: e.target.value })) };
+    const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onAdd({name: formData.name, address: { logradouro: formData.logradouro, numero: formData.numero, bairro: formData.bairro, cidade: formData.cidade, estado: formData.estado, cep: formData.cep, }}) };
     return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Nova Filial"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form content... */} </form> </Modal> );
 };
-const ImportBranchesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void; companyId: number | '';}> = ({isOpen, onClose, onImportSuccess, companyId}) => {
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const downloadTemplate = () => { /* ... */ };
-    const handleImport = async () => { /* ... */ };
-    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Filiais via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
-};
-const AddCompanyUserModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<CompanyUser, 'id'>) => void; companyList: Company[]}> = ({isOpen, onClose, onAdd, companyList}) => {
-    const [formData, setFormData] = useState({ name: '', email: '', companyId: companyList[0]?.id || 0, role: 'Leader', status: 'Ativo' });
-    useEffect(() => { /* ... */ }, [companyList, formData.companyId]);
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { /* ... */ };
-    const handleSubmit = (e: React.FormEvent) => { /* ... */ };
+
+const AddCompanyUserModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd: (data: Omit<CompanyUser, 'id'|'password'>) => void; companyList: Company[]}> = ({isOpen, onClose, onAdd, companyList}) => {
+    const [formData, setFormData] = useState({ name: '', email: '', companyId: companyList[0]?.id || 0, companyName: companyList[0]?.name || '', role: 'Leader', status: 'Ativo' });
+    
+    useEffect(() => {
+        if (companyList.length > 0 && !formData.companyId) {
+            setFormData(prev => ({...prev, companyId: companyList[0].id, companyName: companyList[0].name}));
+        }
+    }, [companyList, formData.companyId]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { 
+        const { id, value } = e.target;
+        if (id === 'companyId') {
+            const company = companyList.find(c => c.id === Number(value));
+            setFormData(prev => ({ ...prev, companyId: Number(value), companyName: company?.name || '' }));
+        } else {
+            setFormData(prev => ({ ...prev, [id]: value }));
+        }
+    };
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onAdd({
+            ...formData,
+            role: formData.role as CompanyUser['role'],
+            status: formData.status as CompanyUser['status'],
+        });
+    };
     return ( <Modal isOpen={isOpen} onClose={onClose} title="Cadastrar Novo Usuário da Empresa"> <form onSubmit={handleSubmit} className="space-y-4"> {/* Form fields here */} 
         <div>
             <label htmlFor="default-password" className="block text-sm font-medium text-slate-600 mb-1">Senha Padrão</label>
@@ -334,15 +374,122 @@ const AddCompanyUserModal: React.FC<{isOpen: boolean; onClose: () => void; onAdd
         </div>
     </form> </Modal> );
 };
+
+const ImportCompaniesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void;}> = ({isOpen, onClose, onImportSuccess}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const downloadTemplate = () => {
+        const headers = ['Nome Fantasia'];
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Empresas");
+        XLSX.writeFile(wb, "template_empresas.xlsx");
+    };
+    const handleImport = async () => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return alert("Selecione um arquivo.");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const json: { 'Nome Fantasia': string }[] = XLSX.utils.sheet_to_json(worksheet);
+            const companyNames = json.map(row => row['Nome Fantasia']).filter(Boolean);
+            if (companyNames.length > 0) {
+                await addCompanies(companyNames);
+                onImportSuccess();
+                onClose();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Empresas via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
+};
+
+const ImportBranchesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void; companies: Company[];}> = ({isOpen, onClose, onImportSuccess, companies}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<number | ''>(companies[0]?.id || '');
+    const downloadTemplate = () => { /* ... */ };
+    const handleImport = async () => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file || !selectedCompanyId) return alert("Selecione uma empresa e um arquivo.");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json: Omit<Branch, 'id' | 'companyId'>[] = XLSX.utils.sheet_to_json(worksheet);
+            if (json.length > 0) {
+                await addBranches(Number(selectedCompanyId), json);
+                onImportSuccess();
+                onClose();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Filiais via XLS"> <div className="space-y-4"> {/* Modal content... */} </div> </Modal> );
+};
+
 const ImportCompanyUserXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void; companyList: Company[]}> = ({isOpen, onClose, onImportSuccess, companyList}) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const companyMap = useMemo(() => new Map(companyList.map(c => [c.name.toLowerCase(), c.id])), [companyList]);
     const downloadTemplate = () => { /* ... */ };
-    const handleImport = async () => { /* ... */ };
+    const handleImport = async () => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return alert("Selecione um arquivo.");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+            
+            const usersToImport: Omit<CompanyUser, 'id' | 'password'>[] = json.map(row => {
+                const companyId = companyMap.get(row['Empresa']?.toLowerCase());
+                if (!companyId) return null;
+                return { name: row['Nome'], email: row['Email'], companyId, companyName: row['Empresa'], role: row['Papel (Admin, RH, Leader)'], status: 'Ativo' };
+            }).filter((u): u is Omit<CompanyUser, 'id' | 'password'> => u !== null);
+
+            if (usersToImport.length > 0) {
+                await addCompanyUsers(usersToImport);
+                onImportSuccess();
+                onClose();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
     return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Usuários da Empresa via XLS"> <div className="space-y-4">
         <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
             A senha inicial para cada usuário será **'Mudar@123'**. Não é necessário incluir uma coluna de senha no arquivo.
         </p>
         {/* ... other modal content ... */}
+    </div> </Modal> );
+};
+
+const ImportEmployeesXlsModal: React.FC<{isOpen: boolean; onClose: () => void; onImportSuccess: () => void;}> = ({isOpen, onClose, onImportSuccess}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const downloadTemplate = () => { /* ... */ };
+    const handleImport = async () => {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) return alert("Selecione um arquivo.");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json: Omit<Employee, 'id'|'password'>[] = XLSX.utils.sheet_to_json(worksheet);
+            if (json.length > 0) {
+                await addEmployees(json);
+                onImportSuccess();
+                onClose();
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+    return ( <Modal isOpen={isOpen} onClose={onClose} title="Importar Colaboradores via XLS"> <div className="space-y-4">
+        <p className="text-sm text-slate-500 bg-blue-50 p-3 rounded-md border border-blue-200">
+            A senha inicial para cada colaborador será gerada automaticamente com os **3 últimos dígitos do CPF**. Não é necessário incluir uma coluna de senha no arquivo.
+        </p>
+         {/* ... other modal content ... */}
     </div> </Modal> );
 };

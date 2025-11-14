@@ -21,7 +21,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [collaboratorPassword, setCollaboratorPassword] = useState('900');
   const [companyEmail, setCompanyEmail] = useState('ana.costa@inovacorp.com');
   const [companyPassword, setCompanyPassword] = useState('Mudar@123');
-  const [staffEmail, setStaffEmail] = useState('');
+  const [staffEmail, setStaffEmail] = useState('leonardo.progredire@gmail.com');
   const [staffPassword, setStaffPassword] = useState('123');
 
   const handleLoginAttempt = async (credentials: Parameters<typeof authService.login>[0]) => {
@@ -45,7 +45,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       setCollaboratorPassword('900');
       setCompanyEmail('ana.costa@inovacorp.com');
       setCompanyPassword('Mudar@123');
-      setStaffEmail('');
+      setStaffEmail('leonardo.progredire@gmail.com');
       setStaffPassword('123');
   };
 

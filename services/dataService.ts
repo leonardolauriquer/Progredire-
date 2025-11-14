@@ -1,6 +1,5 @@
 import { authService } from './authService';
-// FIX: Import 'initialCampaigns' from the centralized mock data file.
-import { mockResponses, mockFilters, dimensions, Campaign, CampaignStatus, initialCampaigns } from '../components/dashboardMockData';
+import { mockResponses as initialMockResponses, mockFilters, dimensions, Campaign, CampaignStatus, initialCampaigns, Document, mockDocuments } from '../components/dashboardMockData';
 
 // --- Types ---
 export type RiskFactor = { id: string; name: string; score: number };
@@ -30,6 +29,7 @@ export type DashboardData = {
   irpGlobal: number;
   riskClassification: { text: string; color: string; };
   participationRate: number;
+  totalEmployees: number; // Added for display
   topRisks: RiskFactor[];
   topProtections: RiskFactor[];
   maturityLevel: MaturityLevel;
@@ -127,6 +127,11 @@ export interface CompanyUser {
 
 
 // --- Constants ---
+const MOCK_RESPONSES_KEY = 'progredire-mock-responses';
+const HISTORICAL_INDICATORS_KEY = 'progredire-historical-indicators';
+const LEAVE_EVENTS_KEY = 'progredire-leave-events';
+const LEADERSHIP_DATA_KEY = 'progredire-leadership-data';
+const FINANCIAL_DATA_KEY = 'progredire-financial-data';
 const COLLABORATOR_EVOLUTION_KEY = 'progredire-collaborator-evolution';
 const PUBLISHED_INITIATIVES_KEY = 'progredire-published-initiatives';
 const ACTION_PLAN_HISTORY_KEY = 'progredire-action-plan-history';
@@ -138,12 +143,28 @@ const COMPANY_USERS_KEY = 'progredire-company-users';
 
 
 // --- Calculation Logic & Mock Data ---
+const getMockResponses = (): typeof initialMockResponses => {
+    try {
+        const stored = localStorage.getItem(MOCK_RESPONSES_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed;
+            }
+        }
+        // If nothing in storage, set initial data
+        localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(initialMockResponses));
+        return initialMockResponses;
+    } catch {
+        return initialMockResponses;
+    }
+}
+
 const likertOptions = ['Discordo totalmente', 'Discordo parcialmente', 'Neutro / Indiferente', 'Concordo parcialmente', 'Concordo totalmente'];
 const likertToScore: Record<string, number> = {
   [likertOptions[0]]: 1, [likertOptions[1]]: 2, [likertOptions[2]]: 3, [likertOptions[3]]: 4, [likertOptions[4]]: 5,
 };
 const allDimensionIds = Object.keys(dimensions);
-const TOTAL_EMPLOYEES = 80; // Mock total for participation rate
 
 
 const maturityLevels: Record<string, {name: string, description: string}> = {
@@ -178,7 +199,7 @@ const getMaturityLevel = (riskFactors: RiskFactor[]): MaturityLevel => {
     return { level: 'M4', ...maturityLevels['M4'] }; // Fallback
 };
 
-const calculateDataForResponses = (responses: typeof mockResponses) => {
+const calculateDataForResponses = (responses: typeof initialMockResponses) => {
     if (responses.length === 0) {
         return {
             riskFactors: allDimensionIds.map(id => ({ id, name: dimensions[id].name, score: 0 })),
@@ -251,63 +272,25 @@ const calculateDataForResponses = (responses: typeof mockResponses) => {
     return { riskFactors, distributions: formattedDistributions, workLifeBalanceScore };
 };
 
-const calculateClimateTrend = (): {labels: string[], data: number[]} => {
-    const monthlyData: Record<string, { totalScore: number; count: number }> = {};
-    mockResponses.forEach(res => {
-        const date = new Date(res.timestamp);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        if (!monthlyData[monthKey]) monthlyData[monthKey] = { totalScore: 0, count: 0 };
-        
-        let totalResponseScore = 0, totalQuestionCount = 0;
-        Object.values(dimensions).flatMap(d => d.questions).forEach(qId => {
-            const answer = res.answers[qId];
-            if (answer) {
-                totalResponseScore += likertToScore[answer] || 0;
-                totalQuestionCount++;
-            }
-        });
-        if (totalQuestionCount > 0) {
-            monthlyData[monthKey].totalScore += totalResponseScore / totalQuestionCount;
-            monthlyData[monthKey].count++;
-        }
-    });
-    const sortedMonths = Object.keys(monthlyData).sort();
-    const labels = sortedMonths.map(key => `${key.split('-')[1]}/${key.split('-')[0].slice(2)}`);
-    const data = sortedMonths.map(key => {
-        const avgScore = monthlyData[key].totalScore / monthlyData[key].count;
-        return Math.round((avgScore - 1) / 4 * 100);
-    });
-    return { labels, data };
-};
-
-const generateLeaveEvents = (): { type: string; date: string }[] => {
-    const types = [
-        'Transtorno Misto Ansioso e Depressivo',
-        'Burnout',
-        'Ansiedade Generalizada',
-        'Depressão',
-        'Transtorno do Pânico',
-    ];
-    const events: { type: string; date: string }[] = [];
-    const totalEvents = 25;
-    const now = new Date();
-
-    for (let i = 0; i < totalEvents; i++) {
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        const randomDaysAgo = Math.floor(Math.random() * 365);
-        const eventDate = new Date();
-        eventDate.setDate(now.getDate() - randomDaysAgo);
-        
-        events.push({
-            type: randomType,
-            date: eventDate.toISOString(),
-        });
-    }
-    return events;
-};
-
-
 const calculateDashboardData = (filters: Record<string, string>): DashboardData => {
+    const mockResponses = getMockResponses();
+
+    // --- Financial & Demographic Data ---
+    let totalEmployees = 80;
+    let avgAnnualCost = 60000;
+    let estimatedSavings = 'R$120.000';
+
+    const storedFinancial = localStorage.getItem(FINANCIAL_DATA_KEY);
+    if (storedFinancial) {
+        try {
+            const financialData = JSON.parse(storedFinancial);
+            if(financialData.totalEmployees) totalEmployees = financialData.totalEmployees;
+            if(financialData.avgAnnualCost) avgAnnualCost = financialData.avgAnnualCost;
+            if(financialData.estimatedSavings) estimatedSavings = financialData.estimatedSavings;
+        } catch(e) { console.error("Failed to parse financial data", e); }
+    }
+
+
     const filteredResponses = mockResponses.filter(r => 
         Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
     );
@@ -315,6 +298,67 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     const companyData = calculateDataForResponses(mockResponses);
     const { riskFactors, distributions, workLifeBalanceScore } = calculateDataForResponses(filteredResponses);
     
+    // --- Historical Data ---
+    let climateTrend: {labels: string[], data: number[]};
+    let inssLeaveTrend: {labels: string[], data: number[]};
+    let irpVsTurnover: { labels: string[]; datasets: { label: string; data: (number | null)[]; color: string; }[] };
+    let leaveEvents: { type: string; date: string }[];
+
+    const storedHistorical = localStorage.getItem(HISTORICAL_INDICATORS_KEY);
+    if (storedHistorical) {
+        const historicalData: any[] = JSON.parse(storedHistorical);
+        climateTrend = {
+            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+            data: historicalData.map(d => d['IRP Global (0-100)'])
+        };
+        inssLeaveTrend = {
+            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+            data: historicalData.map(d => d['Afastamentos INSS'])
+        };
+        irpVsTurnover = {
+            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+            datasets: [
+                { label: 'IRP Global (1-5)', data: historicalData.map(d => (d['IRP Global (0-100)'] / 100) * 4 + 1), color: '#3b82f6' },
+                { label: 'Turnover (%)', data: historicalData.map(d => d['Turnover (%)']), color: '#ef4444' }
+            ]
+        };
+    } else {
+        // Fallback to mocks
+        climateTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [65, 68, 72, 70, 75, 78] };
+        inssLeaveTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [12, 11, 9, 8, 6, 5] };
+        irpVsTurnover = (() => {
+            const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+            const irpData = [3.2, 3.5, 3.4, 3.8];
+            const turnoverData = irpData.map(irp => Math.max(0, 15 - 3 * irp + (Math.random() - 0.5) * 2));
+            return {
+                labels,
+                datasets: [
+                    { label: 'IRP Global (1-5)', data: irpData, color: '#3b82f6' },
+                    { label: 'Turnover (%)', data: turnoverData, color: '#ef4444' }
+                ]
+            };
+        })();
+    }
+    
+    const storedLeaveEvents = localStorage.getItem(LEAVE_EVENTS_KEY);
+    if (storedLeaveEvents) {
+        const importedEvents: any[] = JSON.parse(storedLeaveEvents);
+        leaveEvents = importedEvents.map(e => ({ type: e['Tipo de Afastamento'], date: e['Data (AAAA-MM-DD)'] }));
+    } else {
+        // Fallback to mock generation
+        const types = ['Transtorno Misto Ansioso e Depressivo', 'Burnout', 'Ansiedade Generalizada', 'Depressão', 'Transtorno do Pânico'];
+        leaveEvents = Array.from({ length: 25 }, () => {
+            const randomDaysAgo = Math.floor(Math.random() * 365);
+            const eventDate = new Date();
+            eventDate.setDate(new Date().getDate() - randomDaysAgo);
+            return {
+                type: types[Math.floor(Math.random() * types.length)],
+                date: eventDate.toISOString(),
+            };
+        });
+    }
+
+
     // START: CROSS-ANALYSIS DATA CALCULATION
     const sectors = mockFilters.find(f => f.id === 'setor')?.options || [];
     const irpVsPresenteeism = sectors.map(sector => {
@@ -326,22 +370,9 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         return { x: irp, y: presenteeism, z: sectorResponses.length, label: sector };
     });
 
-    const irpVsTurnover = (() => {
-        const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
-        const irpData = [3.2, 3.5, 3.4, 3.8];
-        const turnoverData = irpData.map(irp => Math.max(0, 15 - 3 * irp + (Math.random() - 0.5) * 2));
-        return {
-            labels,
-            datasets: [
-                { label: 'IRP Global (1-5)', data: irpData, color: '#3b82f6' },
-                { label: 'Turnover (%)', data: turnoverData, color: '#ef4444' }
-            ]
-        };
-    })();
-
     const presenteeismVsRoi = ((): PotentialAnalysisData => {
         const avgPresenteeism = irpVsPresenteeism.reduce((acc, curr) => acc + curr.y, 0) / (irpVsPresenteeism.length || 1);
-        const cost = (avgPresenteeism / 100) * TOTAL_EMPLOYEES * 60000;
+        const cost = (avgPresenteeism / 100) * totalEmployees * avgAnnualCost;
         return {
             totalCost: cost,
             scenarios: [
@@ -400,22 +431,21 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         presenteeismVsRoi,
         dimensionVsAreaHeatmap,
         actionsVsImpact,
-        irpEvolution: calculateClimateTrend(),
+        irpEvolution: climateTrend,
     };
     // END: CROSS-ANALYSIS DATA CALCULATION
 
     if (filteredResponses.length === 0) {
         return {
             geralScore: 0, irpGlobal: 0, riskClassification: { text: 'N/A', color: 'bg-slate-500' },
-            participationRate: 0, topRisks: [], topProtections: [], maturityLevel: { level: 'N/A', name: 'Dados Insuficientes', description: '' },
+            participationRate: 0, totalEmployees: totalEmployees, topRisks: [], topProtections: [], maturityLevel: { level: 'N/A', name: 'Dados Insuficientes', description: '' },
             riskFactors: [], companyAverageFactors: companyData.riskFactors, distributions: {},
-            sectorRiskDistribution: {high: 0, moderate: 0, low: 0}, climateTrend: {labels: [], data: []},
-            leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
-            estimatedSavings: 'R$0', roiScenarios: [], leadersInDevelopment: 0,
+            sectorRiskDistribution: {high: 0, moderate: 0, low: 0},
+            climateTrend, leadershipScore: 0, safetyScore: 0, workLifeBalanceScore: 0,
+            estimatedSavings, roiScenarios: [], leadersInDevelopment: 0,
             absenteeismRate: 0, presenteeismRate: 0,
-            inssLeaveTrend: {labels: [], data: []},
-            leaveEvents: [],
-            crossAnalysis: crossAnalysis, // Still return cross analysis even if filters are empty
+            inssLeaveTrend, leaveEvents,
+            crossAnalysis,
         };
     }
 
@@ -450,25 +480,20 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         moderate: (moderateCount / totalSectors) * 100,
         low: (lowCount / totalSectors) * 100,
     };
-    
-    const inssLeaveTrend = {
-        labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'],
-        data: [12, 11, 9, 8, 6, 5]
-    };
-    
 
     return { 
         geralScore, irpGlobal, riskClassification,
-        participationRate: (filteredResponses.length / TOTAL_EMPLOYEES) * 100,
+        participationRate: (filteredResponses.length / totalEmployees) * 100,
+        totalEmployees,
         topRisks, topProtections,
         maturityLevel: getMaturityLevel(riskFactors),
         riskFactors, companyAverageFactors: companyData.riskFactors, distributions,
         sectorRiskDistribution,
-        climateTrend: calculateClimateTrend(),
+        climateTrend,
         leadershipScore: ((riskFactors.find(f => f.id === 'd7_lideranca')?.score ?? 0) / 100 * 4 + 1),
         safetyScore: ((riskFactors.find(f => f.id === 'd9_seguranca')?.score ?? 0) / 100 * 4 + 1),
         workLifeBalanceScore,
-        estimatedSavings: 'R$120.000',
+        estimatedSavings,
         roiScenarios: [
             { scenario: '15%', value: 150000 }, { scenario: '25%', value: 250000 },
             { scenario: '30%', value: 300000 }, { scenario: '40%', value: 400000 },
@@ -477,7 +502,7 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
         absenteeismRate,
         presenteeismRate,
         inssLeaveTrend,
-        leaveEvents: generateLeaveEvents(),
+        leaveEvents,
         crossAnalysis,
     };
 };
@@ -501,6 +526,26 @@ export const getDashboardData = (filters: Record<string, string>): Promise<Dashb
       try {
         // 3. Perform data calculation (simulating backend processing)
         const data = calculateDashboardData(filters);
+
+        // Override with imported leadership data if available
+        const storedLeadershipData = localStorage.getItem(LEADERSHIP_DATA_KEY);
+        if (storedLeadershipData) {
+            try {
+                const leadershipMetrics = JSON.parse(storedLeadershipData);
+                if (leadershipMetrics.leadersInDevelopment !== undefined) {
+                    data.leadersInDevelopment = leadershipMetrics.leadersInDevelopment;
+                }
+                if (leadershipMetrics.leadershipScore !== undefined) {
+                    data.leadershipScore = leadershipMetrics.leadershipScore;
+                }
+                if (leadershipMetrics.safetyScore !== undefined) {
+                    data.safetyScore = leadershipMetrics.safetyScore;
+                }
+            } catch (e) {
+                console.error("Failed to parse imported leadership data", e);
+            }
+        }
+
         resolve(data);
       } catch (e) {
         reject(new Error('Erro ao processar os dados do dashboard.'));
@@ -639,6 +684,7 @@ export const recordInitiativeSupport = async (initiativeId: number): Promise<Pub
 
 export const queryRiskFactors = async (filters: Record<string, string>): Promise<{ factor: string; score: number }[]> => {
     console.log("DataService: Querying risk factors with filters:", filters);
+    const mockResponses = getMockResponses();
     const filteredResponses = mockResponses.filter(r => 
         Object.entries(filters).every(([key, value]) => !value || r.segmentation[key as keyof typeof r.segmentation] === value)
     );
@@ -650,6 +696,45 @@ export const queryRiskFactors = async (filters: Record<string, string>): Promise
     
     return riskFactors.map(rf => ({ factor: rf.name, score: rf.score }));
 };
+
+// --- Staff Dashboard Summary ---
+export const getStaffDashboardSummary = async (): Promise<{
+    totalCompanies: number;
+    totalEmployees: number;
+    pendingCampaigns: number;
+    docsNearExpiry: number;
+}> => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const companies = JSON.parse(localStorage.getItem(COMPANIES_KEY) || '[]');
+            const employees = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || '[]');
+            const campaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_KEY) || '[]');
+            
+            const getDocumentStatus = (expiryDate: string): { status: 'Em dia' | 'Próximo ao Vencimento' | 'Vencido'; days: number } => {
+                const today = new Date(); today.setHours(0, 0, 0, 0);
+                const expiry = new Date(expiryDate);
+                const diffTime = expiry.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays < 0) return { status: 'Vencido', days: diffDays };
+                if (diffDays <= 30) return { status: 'Próximo ao Vencimento', days: diffDays };
+                return { status: 'Em dia', days: diffDays };
+            };
+
+            const docsNearExpiry = mockDocuments.filter(doc => {
+                const { status } = getDocumentStatus(doc.expiryDate);
+                return status === 'Vencido' || status === 'Próximo ao Vencimento';
+            }).length;
+
+            resolve({
+                totalCompanies: companies.length,
+                totalEmployees: employees.length, // In a real app, this would be a COUNT query
+                pendingCampaigns: campaigns.filter((c: Campaign) => c.status === 'Pendente').length,
+                docsNearExpiry,
+            });
+        }, 500); // Simulate network delay
+    });
+};
+
 
 // --- Campaign Service Functions ---
 
@@ -802,6 +887,80 @@ const initializeUserData = () => {
     } catch (e) { console.error("Error initializing user data:", e); }
 };
 initializeUserData();
+
+// --- Data Import Service ---
+export const importSurveyResponses = async (responses: any[]): Promise<void> => {
+    return new Promise((resolve) => {
+        const newMockResponses = responses.map((row, index) => {
+            const { empresa, diretoria, setor, cargo, ...answers } = row;
+            return {
+                id: index + 1,
+                timestamp: Date.now(),
+                segmentation: { empresa, diretoria, setor, cargo },
+                answers: answers
+            };
+        });
+        
+        try {
+            localStorage.setItem(MOCK_RESPONSES_KEY, JSON.stringify(newMockResponses));
+        } catch (e) {
+            console.error("Failed to save imported survey responses", e);
+        }
+        resolve();
+    });
+};
+
+export const importHistoricalIndicators = async (data: any[]): Promise<void> => {
+    return new Promise((resolve) => {
+        try {
+            localStorage.setItem(HISTORICAL_INDICATORS_KEY, JSON.stringify(data));
+        } catch (e) { console.error("Failed to save historical indicators", e); }
+        resolve();
+    });
+};
+
+export const importLeaveEvents = async (data: any[]): Promise<void> => {
+    return new Promise((resolve) => {
+        try {
+            localStorage.setItem(LEAVE_EVENTS_KEY, JSON.stringify(data));
+        } catch (e) { console.error("Failed to save leave events", e); }
+        resolve();
+    });
+};
+
+export const importLeadershipData = async (data: any[]): Promise<void> => {
+    return new Promise((resolve) => {
+        try {
+            // Expecting a single row of data from the template
+            if (data.length > 0) {
+                const leadershipMetrics = {
+                    leadersInDevelopment: data[0]['% Líderes em Desenvolvimento (0-100)'],
+                    leadershipScore: data[0]['Percepção da Liderança (1-5)'],
+                    safetyScore: data[0]['Segurança Psicológica (1-5)'],
+                };
+                localStorage.setItem(LEADERSHIP_DATA_KEY, JSON.stringify(leadershipMetrics));
+            }
+        } catch (e) { console.error("Failed to save leadership data", e); }
+        resolve();
+    });
+};
+
+export const importFinancialData = async (data: any[]): Promise<void> => {
+    return new Promise((resolve) => {
+        try {
+            if (data.length > 0) {
+                const financialMetrics = {
+                    totalEmployees: data[0]['Total de Colaboradores (para cálculo de adesão)'],
+                    avgAnnualCost: data[0]['Custo Médio Anual por Colaborador (para ROI)'],
+                    estimatedSavings: data[0]['Economia Estimada Anual (valor manual)'],
+                };
+                localStorage.setItem(FINANCIAL_DATA_KEY, JSON.stringify(financialMetrics));
+            }
+        } catch (e) { console.error("Failed to save financial data", e); }
+        resolve();
+    });
+};
+
 
 // --- User Management Service Functions ---
 
