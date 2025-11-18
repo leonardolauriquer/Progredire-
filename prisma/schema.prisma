@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STAFF
+  COMPANY
+  COLLABORATOR
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  name              String
+  passwordHash      String?
+  role              Role
+  cpf               String?   @unique
+  
+  company           Company?  @relation(fields: [companyId], references: [id])
+  companyId         String?
+
+  surveyResponses   SurveyResponse[]
+  journalEntries    JournalEntry[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Company {
+  id                  String    @id @default(cuid())
+  name                String
+  razaoSocial         String
+  cnpj                String    @unique
+  setor               String
+  numColaboradores    Int
+  
+  contatoPrincipalNome  String
+  contatoPrincipalEmail String
+
+  users               User[]
+  branches            Branch[]
+  documents           Document[]
+  campaigns           Campaign[]
+  surveyResponses     SurveyResponse[]
+  actionPlans         ActionPlan[]
+  initiatives         Initiative[]
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Branch {
+  id            String      @id @default(cuid())
+  name          String
+  
+  addressLogradouro String
+  addressNumero     String
+  addressBairro     String
+  addressCidade     String
+  addressEstado     String
+  addressCep        String
+
+  company       Company     @relation(fields: [companyId], references: [id])
+  companyId     String
+
+  documents     Document[]
+}
+
+model SurveyResponse {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  answers         Json
+  segmentation    Json
+  
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  companyId       String
+
+  campaign        Campaign @relation(fields: [campaignId], references: [id])
+  campaignId      String
+}
+
+model Campaign {
+  id              String   @id @default(cuid())
+  name            String
+  description     String
+  status          String
+  targetAudience  String
+  adherence       Float    @default(0)
+  startDate       DateTime
+  endDate         DateTime
+  emailMessage    String
+  filters         Json
+
+  company         Company  @relation(fields: [companyId], references: [id])
+  companyId       String
+
+  surveyResponses SurveyResponse[]
+
+  createdAt       DateTime @default(now())
+}
+
+model CollaboratorEvolutionEntry {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  scores        Json
+  generalScore  Float
+  userId        String
+}
+
+model ActionPlan {
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
+  factor      String
+  segment     String
+  progress    Float
+  planData    Json
+
+  company     Company     @relation(fields: [companyId], references: [id])
+  companyId   String
+
+  actions     ActionItem[]
+}
+
+model ActionItem {
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  responsible   String?
+  dueDate       DateTime?
+  status        String
+  
+  plan          ActionPlan  @relation(fields: [planId], references: [id])
+  planId        String
+}
+
+model Initiative {
+  id             String    @id @default(cuid())
+  publishedDate  DateTime  @default(now())
+  factor         String
+  segment        String
+  objective      String
+  announcement   String
+  actions        Json
+  status         String
+  supportCount   Int       @default(0)
+
+  company        Company   @relation(fields: [companyId], references: [id])
+  companyId      String
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  date      DateTime @default(now())
+  feeling   String
+  emoji     String
+  note      String?
+
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+}
+
+model Document {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  uploadDate   DateTime @default(now())
+  expiryDate   DateTime
+  filePath     String
+
+  company      Company?  @relation(fields: [companyId], references: [id])
+  companyId    String?
+
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  branchId     String?
+}
