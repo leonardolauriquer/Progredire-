@@ -6,7 +6,12 @@ export default defineConfig({
   server: {
     port: 5000,
     host: '0.0.0.0',
-    allowedHosts: ['all'],
+    allowedHosts: true,
+    hmr: {
+      protocol: 'wss',
+      host: process.env.REPLIT_DEV_DOMAIN,
+      clientPort: 443,
+    },
   },
   plugins: [react()],
   define: {
