@@ -12,6 +12,7 @@ Antes de começar, certifique-se de que você tem os seguintes softwares instala
 -   **Docker** e **Docker Compose:** Para rodar o banco de dados PostgreSQL de forma isolada.
 -   **Git:** Para controle de versão.
 -   **NPM** ou **Yarn:** Gerenciador de pacotes do Node.js.
+-   **NestJS CLI:** Opcional, mas recomendado (`npm install -g @nestjs/cli`).
 
 ---
 
@@ -21,10 +22,18 @@ O backend é uma aplicação NestJS que centraliza a lógica de negócio e a com
 
 ### Passo 1: Instalar Dependências
 
-Navegue até o diretório do backend (ex: `progredire-backend/`) e instale as dependências:
+Navegue até o diretório do backend (ex: `progredire-backend/`). Se você estiver iniciando o projeto do zero, use o comando abaixo para instalar todas os componentes necessários de uma vez:
 
 ```bash
-npm install
+# Componentes Core do NestJS, Prisma, Autenticação e IA
+npm install @nestjs/core @nestjs/common @nestjs/platform-express @nestjs/config @nestjs/passport @nestjs/jwt
+npm install prisma @prisma/client
+npm install passport passport-jwt bcrypt
+npm install class-validator class-transformer reflect-metadata rxjs
+npm install @google/genai
+
+# Tipagens para TypeScript (devDependencies)
+npm install -D @types/node @types/passport-jwt @types/bcrypt @types/express
 ```
 
 ### Passo 2: Configurar Variáveis de Ambiente

@@ -19,13 +19,20 @@ Este documento descreve a implementação completa do servidor backend para a ap
 -   **Escala Likert e Normalização:** As respostas do questionário (1-5) devem ser normalizadas para uma escala consistente de 0-100 para análise, usando a fórmula: `PontuaçãoNormalizada = ((PontuaçãoMédia - 1) / 4) * 100`.
 -   **IRP (Índice de Risco Psicossocial):** Métrica global de saúde (1-5), calculada a partir da média das pontuações normalizadas e convertida de volta para a escala de 1-5: `IRP = (MédiaDasPontuaçõesNormalizadas / 100) * 4 + 1`.
 
-### 1.2. Tecnologias Sugeridas
+### 1.2. Stack Tecnológica Recomendada (A Melhor Escolha)
 
--   **Runtime:** Node.js (v18+)
--   **Framework:** NestJS (preferencialmente) ou Express.js com TypeScript.
--   **Banco de Dados:** PostgreSQL
--   **ORM:** Prisma
--   **Autenticação:** JWT (JSON Web Tokens)
+Para garantir consistência com o frontend, tipagem estática robusta e escalabilidade, a stack definida é:
+
+-   **Linguagem:** **TypeScript**. (Permite compartilhar interfaces DTO entre Front e Back).
+-   **Runtime:** **Node.js** (v18 ou superior).
+-   **Framework:** **NestJS**. (Padrão de mercado para arquiteturas modulares e escaláveis em Node.js).
+-   **Banco de Dados:** **PostgreSQL**. (Robusto, relacional e com excelente suporte a JSON).
+-   **ORM:** **Prisma**. (A melhor experiência de desenvolvedor para TypeScript e SQL).
+-   **Componentes/Bibliotecas Essenciais:**
+    -   `@nestjs/passport` e `passport-jwt`: Para autenticação segura.
+    -   `bcrypt`: Para hash de senhas.
+    -   `class-validator`: Para validação de dados de entrada.
+    -   `@google/genai`: SDK oficial para integração com o Gemini.
 
 ---
 

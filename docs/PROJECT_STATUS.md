@@ -52,7 +52,7 @@ Estes são os arquivos centrais que inicializam e estruturam a aplicação.
         -   Atua como o roteador principal da aplicação.
         -   Um `switch` com base no `activeView` e no `user.role` decide qual componente de página (da pasta `/pages`) deve ser renderizado. Isso garante que um `collaborator` não possa ver uma página de `staff`, por exemplo.
     -   **Layout:**
-        -   Monta a estrutura visual principal, combinando os componentes compartilhados (`Sidebar`, `Header`, `BottomNavbar`, `ImpersonationBanner`) com o conteúdo da página ativa renderizado por `renderContent`. A lógica de `padding` (`md:pl-64`) se ajusta dinamicamente com base no estado de colapso da `Sidebar`.
+        -   Monta a estrutura visual principal, combinando os componentes compartilhados (`Sidebar`, `Header`, `ImpersonationBanner`) com o conteúdo da página ativa renderizado por `renderContent`. A lógica de `padding` (`md:pl-64`) se ajusta dinamicamente com base no estado de colapso da `Sidebar`. A navegação foi unificada na `Sidebar` para todos os dispositivos (mobile e desktop).
 
 -   **`metadata.json`**
     -   **O que é:** Um arquivo de configuração padrão para a plataforma AI Studio.
@@ -110,7 +110,7 @@ Estes arquivos encapsulam a lógica de negócio, acesso a dados e comunicação 
 
 Estes são os blocos de construção reutilizáveis da UI.
 
--   **`Header.tsx`, `Sidebar.tsx`, `BottomNavbar.tsx`:** Componentes de navegação principais. Recebem o `activeView` e o `userRole` para destacar o item de menu ativo e renderizar apenas os links permitidos para aquele perfil.
+-   **`Header.tsx`, `Sidebar.tsx`:** Componentes de navegação principais. Recebem o `activeView` e o `userRole` para destacar o item de menu ativo e renderizar apenas os links permitidos para aquele perfil.
 -   **`Charts.tsx`:** Uma biblioteca interna de componentes de visualização de dados.
     -   **Lógica:** Cada componente (ex: `LineChart`, `RadarChart`, `BubbleScatterChart`) é um componente React que renderiza SVG. Eles recebem dados através de props e contêm a lógica matemática para calcular as coordenadas, caminhos (`d` attribute of `<path>`), e pontos para desenhar o gráfico. Por exemplo, o `GaugeChart` usa `stroke-dasharray` em um arco SVG para criar o efeito de preenchimento. O `LineChart` consegue lidar com dados ausentes (`null`) para criar linhas com falhas.
 -   **`icons.tsx`:** Um arquivo que exporta ícones SVG como componentes React. Isso permite fácil reutilização e estilização dos ícones em toda a aplicação.

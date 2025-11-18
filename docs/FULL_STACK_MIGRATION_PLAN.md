@@ -39,20 +39,18 @@ Adotaremos uma arquitetura projetada para suportar a complexidade e os requisito
 ## 3. Stack de Tecnologia (Linguagens e Dependências)
 
 -   **Linguagem Principal: TypeScript**
-    -   **Justificativa:** Consistência e segurança de tipos em todo o stack.
+    -   **Justificativa:** A escolha pelo TypeScript em todo o stack (Frontend e Backend) permite o compartilhamento de tipagens (DTOs), reduz a carga cognitiva da equipe e evita erros de contrato entre cliente e servidor.
 
 -   **Backend:**
     -   **Runtime:** **Node.js** (v18+).
     -   **Framework:** **NestJS**.
         -   **Justificativa:** Arquitetura robusta, modular e escalável, ideal para organizar a lógica de negócio complexa e as regras de autorização multi-tenant.
-    -   **Dependências Principais:**
-        -   `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`
-        -   `prisma`, `@prisma/client`
-        -   `@nestjs/jwt`, `passport-jwt`
-        -   `bcrypt`
-        -   `class-validator`, `class-transformer`
-        -   `dotenv`
-        -   `@google/genai`
+    -   **Dependências Principais (Componentes a Instalar):**
+        -   **Core:** `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`, `@nestjs/config`.
+        -   **Banco de Dados:** `prisma`, `@prisma/client`.
+        -   **Autenticação:** `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt`, `bcrypt`.
+        -   **Validação:** `class-validator`, `class-transformer`.
+        -   **IA:** `@google/genai`.
 
 -   **Banco de Dados:**
     -   **SGBD:** **PostgreSQL**.

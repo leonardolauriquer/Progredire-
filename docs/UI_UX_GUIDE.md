@@ -69,7 +69,7 @@ A lógica para aplicar o tema está no `index.html` e no componente `pages/Setti
 -   **Biblioteca:** Utilizamos um conjunto de ícones no estilo "outline" do Heroicons, centralizados no arquivo `components/icons.tsx`.
 -   **Padrões de Uso:**
     -   **Ícones em linha com texto ou em botões pequenos:** `w-5 h-5`.
-    -   **Ícones de navegação (sidebar, navbar):** `w-6 h-6`.
+    -   **Ícones de navegação (sidebar):** `w-6 h-6`.
     -   **Ícones de destaque em cards ou títulos:** `w-8 h-8` ou maior.
 -   **Consistência:** Sempre que possível, utilize ícones já existentes no `icons.tsx`. Se um novo ícone for necessário, ele deve seguir o mesmo estilo (outline, `strokeWidth={1.5}`) e ser adicionado ao arquivo central.
 
@@ -101,6 +101,17 @@ O **Card** é o principal contêiner de conteúdo.
 
 -   **Inputs e Selects:** Devem ter um fundo `bg-white` ou `bg-[--color-input]`, borda `border border-slate-300`, e um anel de foco claro `focus:ring-2 focus:ring-blue-500`.
 -   **Labels:** Devem estar sempre presentes (`<label>`), associadas ao seu input (`htmlFor`). Use a classe `sr-only` se o label precisar ser visualmente oculto.
+
+### 6.4. Campos de Data (Date Pickers)
+
+-   **Comportamento:** Para garantir uma experiência consistente e intuitiva, não utilizamos o estilo padrão do navegador para inputs de data.
+-   **Implementação:** Utilizamos um contêiner personalizado que simula um input de texto com um ícone de calendário. Ao clicar em *qualquer parte* do campo, o seletor de data nativo do sistema operacional (mobile ou desktop) é acionado programaticamente (`showPicker()`). Isso resolve problemas de usabilidade onde o clique precisava ser exato no ícone padrão do navegador e garante que o calendário sempre apareça.
+
+### 6.5. Navegação Responsiva
+
+-   **Unificação:** A navegação foi consolidada na **Barra Lateral (Sidebar)** para todas as resoluções, removendo a barra inferior em dispositivos móveis.
+-   **Mobile:** A barra lateral fica oculta por padrão e desliza sobre o conteúdo (estilo Drawer) ao ser acionada pelo ícone de menu "hambúrguer" no cabeçalho.
+-   **Desktop:** A barra lateral é fixa, podendo ser colapsada para ganhar espaço de tela.
 
 ---
 
