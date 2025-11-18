@@ -1,206 +1,253 @@
-# ⚡ Guia de Implementação no Replit - Progredire+
+# ⚡ Guia Mestre de Implementação no Replit - Progredire+
 
-Este guia descreve como configurar e rodar o **Backend do Progredire+** utilizando a plataforma Replit. O Replit é ideal para este projeto pois oferece um ambiente Node.js pronto e um banco de dados PostgreSQL integrado sem a complexidade de configurar Docker.
-
----
-
-## 1. Criando o Projeto (O Backend)
-
-1.  Faça login no [Replit](https://replit.com).
-2.  Clique em **"+ Create Repl"**.
-3.  Procure pelo template **"Node.js"** (ou "NestJS" se disponível, mas Node.js puro nos dá mais controle inicial).
-4.  Dê o título: `progredire-backend`.
-5.  Clique em **"Create Repl"**.
+Este guia foi projetado para extrair o **máximo potencial** da plataforma Replit, transformando o protótipo do Progredire+ em uma aplicação Full-Stack profissional, segura e performática.
 
 ---
 
-## 2. Configurando as Dependências
+## 1. Arquitetura Otimizada no Replit
 
-Assim que o Repl abrir, você precisará definir o `package.json`.
+Para maximizar a produtividade (Dev) e a performance (Prod), usaremos uma abordagem híbrida:
 
-1.  No painel de arquivos (à esquerda), abra o `package.json`.
-2.  Substitua o conteúdo pelo seguinte (contendo as dependências da nossa stack):
+1.  **Estrutura Monorepo:** Backend (Raiz) e Frontend (`/frontend`) no mesmo Repl.
+2.  **Modo Desenvolvimento (Fast):** Backend e Frontend rodam simultaneamente em portas diferentes, com *proxy* do Vite para a API. Isso garante Hot Reload (HMR) instantâneo.
+3.  **Modo Produção (Lean):** O Frontend é compilado e servido estaticamente pelo NestJS, usando um único processo e economizando recursos do contêiner (Reserved VM).
+
+---
+
+## 2. Configuração do Sistema (Nix)
+
+O Replit usa **Nix** para gerenciar pacotes. O Prisma exige bibliotecas do sistema (OpenSSL) que não vêm por padrão.
+
+### Passo 1: Configurar `replit.nix`
+
+No seu Repl, edite o arquivo `replit.nix` (se não estiver visível, clique nos três pontos "..." no painel de arquivos > "Show hidden files").
+
+```nix
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs-20_x
+    pkgs.nodePackages.typescript-language-server
+    pkgs.yarn
+    pkgs.replitPackages.jest
+    # Dependências Críticas para o Prisma e NestJS
+    pkgs.openssl
+    pkgs.libiconv
+    pkgs.postgresql_14 # Cliente p/ debug via shell
+    pkgs.lsof # Útil para matar processos travados na porta 3000
+  ];
+  env = {
+    # Garante que o Prisma encontre as bibliotecas do OpenSSL no NixOS
+    PRISMA_QUERY_ENGINE_LIBRARY = "${pkgs.prisma-engines}/lib/libquery_engine.node";
+    PRISMA_SCHEMA_ENGINE_BINARY = "${pkgs.prisma-engines}/bin/schema-engine";
+    PRISMA_FMT_BINARY = "${pkgs.prisma-engines}/bin/prisma-fmt";
+  };
+}
+```
+
+### Passo 2: Configurar `.replit`
+
+Diz ao botão "Run" para instalar tudo e iniciar o modo de desenvolvimento.
+
+```toml
+# Comando executado ao clicar em RUN
+run = "npm run start:replit-dev"
+
+# Configuração de portas
+ports = [3000, 5173]
+
+[env]
+NODE_ENV = "development"
+
+[nix]
+channel = "stable-23_11"
+```
+
+---
+
+## 3. Dependências e Scripts (Package.json)
+
+Precisamos instalar o `concurrently` para rodar front e back juntos no modo Dev.
+
+**Atualize o `package.json` na raiz do Backend:**
 
 ```json
 {
-  "name": "progredire-backend",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
-  "private": true,
-  "license": "UNLICENSED",
+  "name": "progredire-fullstack",
+  "version": "1.0.0",
   "scripts": {
+    "prebuild": "rimraf dist",
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "build:ui": "cd frontend && npm install && npm run build",
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:cov": "jest --coverage",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    
+    "// --- COMANDOS DO REPLIT ---": "",
+    "setup": "npm install && cd frontend && npm install && cd ..",
+    "db:deploy": "npx prisma generate && npx prisma migrate deploy",
+    "start:replit-dev": "npm run db:deploy && concurrently \"npm:start:dev\" \"npm:start:frontend\"",
+    "start:frontend": "cd frontend && npm run dev"
   },
   "dependencies": {
     "@google/genai": "^0.1.1",
     "@nestjs/common": "^10.0.0",
-    "@nestjs/config": "^3.2.0",
+    "@nestjs/config": "^3.0.0",
     "@nestjs/core": "^10.0.0",
-    "@nestjs/jwt": "^10.2.0",
-    "@nestjs/passport": "^10.0.3",
+    "@nestjs/jwt": "^10.0.0",
+    "@nestjs/passport": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
-    "@prisma/client": "^5.10.2",
-    "bcrypt": "^5.1.1",
+    "@nestjs/serve-static": "^4.0.0",
+    "@prisma/client": "^5.10.0",
+    "bcrypt": "^5.1.0",
     "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
-    "passport": "^0.7.0",
+    "class-validator": "^0.14.0",
+    "passport": "^0.6.0",
     "passport-jwt": "^4.0.1",
-    "reflect-metadata": "^0.2.0",
+    "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
-    "@nestjs/testing": "^10.0.0",
-    "@types/bcrypt": "^5.0.2",
     "@types/express": "^4.17.17",
-    "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
-    "@types/passport-jwt": "^4.0.1",
-    "@types/supertest": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.42.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-prettier": "^5.0.0",
-    "jest": "^29.5.0",
-    "prettier": "^3.0.0",
-    "prisma": "^5.10.2",
-    "source-map-support": "^0.5.21",
-    "supertest": "^6.3.3",
-    "ts-jest": "^29.1.0",
-    "ts-loader": "^9.4.3",
+    "concurrently": "^8.2.0", 
+    "prisma": "^5.10.0",
+    "rimraf": "^5.0.0",
     "ts-node": "^10.9.1",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.1.3"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   }
 }
 ```
 
-3.  No **Shell** (aba "Shell" na parte inferior ou direita), rode o comando para instalar tudo:
-    ```bash
-    npm install
-    ```
-
 ---
 
-## 3. Configurando o Banco de Dados (PostgreSQL)
+## 4. Otimização de Código para o Replit
 
-O Replit tem um PostgreSQL integrado muito fácil de usar.
+### 4.1. Binding de Rede (CRÍTICO)
 
-1.  No painel lateral esquerdo, procure pela ferramenta **PostgreSQL** (ícone de banco de dados). Se não estiver visível, clique em "Tools" e procure lá.
-2.  Clique em **"Setup a database"** (ou similar).
-3.  O Replit irá criar o banco e gerar automaticamente a variável de ambiente `DATABASE_URL`.
-4.  **Verificação:** Vá na ferramenta **Secrets** (cadeado no menu lateral esquerdo). Você deverá ver uma chave `DATABASE_URL` já preenchida. Se não estiver lá, copie a "Connection URL" do painel do PostgreSQL e crie a secret manualmente.
+No Replit, o servidor **NÃO** pode escutar em `localhost` (padrão do NestJS). Ele deve escutar em `0.0.0.0` para ser acessível externamente.
 
----
+**Arquivo: `src/main.ts`**
 
-## 4. Configurando Variáveis de Ambiente (Secrets)
+```typescript
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
-Além do banco, precisamos das chaves da IA e do JWT.
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Prefixo global para a API
+  app.setGlobalPrefix('api');
+  
+  // Validação automática de DTOs
+  app.useGlobalPipes(new ValidationPipe());
+  
+  // Habilita CORS para desenvolvimento (Frontend porta 5173 -> Backend 3000)
+  app.enableCors();
 
-1.  Abra a ferramenta **Secrets** (ícone de cadeado).
-2.  Adicione as seguintes chaves:
-    *   `API_KEY`: Sua chave da API do Google Gemini.
-    *   `JWT_SECRET`: Uma string longa e aleatória (ex: `minha_senha_super_secreta_backend_replit`).
-    *   `PORT`: Defina como `3000`.
+  // OBRIGATÓRIO NO REPLIT: Escutar em 0.0.0.0
+  await app.listen(3000, '0.0.0.0');
+  console.log(`Application is running on: ${await app.getUrl()}`);
+}
+bootstrap();
+```
 
----
+### 4.2. Configuração do Frontend (Vite)
 
-## 5. Inicializando o Prisma
+Para que o frontend funcione dentro do Replit no modo Dev, precisamos configurar o host e o proxy.
 
-Agora precisamos criar a estrutura do banco de dados.
+**Arquivo: `frontend/vite.config.ts`**
 
-1.  No **Shell**, execute:
-    ```bash
-    npx prisma init
-    ```
-2.  Isso criará uma pasta `prisma/` com um arquivo `schema.prisma`.
-3.  Abra `prisma/schema.prisma` e substitua todo o conteúdo pelo schema completo que está definido no arquivo `docs/BACKEND_IMPLEMENTATION_GUIDE.md` do nosso projeto (seção 2.2).
-4.  Após colar o schema, volte ao **Shell** e execute a migração para criar as tabelas no banco do Replit:
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-    *(Se der erro de conexão, verifique se a Secret `DATABASE_URL` está correta).*
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
----
-
-## 6. Configurando a Inicialização do Replit
-
-Para que o botão "Run" verde funcione corretamente, precisamos configurar o arquivo `.replit`.
-
-1.  Abra (ou crie) o arquivo `.replit` na raiz.
-2.  Certifique-se de que ele tenha o seguinte conteúdo:
-
-```toml
-run = "npm run start:dev"
-
-[nix]
-channel = "stable-23_05"
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0', // Necessário para o Replit expor a porta
+    port: 5173,
+    hmr: {
+      clientPort: 443 // Força o HMR via HTTPS (necessário pois o Replit usa SSL)
+    },
+    proxy: {
+      // Redireciona chamadas /api para o backend local
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
+})
 ```
 
 ---
 
-## 7. Desenvolvendo o Código
+## 5. Banco de Dados (Prisma)
 
-Agora o ambiente está pronto. Você deve criar a estrutura de pastas do NestJS dentro de `src/`:
+### Schema Otimizado para NixOS
 
-*   `src/main.ts` (Ponto de entrada)
-*   `src/app.module.ts`
-*   `src/prisma/` (Módulo do Prisma)
-*   `src/auth/` (Módulo de Autenticação)
-*   Etc.
+No arquivo `prisma/schema.prisma`, adicione `binaryTargets` para garantir compatibilidade com o ambiente Linux do Replit.
 
-Siga o `BACKEND_IMPLEMENTATION_GUIDE.md` para criar os arquivos e a lógica.
+```prisma
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x"]
+}
 
-**Dica:** Você pode criar os arquivos manualmente ou usar o Nest CLI no Shell:
-```bash
-npx nest generate module auth
-npx nest generate controller auth
-npx nest generate service auth
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+// ... resto do schema
 ```
-
-## 8. Rodando o Projeto
-
-1.  Clique no botão **"Run"** (verde) no topo.
-2.  O console deve mostrar o NestJS inicializando.
-3.  O Replit abrirá uma aba "Webview" mostrando a aplicação rodando. A URL dessa aba (ex: `https://progredire-backend.seu-usuario.repl.co`) é a **Base URL** da sua API.
-4.  Você usará essa URL para configurar o Frontend posteriormente.
 
 ---
 
-## Resumo de Comandos Úteis no Shell do Replit
+## 6. Servindo o Frontend em Produção
 
-*   **Instalar pacotes:** `npm install <nome-pacote>`
-*   **Rodar migração do banco:** `npx prisma migrate dev`
-*   **Visualizar banco de dados (Prisma Studio):**
-    *   No Replit, o Prisma Studio pode ser chato de abrir. É mais fácil usar a própria aba "PostgreSQL" do Replit para rodar queries SQL simples se precisar ver os dados.
+Para o deploy final, não queremos rodar o Vite. Queremos que o NestJS sirva os arquivos estáticos.
+
+**Arquivo: `src/app.module.ts`**
+
+```typescript
+import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+// ... imports dos seus módulos
+
+@Module({
+  imports: [
+    // Serve o React buildado na rota raiz
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'frontend', 'dist'),
+      exclude: ['/api/(.*)'], // Não interfere na API
+    }),
+    // AuthModule, UserModule, etc...
+  ],
+})
+export class AppModule {}
+```
+
+---
+
+## 7. Workflow de Instalação
+
+1.  **Crie o Repl:** Importe o repositório.
+2.  **Secrets:** Configure `API_KEY` (Gemini) e `JWT_SECRET`.
+3.  **Banco:** Ative o PostgreSQL no painel do Replit.
+4.  **Estrutura:** Mova a pasta do frontend atual para dentro de uma nova pasta `/frontend`.
+5.  **Instalação:** Rode no Shell:
+    ```bash
+    npm run setup
+    ```
+6.  **Execução:** Clique no botão **Run**.
+    *   O NestJS iniciará na porta 3000.
+    *   O Vite iniciará na porta 5173.
+    *   O Replit detectará as portas e abrirá a Webview.
+
+Com essa configuração, você terá um ambiente de desenvolvimento ágil e um ambiente de produção robusto e otimizado, tudo dentro do mesmo Repl.
