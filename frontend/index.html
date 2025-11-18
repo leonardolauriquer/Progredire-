@@ -5,12 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Progredire+</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
       }
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
       
       /* --- THEME AND FONT SIZE STYLES --- */
       :root { font-size: 16px; }
@@ -77,22 +79,7 @@
       }
 
     </style>
-    <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
-    "eact": "https://aistudiocdn.com/eact@^0.0.1-security",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js",
-    "@nestjs/core": "https://aistudiocdn.com/@nestjs/core@^11.1.9",
-    "@nestjs/common": "https://aistudiocdn.com/@nestjs/common@^11.1.9",
-    "@nestjs/config": "https://aistudiocdn.com/@nestjs/config@^4.0.2"
-  }
-}
-</script>
-<script>
+    <script>
   // Immediately apply theme and font size from localStorage to prevent FOUC
   (function() {
     try {
@@ -107,7 +94,6 @@
 </head>
   <body class="bg-[--color-background]">
     <div id="root"></div>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <script type="module" src="/index.tsx"></script>
+    <script type="module" src="/test.tsx"></script>
   </body>
 </html>
