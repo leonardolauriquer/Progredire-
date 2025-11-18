@@ -4,13 +4,21 @@
 import { GoogleGenAI, Type, FunctionDeclaration, Chat } from "@google/genai";
 import * as dataService from './dataService';
 
-const API_KEY = process.env.API_KEY;
+let aiInstance: GoogleGenAI | null = null;
 
-if (!API_KEY) {
-  throw new Error("API_KEY environment variable not set");
+function getAI(): GoogleGenAI {
+  const API_KEY = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  
+  if (!API_KEY) {
+    throw new Error("GEMINI_API_KEY não está configurada. Por favor, configure a chave da API Gemini nas secrets do Replit.");
+  }
+  
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: API_KEY });
+  }
+  
+  return aiInstance;
 }
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 // --- Tool/Function Declarations ---
 const queryRiskFactorsFunctionDeclaration: FunctionDeclaration = {
@@ -359,7 +367,7 @@ Sua função é responder a perguntas dos gestores sobre os dados de risco psico
 
 async function callGemini(userInput: string, instruction: string): Promise<string> {
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
           model: "gemini-2.5-flash",
           contents: userInput,
           config: {
@@ -370,7 +378,7 @@ async function callGemini(userInput: string, instruction: string): Promise<strin
           }
         });
     
-        return response.text;
+        return response.text || '';
       } catch (error) {
         console.error("Error calling Gemini API:", error);
         if (error instanceof Error) {
@@ -402,7 +410,7 @@ export async function runDashboardAnalysis(dashboardData: string): Promise<strin
     const prompt = `Aqui estão os dados consolidados do dashboard de saúde organizacional. Por favor, analise-os e gere um relatório estratégico conforme as instruções, preenchendo o schema JSON:\n\n${dashboardData}`;
     
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -412,7 +420,7 @@ export async function runDashboardAnalysis(dashboardData: string): Promise<strin
             }
         });
 
-        return response.text;
+        return response.text || '';
     } catch (error) {
         console.error("Error calling Gemini API for dashboard analysis:", error);
         if (error instanceof Error) {
@@ -426,7 +434,7 @@ export async function runEvolutionAnalysis(evolutionData: string): Promise<strin
     const prompt = `Aqui estão os dados da evolução dos indicadores de saúde organizacional. Por favor, analise-os e gere um relatório de tendência conforme as instruções, preenchendo o schema JSON:\n\n${evolutionData}`;
     
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -436,7 +444,7 @@ export async function runEvolutionAnalysis(evolutionData: string): Promise<strin
             }
         });
 
-        return response.text;
+        return response.text || '';
     } catch (error) {
         console.error("Error calling Gemini API for evolution analysis:", error);
         if (error instanceof Error) {
@@ -450,7 +458,7 @@ export async function runActionPlanGeneration(factorName: string, segmentDescrip
     const prompt = `Gere um plano de ação detalhado com base nos seguintes dados:\n\n- Fator de Risco Crítico a ser abordado: "${factorName}"\n- Perfil do Público-Alvo: "${segmentDescription}"\n\nSiga as instruções e preencha o schema JSON.`;
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await getAI().models.generateContent({
             model: "gemini-2.5-flash",
             contents: prompt,
             config: {
@@ -460,7 +468,7 @@ export async function runActionPlanGeneration(factorName: string, segmentDescrip
             }
         });
 
-        return response.text;
+        return response.text || '';
     } catch (error) {
         console.error("Error calling Gemini API for action plan generation:", error);
         if (error instanceof Error) {
@@ -474,7 +482,7 @@ export async function runActionPlanGeneration(factorName: string, segmentDescrip
 let chat: Chat | null = null;
 
 export const startAssistantChat = () => {
-    chat = ai.chats.create({
+    chat = getAI().chats.create({
         model: "gemini-2.5-flash",
         config: {
             systemInstruction: systemInstructionAssistant,
@@ -484,14 +492,14 @@ export const startAssistantChat = () => {
 };
 
 export async function runAssistantChat(message: string): Promise<string> {
-    if (!chat) {
-        startAssistantChat();
-    }
-    if (!chat) { // Still null after trying to start
-        throw new Error("Failed to initialize assistant chat.");
-    }
-
     try {
+        if (!chat) {
+            startAssistantChat();
+        }
+        if (!chat) { // Still null after trying to start
+            throw new Error("Failed to initialize assistant chat.");
+        }
+
         let response = await chat.sendMessage({ message });
         
         while(response.functionCalls && response.functionCalls.length > 0) {
@@ -532,10 +540,10 @@ export async function runAssistantChat(message: string): Promise<string> {
             }
             
             // Send tool responses back to the model
-            response = await chat.sendMessage({ toolResponses });
+            response = await chat.sendMessage(toolResponses as any);
         }
         
-        return response.text;
+        return response.text || '';
 
     } catch (error) {
         console.error("Error in assistant chat:", error);
