@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getJournalEntries, JournalEntry } from '../services/journalService';
-import { BookOpenIcon } from './icons';
+import { BookOpenIcon } from '../components/icons';
 
 export const JournalView: React.FC = () => {
     const [entries, setEntries] = useState<JournalEntry[]>([]);

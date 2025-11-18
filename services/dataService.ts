@@ -312,24 +312,26 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     let leaveEvents: { type: string; date: string }[];
 
     const storedHistorical = localStorage.getItem(`${HISTORICAL_INDICATORS_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(HISTORICAL_INDICATORS_KEY);
-    if (storedHistorical) {
-        const historicalData: any[] = JSON.parse(storedHistorical);
-        climateTrend = {
-            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
-            data: historicalData.map(d => d['IRP Global (0-100)'])
-        };
-        inssLeaveTrend = {
-            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
-            data: historicalData.map(d => d['Afastamentos INSS'])
-        };
-        irpVsTurnover = {
-            labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
-            datasets: [
-                { label: 'IRP Global (1-5)', data: historicalData.map(d => (d['IRP Global (0-100)'] / 100) * 4 + 1), color: '#3b82f6' },
-                { label: 'Turnover (%)', data: historicalData.map(d => d['Turnover (%)']), color: '#ef4444' }
-            ]
-        };
-    } else {
+    try {
+      if (!storedHistorical) throw new Error("No historical data in localStorage");
+      const historicalData: any[] = JSON.parse(storedHistorical);
+      climateTrend = {
+          labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+          data: historicalData.map(d => d['IRP Global (0-100)'])
+      };
+      inssLeaveTrend = {
+          labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+          data: historicalData.map(d => d['Afastamentos INSS'])
+      };
+      irpVsTurnover = {
+          labels: historicalData.map(d => d['Mês/Ano (ex: Jan/24)']),
+          datasets: [
+              { label: 'IRP Global (1-5)', data: historicalData.map(d => (d['IRP Global (0-100)'] / 100) * 4 + 1), color: '#3b82f6' },
+              { label: 'Turnover (%)', data: historicalData.map(d => d['Turnover (%)']), color: '#ef4444' }
+          ]
+      };
+    } catch (e) {
+        console.warn("Could not parse historical indicators from localStorage, using mocks.", e);
         // Fallback to mocks
         climateTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [65, 68, 72, 70, 75, 78] };
         inssLeaveTrend = { labels: ['Jan/24', 'Fev/24', 'Mar/24', 'Abr/24', 'Mai/24', 'Jun/24'], data: [5, 4, 6, 5, 5, 3] };
@@ -343,9 +345,11 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
     }
 
     const storedLeaveEvents = localStorage.getItem(`${LEAVE_EVENTS_KEY}-${SIMULATED_COMPANY_ID}`) || localStorage.getItem(LEAVE_EVENTS_KEY);
-    if (storedLeaveEvents) {
+    try {
+        if (!storedLeaveEvents) throw new Error("No leave events in localStorage");
         leaveEvents = JSON.parse(storedLeaveEvents);
-    } else {
+    } catch (e) {
+        console.warn("Could not parse leave events from localStorage, using mocks.", e);
         leaveEvents = [
             { type: 'Burnout', date: '2024-05-10' }, { type: 'Ansiedade', date: '2024-04-22' },
             { type: 'Depressão', date: '2024-03-15' }, { type: 'Ansiedade', date: '2024-02-01' },
@@ -456,9 +460,13 @@ export const getDashboardData = (filters: Record<string, string>): Promise<Dashb
 // Campaigns
 export const getCampaigns = (): Promise<Campaign[]> => {
     return new Promise(resolve => {
-        const stored = localStorage.getItem(CAMPAIGNS_KEY);
-        const campaigns = stored ? JSON.parse(stored) : initialCampaigns;
-        resolve(campaigns);
+        try {
+            const stored = localStorage.getItem(CAMPAIGNS_KEY);
+            resolve(stored ? JSON.parse(stored) : initialCampaigns);
+        } catch (error) {
+            console.error("Failed to parse campaigns from localStorage, falling back to initial data.", error);
+            resolve(initialCampaigns);
+        }
     });
 }
 export const addCampaign = async (campaignData: Partial<Campaign>): Promise<Campaign[]> => {
@@ -528,18 +536,28 @@ export const saveCollaboratorSurvey = async (answers: Record<string, string>): P
 
 export const getCollaboratorEvolutionData = (): Promise<CollaboratorEvolutionEntry[]> => {
     return new Promise(resolve => {
-        const stored = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
-        resolve(stored ? JSON.parse(stored) : []);
+        try {
+            const stored = localStorage.getItem(COLLABORATOR_EVOLUTION_KEY);
+            resolve(stored ? JSON.parse(stored) : []);
+        } catch (error) {
+            console.error("Failed to parse collaborator evolution data from localStorage, falling back to empty array.", error);
+            resolve([]);
+        }
     });
 };
 
 // Initiatives
 export const getPublishedInitiatives = (): Promise<PublishedInitiative[]> => {
     return new Promise(resolve => {
-        const stored = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
-        const initiatives: PublishedInitiative[] = stored ? JSON.parse(stored) : [];
-        initiatives.sort((a,b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
-        resolve(initiatives);
+        try {
+            const stored = localStorage.getItem(PUBLISHED_INITIATIVES_KEY);
+            const initiatives: PublishedInitiative[] = stored ? JSON.parse(stored) : [];
+            initiatives.sort((a,b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+            resolve(initiatives);
+        } catch (error) {
+            console.error("Failed to parse published initiatives from localStorage, falling back to empty array.", error);
+            resolve([]);
+        }
     });
 };
 export const publishInitiative = async (archivedPlan: any, announcement: string): Promise<void> => {
@@ -748,12 +766,18 @@ const seedInitialCompanies = (): Company[] => {
 
 // Companies
 export const getCompanies = (): Promise<Company[]> => new Promise(r => {
-    const stored = localStorage.getItem(COMPANIES_KEY);
-    if (stored && JSON.parse(stored).length > 0) {
-        r(JSON.parse(stored));
-    } else {
-        r(seedInitialCompanies());
+    try {
+        const stored = localStorage.getItem(COMPANIES_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return r(parsed);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to parse companies from localStorage, falling back to seeding initial data.", error);
     }
+    r(seedInitialCompanies());
 });
 export const addCompany = async (data: Omit<Company, 'id'>) => {
     const items = await getCompanies();
@@ -774,19 +798,33 @@ export const addCompanies = async (names: string[]) => {
 };
 
 // Branches
-export const getBranches = (companyId: number): Promise<Branch[]> => new Promise(r => r(JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]').filter((b: Branch) => b.companyId === companyId)));
+export const getBranches = (companyId: number): Promise<Branch[]> => new Promise(r => {
+    try {
+        const allBranches = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+        r(allBranches.filter((b: Branch) => b.companyId === companyId));
+    } catch (error) {
+        console.error("Failed to parse branches from localStorage, falling back to empty array.", error);
+        r([]);
+    }
+});
 export const addBranch = async (data: Omit<Branch, 'id'>) => {
-    const items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    let items: Branch[] = [];
+    try { items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]'); } 
+    catch (error) { console.error("localStorage for branches is corrupt. Overwriting with new data.", error); }
     const newItem = { ...data, id: Date.now() };
     localStorage.setItem(BRANCHES_KEY, JSON.stringify([...items, newItem]));
 };
 export const deleteBranch = async (id: number) => {
-    let items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    let items: Branch[] = [];
+    try { items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]'); }
+    catch (error) { console.error("Failed to process branches from localStorage.", error); return; }
     items = items.filter((i: Branch) => i.id !== id);
     localStorage.setItem(BRANCHES_KEY, JSON.stringify(items));
 };
 export const addBranches = async (companyId: number, branches: Omit<Branch, 'id'|'companyId'>[]) => {
-    const items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]');
+    let items: Branch[] = [];
+    try { items = JSON.parse(localStorage.getItem(BRANCHES_KEY) || '[]'); }
+    catch (error) { console.error("localStorage for branches is corrupt. Overwriting with new data.", error); }
     const newItems = branches.map((b,i) => ({ ...b, id: Date.now() + i, companyId }));
     localStorage.setItem(BRANCHES_KEY, JSON.stringify([...items, ...newItems]));
 };
@@ -794,7 +832,10 @@ export const addBranches = async (companyId: number, branches: Omit<Branch, 'id'
 // Employees
 export const getEmployees = (params: { page: number; limit: number; searchTerm: string }): Promise<{employees: Employee[], pages: number}> => {
     return new Promise(r => {
-        let items: Employee[] = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || '[]');
+        let items: Employee[] = [];
+        try { items = JSON.parse(localStorage.getItem(EMPLOYEES_KEY) || '[]'); }
+        catch (error) { console.error("Failed to parse employees from localStorage.", error); }
+        
         if (params.searchTerm) {
             items = items.filter(e => e.name.toLowerCase().includes(params.searchTerm.toLowerCase()) || e.email.toLowerCase().includes(params.searchTerm.toLowerCase()));
         }
@@ -805,18 +846,18 @@ export const getEmployees = (params: { page: number; limit: number; searchTerm: 
     });
 };
 export const addEmployee = async (data: Omit<Employee, 'id'|'password'>) => {
-    const items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
+    const { employees: items } = await getEmployees({page: 1, limit: 10000, searchTerm: ''});
     const password = data.cpf.slice(-3); // Last 3 digits of CPF as password
     const newItem = { ...data, id: Date.now(), password };
     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify([...items, newItem]));
 };
 export const deleteEmployee = async (id: number) => {
-    let items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
-    items = items.filter(i => i.id !== id);
-    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(items));
+    const { employees: items } = await getEmployees({page: 1, limit: 10000, searchTerm: ''});
+    const filteredItems = items.filter(i => i.id !== id);
+    localStorage.setItem(EMPLOYEES_KEY, JSON.stringify(filteredItems));
 };
 export const addEmployees = async (employees: Omit<Employee, 'id'|'password'>[]) => {
-    const items = await getEmployees({page: 1, limit: 1000, searchTerm: ''}).then(res => res.employees);
+    const { employees: items } = await getEmployees({page: 1, limit: 10000, searchTerm: ''});
     const newItems = employees.map((e, i) => ({ ...e, id: Date.now() + i, password: e.cpf.slice(-3) }));
     localStorage.setItem(EMPLOYEES_KEY, JSON.stringify([...items, ...newItems]));
 };
@@ -824,7 +865,10 @@ export const addEmployees = async (employees: Omit<Employee, 'id'|'password'>[])
 // Company Users
 export const getCompanyUsers = (params: { page: number; limit: number; searchTerm: string }): Promise<{users: CompanyUser[], pages: number}> => {
     return new Promise(r => {
-        let items: CompanyUser[] = JSON.parse(localStorage.getItem(COMPANY_USERS_KEY) || '[]');
+        let items: CompanyUser[] = [];
+        try { items = JSON.parse(localStorage.getItem(COMPANY_USERS_KEY) || '[]'); }
+        catch(error) { console.error("Failed to parse company users from localStorage.", error); }
+
         if (params.searchTerm) {
             items = items.filter(u => u.name.toLowerCase().includes(params.searchTerm.toLowerCase()) || u.email.toLowerCase().includes(params.searchTerm.toLowerCase()));
         }
@@ -834,17 +878,17 @@ export const getCompanyUsers = (params: { page: number; limit: number; searchTer
     });
 };
 export const addCompanyUser = async (data: Omit<CompanyUser, 'id'|'password'>) => {
-    const items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
+    const { users: items } = await getCompanyUsers({page: 1, limit: 10000, searchTerm: ''});
     const newItem = { ...data, id: Date.now(), password: 'Mudar@123' };
     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify([...items, newItem]));
 };
 export const deleteCompanyUser = async (id: number) => {
-    let items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
-    items = items.filter(i => i.id !== id);
-    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(items));
+    const { users: items } = await getCompanyUsers({page: 1, limit: 10000, searchTerm: ''});
+    const filteredItems = items.filter(i => i.id !== id);
+    localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify(filteredItems));
 };
 export const addCompanyUsers = async (users: Omit<CompanyUser, 'id'|'password'>[]) => {
-    const items = await getCompanyUsers({page: 1, limit: 1000, searchTerm: ''}).then(res => res.users);
+    const { users: items } = await getCompanyUsers({page: 1, limit: 10000, searchTerm: ''});
     const newItems = users.map((u, i) => ({ ...u, id: Date.now() + i, password: 'Mudar@123' }));
     localStorage.setItem(COMPANY_USERS_KEY, JSON.stringify([...items, ...newItems]));
 };

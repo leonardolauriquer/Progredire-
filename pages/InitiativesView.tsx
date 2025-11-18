@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { getPublishedInitiatives, recordInitiativeSupport, PublishedInitiative } from '../services/dataService';
-import { LightBulbIcon, FlagIcon, PaperAirplaneIcon } from './icons';
+import { LightBulbIcon, FlagIcon, PaperAirplaneIcon } from '../components/icons';
 
 const InitiativeCard: React.FC<{
     initiative: PublishedInitiative;

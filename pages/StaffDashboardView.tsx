@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getStaffDashboardSummary } from '../services/dataService';
 import { 
@@ -7,7 +8,7 @@ import {
     ExclamationTriangleIcon,
     ArchiveBoxIcon,
     UserIcon,
-} from './icons';
+} from '../components/icons';
 import { ActiveView } from '../App';
 
 interface StaffDashboardViewProps {

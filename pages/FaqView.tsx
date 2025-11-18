@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { ChevronDownIcon } from './icons';
+import { ChevronDownIcon } from '../components/icons';
 import { UserRole } from '../App';
 
 // Data for Company Role

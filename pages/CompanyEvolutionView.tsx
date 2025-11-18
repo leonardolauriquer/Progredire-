@@ -1,15 +1,9 @@
-
-
-
-
-
-
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { runEvolutionAnalysis } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { BrainIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon } from './icons';
-import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
-import { LineChart, Sparkline } from './Charts';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BrainIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon } from '../components/icons';
+import { mockResponses, dimensions, mockFilters } from '../components/dashboardMockData';
+import { LineChart, Sparkline } from '../components/Charts';
 
 const factorIdToName: Record<string, string> = {
     'geral': 'Saúde Geral',
@@ -365,7 +359,6 @@ export const CompanyEvolutionView: React.FC = () => {
     const { topMovers, bottomMovers } = useMemo(() => {
         const factors = Object.entries(allFactorsEvolutionData)
             .filter(([id]) => id !== 'geral')
-// FIX: Explicitly cast `a` and `b` to `EvolutionData` to resolve TypeScript's type inference issue within the sort callback, which was causing the `.change` property access to fail.
             .sort(([, a], [, b]) => (b as EvolutionData).change - (a as EvolutionData).change);
         return {
             topMovers: factors.slice(0, 5),
@@ -587,7 +580,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     </div>
                 )}
                 
-                <LineChart chartData={chartEvolutionData} />
+                <LineChart chartData={chartEvolutionData} yMin={0} yMax={100} yAxisLabels={[0, 25, 50, 75, 100]} />
             </div>
 
              <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-200">
@@ -646,7 +639,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     <h2 className="text-xl font-semibold text-slate-800 mb-4">📈 Maiores Avanços</h2>
                     <div className="space-y-4">
                         {topMovers.map(([id, data]) => (
-                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data} />
+                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data as EvolutionData} />
                         ))}
                     </div>
                 </div>
@@ -654,7 +647,7 @@ export const CompanyEvolutionView: React.FC = () => {
                     <h2 className="text-xl font-semibold text-slate-800 mb-4">📉 Principais Pontos de Atenção</h2>
                     <div className="space-y-4">
                         {bottomMovers.map(([id, data]) => (
-                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data} />
+                            <FactorEvolutionCard key={id} factorName={factorIdToName[id]} data={data as EvolutionData} />
                         ))}
                     </div>
                 </div>

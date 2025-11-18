@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { UploadIcon, ArrowDownTrayIcon, SparklesIcon } from './icons';
+import { UploadIcon, ArrowDownTrayIcon, SparklesIcon } from '../components/icons';
 import { 
     importSurveyResponses, 
     importHistoricalIndicators, 
@@ -11,7 +11,7 @@ import {
     Company,
     Branch
 } from '../services/dataService';
-import { LoadingSpinner } from './LoadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 declare var XLSX: any;
 

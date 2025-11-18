@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { PaintBrushIcon, AdjustmentsHorizontalIcon, ArrowPathIcon } from './icons';
+import { PaintBrushIcon, AdjustmentsHorizontalIcon, ArrowPathIcon } from '../components/icons';
 
 type Theme = 'theme-default-light' | 'theme-default-dark' | 'theme-colorblind-light' | 'theme-colorblind-dark';
 type FontSize = 'font-size-sm' | 'font-size-md' | 'font-size-lg';

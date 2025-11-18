@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { mockResponses, dimensions, mockFilters } from './dashboardMockData';
+import { mockResponses, dimensions, mockFilters } from '../components/dashboardMockData';
 import { runActionPlanGeneration } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon, ArchiveBoxIcon, PlusCircleIcon, PencilIcon, TrashIcon, PaperAirplaneIcon } from './icons';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ArrowDownTrayIcon, BrainIcon, MagnifyingGlassIcon, FlagIcon, LightBulbIcon, ClipboardDocumentCheckIcon, ArchiveBoxIcon, PlusCircleIcon, PencilIcon, TrashIcon, PaperAirplaneIcon, CalendarDaysIcon } from '../components/icons';
 import { ActiveView } from '../App';
-import { Modal } from './Modal';
+import { Modal } from '../components/Modal';
 import { publishInitiative } from '../services/dataService';
 
 // --- Types & Data ---
@@ -97,6 +97,100 @@ const exportToExcel = (htmlContent: string, filename: string) => {
     link.setAttribute('download', `${filename}.xls`);
     document.body.appendChild(link);
     link.click();
+};
+
+const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
+    <div>
+        <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center">
+            <span className="mr-3 flex-shrink-0">{icon}</span>
+            {title}
+        </h3>
+        <div className="pl-9 text-slate-600 text-sm space-y-2">
+            {children}
+        </div>
+    </div>
+);
+
+const ActionForm: React.FC<{
+    action: Partial<ActionItem>;
+    onSave: (action: Omit<ActionItem, 'id'>) => void;
+    onCancel: () => void;
+}> = ({ action, onSave, onCancel }) => {
+    const [title, setTitle] = useState(action.title || '');
+    const [description, setDescription] = useState(action.description || '');
+    const [responsible, setResponsible] = useState(action.responsible || '');
+    const [dueDate, setDueDate] = useState(action.dueDate || '');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (title.trim()) {
+            onSave({ title, description, responsible, dueDate });
+        }
+    };
+    
+    return (
+        <form onSubmit={handleSubmit} className="bg-[--color-muted] p-4 rounded-lg border border-[--color-border] space-y-4">
+            <h4 className="font-semibold text-[--color-card-foreground]">{action.id ? 'Editar Ação' : 'Adicionar Nova Ação'}</h4>
+            <div>
+                <label htmlFor="action-title" className="sr-only">Título</label>
+                <input
+                    id="action-title"
+                    type="text"
+                    value={title}
+                    onChange={e => setTitle(e.target.value)}
+                    placeholder="Título da ação"
+                    className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md text-[--color-foreground] placeholder-slate-400 focus:ring-2 focus:ring-[--color-ring]"
+                    required
+                />
+            </div>
+            <div>
+                <label htmlFor="action-desc" className="sr-only">Descrição</label>
+                <textarea
+                    id="action-desc"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Descrição da ação"
+                    className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md h-20 resize-none text-[--color-foreground] placeholder-slate-400 focus:ring-2 focus:ring-[--color-ring]"
+                />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="action-responsible" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Responsável</label>
+                    <select
+                        id="action-responsible"
+                        value={responsible}
+                        onChange={e => setResponsible(e.target.value)}
+                        className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md text-[--color-foreground] focus:ring-2 focus:ring-[--color-ring]"
+                    >
+                        <option value="">Ninguém</option>
+                        {mockEmployees.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label htmlFor="action-dueDate" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Prazo</label>
+                    <div className="relative">
+                        <input
+                            id="action-dueDate"
+                            type="date"
+                            value={dueDate}
+                            onChange={e => setDueDate(e.target.value)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus-within:ring-2 focus-within:ring-[--color-ring] flex justify-between items-center pointer-events-none">
+                            <span className={!dueDate ? 'text-slate-400' : 'text-[--color-foreground]'}>
+                                {dueDate ? new Date(dueDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Selecione uma data'}
+                            </span>
+                            <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+                <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-[--color-card] border border-[--color-border] rounded-md hover:bg-[--color-accent] text-[--color-card-foreground]">Cancelar</button>
+                <button type="submit" className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar Ação</button>
+            </div>
+        </form>
+    );
 };
 
 // --- Main Component ---
@@ -501,91 +595,5 @@ export const PlanoAcaoView: React.FC<PlanoAcaoViewProps> = ({ setActiveView, ini
                 </div>
             </Modal>
         </div>
-    );
-};
-
-const PlanSection: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode }> = ({ title, children, icon }) => (
-    <div>
-        <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center">
-            <span className="mr-3 flex-shrink-0">{icon}</span>
-            {title}
-        </h3>
-        <div className="pl-9 text-slate-600 text-sm space-y-2">
-            {children}
-        </div>
-    </div>
-);
-
-const ActionForm: React.FC<{
-    action: Partial<ActionItem>;
-    onSave: (action: Omit<ActionItem, 'id'>) => void;
-    onCancel: () => void;
-}> = ({ action, onSave, onCancel }) => {
-    const [title, setTitle] = useState(action.title || '');
-    const [description, setDescription] = useState(action.description || '');
-    const [responsible, setResponsible] = useState(action.responsible || '');
-    const [dueDate, setDueDate] = useState(action.dueDate || '');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (title.trim()) {
-            onSave({ title, description, responsible, dueDate });
-        }
-    };
-    
-    return (
-        <form onSubmit={handleSubmit} className="bg-slate-100 p-4 rounded-lg border border-slate-300 space-y-4">
-            <h4 className="font-semibold text-slate-700">{action.id ? 'Editar Ação' : 'Adicionar Nova Ação'}</h4>
-            <div>
-                <label htmlFor="action-title" className="sr-only">Título</label>
-                <input
-                    id="action-title"
-                    type="text"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    placeholder="Título da ação"
-                    className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
-                    required
-                />
-            </div>
-            <div>
-                <label htmlFor="action-desc" className="sr-only">Descrição</label>
-                <textarea
-                    id="action-desc"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                    placeholder="Descrição da ação"
-                    className="w-full p-2 bg-white border border-slate-300 rounded-md h-20 resize-none text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-500"
-                />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="action-responsible" className="block text-sm font-medium text-slate-600 mb-1">Responsável</label>
-                    <select
-                        id="action-responsible"
-                        value={responsible}
-                        onChange={e => setResponsible(e.target.value)}
-                        className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Ninguém</option>
-                        {mockEmployees.map(name => <option key={name} value={name}>{name}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label htmlFor="action-dueDate" className="block text-sm font-medium text-slate-600 mb-1">Prazo</label>
-                    <input
-                        id="action-dueDate"
-                        type="date"
-                        value={dueDate}
-                        onChange={e => setDueDate(e.target.value)}
-                        className="w-full p-2 bg-white border border-slate-300 rounded-md text-slate-900 focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-                <button type="button" onClick={onCancel} className="px-3 py-1 text-sm bg-white border border-slate-300 rounded-md hover:bg-slate-50 text-slate-700">Cancelar</button>
-                <button type="submit" className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar Ação</button>
-            </div>
-        </form>
     );
 };

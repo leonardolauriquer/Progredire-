@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { UserIcon, BuildingOfficeIcon } from './icons';
+import { UserIcon, BuildingOfficeIcon } from '../components/icons';
 import { UserRole } from '../App';
 
 const allCompaniesList = ['InovaCorp', 'NexusTech', 'AuraDigital', 'Vértice'];

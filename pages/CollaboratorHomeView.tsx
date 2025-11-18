@@ -3,8 +3,8 @@
 import React, { useState, useCallback } from 'react';
 import { getInsightForFeeling, getDailyInsight } from '../services/geminiService';
 import { addJournalEntry } from '../services/journalService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { BrainIcon, PencilSquareIcon, SparklesIcon, CalendarDaysIcon, PaperAirplaneIcon } from './icons';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BrainIcon, PencilSquareIcon, SparklesIcon, CalendarDaysIcon, PaperAirplaneIcon } from '../components/icons';
 import { ActiveView } from '../App';
 
 interface CollaboratorHomeViewProps {

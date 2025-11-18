@@ -1,9 +1,7 @@
-
-
 import React, { useState, useCallback } from 'react';
 import { getDailyInsight } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { BrainIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, NexusTechLogo, AuraDigitalLogo, ShieldCheckIcon, PaperAirplaneIcon, ClipboardDocumentListIcon } from './icons';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { BrainIcon, ChartBarIcon, InstagramIcon, InovaCorpLogo, VerticeLogo, NexusTechLogo, AuraDigitalLogo, ShieldCheckIcon, PaperAirplaneIcon, ClipboardDocumentListIcon } from '../components/icons';
 import { ActiveView } from '../App';
 
 interface CompanyHomeViewProps {

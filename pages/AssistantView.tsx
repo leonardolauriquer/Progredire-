@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { startAssistantChat, runAssistantChat } from '../services/geminiService';
-import { PaperAirplaneIcon, LogoIcon, UserIcon, SparklesIcon } from './icons';
+import { PaperAirplaneIcon, LogoIcon, UserIcon, SparklesIcon } from '../components/icons';
 
 interface Message {
     role: 'user' | 'model' | 'loading';

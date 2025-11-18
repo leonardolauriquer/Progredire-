@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArchiveBoxIcon, ClipboardDocumentCheckIcon, ExclamationTriangleIcon, ArrowDownTrayIcon } from './icons';
+import { ArchiveBoxIcon, ClipboardDocumentCheckIcon, ExclamationTriangleIcon, ArrowDownTrayIcon } from '../components/icons';
 
 // --- Types ---
 type ActionStatus = 'A Fazer' | 'Em Andamento' | 'Concluído';
@@ -99,12 +99,12 @@ export const PlanoAcaoHistoryView: React.FC = () => {
 
     const allActionsWithContext = useMemo(() => {
         return archivedPlans.flatMap(plan => 
-            plan.actions.map(action => ({
+            (plan.actions || []).map(action => ({
                 ...action,
                 planId: plan.id,
                 planFactor: plan.factor,
                 planSegment: plan.segment,
-                status: plan.statuses[action.id] || 'A Fazer'
+                status: plan.statuses?.[action.id] || 'A Fazer'
             }))
         );
     }, [archivedPlans]);
@@ -303,7 +303,6 @@ export const PlanoAcaoHistoryView: React.FC = () => {
                                         <span className={`ml-1 ${isOverdue ? 'text-red-600 font-bold' : ''}`}>
                                             {action.dueDate ? new Date(action.dueDate).toLocaleDateString() : 'N/D'}
                                         </span>
-                                        {/* FIX: Wrap ExclamationTriangleIcon in a span to apply the 'title' attribute, resolving a TypeScript error where 'title' was passed as an invalid prop to the SVG component. This provides a tooltip for overdue actions. */}
                                         {isOverdue && <span title="Ação Atrasada"><ExclamationTriangleIcon className="w-4 h-4 ml-1 text-red-500"/></span>}
                                     </div>
                                 </div>

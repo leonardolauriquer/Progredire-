@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { StethoscopeIcon, ChatBubbleOvalLeftEllipsisIcon, ShieldCheckIcon, UserGroupIcon, EnvelopeIcon, PhoneIcon } from './icons';
-import { Modal } from './Modal';
+import { StethoscopeIcon, ChatBubbleOvalLeftEllipsisIcon, ShieldCheckIcon, UserGroupIcon, EnvelopeIcon, PhoneIcon, CalendarDaysIcon } from '../components/icons';
+import { Modal } from '../components/Modal';
 
 interface Professional {
   title: string;
@@ -104,7 +104,21 @@ const SchedulingModalContent: React.FC<{ professional: Professional; onConfirm: 
             <div className="space-y-4">
                 <div>
                     <label htmlFor="schedule-date" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Data</label>
-                    <input type="date" id="schedule-date" value={date} onChange={e => setDate(e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
+                    <div className="relative">
+                        <input 
+                            type="date" 
+                            id="schedule-date" 
+                            value={date} 
+                            onChange={e => setDate(e.target.value)} 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus-within:ring-2 focus-within:ring-[--color-ring] flex justify-between items-center pointer-events-none">
+                            <span className={!date ? 'text-slate-400' : 'text-[--color-foreground]'}>
+                                {date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : 'Selecione uma data'}
+                            </span>
+                            <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-[--color-card-muted-foreground] mb-2">Horário</label>

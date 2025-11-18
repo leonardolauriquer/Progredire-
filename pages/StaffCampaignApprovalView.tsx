@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getCampaigns, approveCampaign } from '../services/dataService';
-import { Campaign } from './dashboardMockData';
-import { ClockIcon, ShieldCheckIcon } from './icons';
+import { Campaign } from '../components/dashboardMockData';
+import { ClockIcon, ShieldCheckIcon } from '../components/icons';
 
 export const StaffCampaignApprovalView: React.FC = () => {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);

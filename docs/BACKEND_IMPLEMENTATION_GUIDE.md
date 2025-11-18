@@ -29,9 +29,25 @@ Este documento descreve a implementação completa do servidor backend para a ap
 
 ---
 
-## 2. Modelos de Dados (Schema Prisma)
+## 2. Estrutura do Banco de Dados
 
-O schema a seguir define uma estrutura de banco de dados robusta e multi-tenant.
+Esta seção detalha a arquitetura completa do nosso banco de dados PostgreSQL. A definição do schema é feita usando a sintaxe do **Prisma**, que servirá como a "fonte da verdade" para a estrutura das tabelas. O Prisma usará este schema para gerar automaticamente as migrações do banco de dados e criar um cliente type-safe para interagir com os dados.
+
+### 2.1. Principais Relações e Design
+
+A arquitetura do banco de dados é projetada em torno de alguns conceitos-chave para garantir segurança, isolamento de dados e escalabilidade:
+
+-   **Multi-Tenancy (Multi-Cliente):** O pilar do nosso design. O modelo `Company` é a entidade central. Praticamente todos os outros modelos de dados (como `User`, `SurveyResponse`, `Campaign`, `ActionPlan`, etc.) possuem uma relação obrigatória com a `Company` através de um campo `companyId`. Isso garante que os dados de cada cliente fiquem estritamente isolados no nível do banco de dados. Qualquer consulta para um usuário que não seja `STAFF` **deve** ser filtrada por este `companyId`.
+
+-   **Modelo de Usuário Unificado:** O modelo `User` gerencia todos os tipos de usuários (`STAFF`, `COMPANY`, `COLLABORATOR`) através de um campo `enum Role`. Isso simplifica a autenticação. O `companyId` é nulo para usuários `STAFF`, que têm acesso global, e obrigatório para os outros, vinculando-os a um cliente específico.
+
+-   **Respostas e Campanhas:** Cada `SurveyResponse` (resposta individual a um questionário) está ligada a um `User` (quem respondeu), a uma `Company` (a qual empresa pertence) e a uma `Campaign` (qual pesquisa foi respondida). Isso permite uma rastreabilidade completa para fins de agregação de dados.
+
+-   **Flexibilidade com JSON:** Campos como `answers` em `SurveyResponse` e `planData` em `ActionPlan` são do tipo `Json`. Isso nos dá flexibilidade para armazenar estruturas de dados complexas e variáveis sem precisar alterar o schema do banco de dados, o que é ideal para os resultados gerados pela IA ou para os diferentes formatos de questionário.
+
+### 2.2. Schema Prisma Completo
+
+O schema a seguir define a estrutura detalhada de cada tabela, seus campos, tipos de dados e relacionamentos.
 
 ```prisma
 // file: prisma/schema.prisma
@@ -55,8 +71,9 @@ model User {
   id                String    @id @default(cuid())
   email             String    @unique
   name              String
-  passwordHash      String?   // Obrigatório para STAFF, opcional para outros
+  passwordHash      String?   // Obrigatório para STAFF e COMPANY. Para COLLABORATOR, pode ser derivado (ex: CPF).
   role              Role
+  cpf               String?   @unique // Obrigatório para COLLABORATOR
   
   company           Company?  @relation(fields: [companyId], references: [id])
   companyId         String?   // Nulo para STAFF, obrigatório para COMPANY e COLLABORATOR
@@ -239,11 +256,16 @@ Todos os endpoints são prefixados com `/api` e exigem um token JWT no header `A
 
 -   **`POST /auth/login`**
     -   **Descrição:** Autentica um usuário e retorna um token.
-    -   **Body:** `{ "role": "company" | "collaborator" }` OU `{ "role": "staff", "email": "...", "password": "..." }`
+    -   **Body:**
+        -   Para Staff: `{ "role": "staff", "email": "...", "password": "..." }`
+        -   Para Empresa: `{ "role": "company", "email": "...", "password": "..." }`
+        -   Para Colaborador: `{ "role": "collaborator", "cpf": "...", "password": "..." }`
     -   **Resposta (200 OK):** `{ "token": "jwt_token", "role": "..." }`
     -   **Lógica:**
-        -   Para `staff`, valide email/senha.
-        -   Para `company`/`collaborator`, encontre ou crie um usuário mock.
+        -   Valide as credenciais com base no `role`.
+        -   Para `staff`, valide email/senha na tabela de `User`.
+        -   Para `company`, valide email/senha na tabela de `User` com `role=COMPANY`.
+        -   Para `collaborator`, valide cpf/senha na tabela de `User` com `role=COLLABORATOR`.
         -   Gere um JWT contendo `userId`, `role`, e `companyId` (se aplicável).
 
 -   **`POST /auth/impersonate`**
@@ -279,26 +301,22 @@ Estes endpoints são para o painel de Staff e exigem o role `STAFF`.
     -   **Descrição:** Aprova uma campanha pendente.
     -   **Lógica:** Muda o status da campanha para "Agendada" ou "Em Andamento" com base na data de início.
 
--   **CRUD de Empresas:**
-    -   `GET /staff/companies`
-    -   `POST /staff/companies`
-    -   `DELETE /staff/companies/:id`
+-   **CRUD de Empresas:** `GET`, `POST`, `DELETE /staff/companies/:id`
+-   **CRUD de Filiais:** `GET /staff/companies/:companyId/branches`, `POST`, `DELETE /staff/branches/:id`
+-   **CRUD de Usuários da Empresa:** `GET /staff/company-users?page=1&limit=10&search=...`, `POST`, `DELETE /staff/company-users/:id`
+-   **CRUD de Colaboradores:** `GET /staff/employees?page=1&limit=10&search=...`, `POST`, `DELETE /staff/employees/:id`
+-   **CRUD de Documentos:** `GET /staff/documents?companyId=...`, `POST` (com upload de arquivo), `DELETE /staff/documents/:id`
 
--   **CRUD de Filiais:**
-    -   `GET /staff/companies/:companyId/branches`
-    -   `POST /staff/companies/:companyId/branches`
-    -   `DELETE /staff/branches/:id`
-
--   **CRUD de Colaboradores (Massa e Individual):**
-    -   `GET /staff/employees?page=1&limit=10&search=...` (com paginação)
-    -   `POST /staff/employees`
-    -   `POST /staff/employees/bulk` (para importação de XLS/CSV)
-    -   `DELETE /staff/employees/:id`
-
--   **CRUD de Documentos:**
-    -   `GET /staff/documents?companyId=...`
-    -   `POST /staff/documents` (deve lidar com upload de arquivo para um storage como S3 e salvar o caminho em `filePath`).
-    -   `DELETE /staff/documents/:id`
+-   **Importação de Dados em Massa:**
+    -   **`POST /staff/import/companies`**: Importa empresas de um arquivo XLS.
+    -   **`POST /staff/import/branches`**: Importa filiais para uma empresa de um XLS.
+    -   **`POST /staff/import/company-users`**: Importa usuários da empresa de um XLS.
+    -   **`POST /staff/import/employees`**: Importa colaboradores de um XLS.
+    -   **`POST /staff/import/survey-responses`**: Importa respostas de diagnóstico de um XLS para uma empresa.
+    -   **`POST /staff/import/historical-indicators`**: Importa dados históricos para uma empresa.
+    -   **`POST /staff/import/leave-events`**: Importa eventos de afastamento para uma filial/empresa.
+    -   **`POST /staff/import/leadership-data`**: Importa KPIs de liderança para uma empresa.
+    -   **`POST /staff/import/financial-data`**: Importa dados demográficos/financeiros para uma empresa.
 
 ### 3.5. Proxy Seguro para API Gemini (`/ai`)
 

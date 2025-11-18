@@ -1,37 +1,43 @@
-
+// CONFIRMAÇÃO DA ESTRUTURA: Todas as visualizações de página estão localizadas no diretório '/pages'.
+// O diretório '/components' contém apenas componentes reutilizáveis.
 
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from './components/Sidebar';
+
+// Shared Components
 import { Header } from './components/Header';
-import { CompanyHomeView } from './components/HomeView';
-import { CorporateSurveyView } from './components/CorporateSurveyView';
-import { DashboardView } from './components/DashboardView';
-import { FaqView } from './components/FaqView';
-import { CompanyEvolutionView } from './components/CompanyEvolutionView';
-import { PlanoAcaoView } from './components/PlanoAcaoView';
-import { SettingsView } from './components/SettingsView';
-import { AnalysisView } from './components/AnalysisView';
-import { PlanoAcaoHistoryView } from './components/PlanoAcaoHistoryView';
-import { CampaignView } from './components/CampaignView';
-import { SupportTeamView } from './components/SupportTeamView';
-import { LoginView } from './components/LoginView';
-import { CollaboratorHomeView } from './components/CollaboratorHomeView';
-import { AuthData, authService } from './services/authService';
-import { CollaboratorEvolutionView } from './components/CollaboratorEvolutionView';
-import { InitiativesView } from './components/InitiativesView';
-import { AssistantView } from './components/AssistantView';
-import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
-import { JournalView } from './components/JournalView';
-import { DocumentationView } from './components/DocumentationView';
 import { ImpersonationBanner } from './components/ImpersonationBanner';
+import { Sidebar } from './components/Sidebar';
 
-import { StaffDashboardView } from './components/StaffDashboardView';
-import { StaffCampaignApprovalView } from './components/StaffCampaignApprovalView';
-import { StaffDocumentManagementView } from './components/StaffDocumentManagementView';
-import { StaffUserManagementView } from './components/StaffUserManagementView';
-import { StaffImpersonationView } from './components/StaffImpersonationView';
-import { StaffDataImportView } from './components/StaffDataImportView';
+// Views from 'pages' directory
+import { AnalysisView } from './pages/AnalysisView';
+import { AssistantView } from './pages/AssistantView';
+import { CampaignView } from './pages/CampaignView';
+import { CollaboratorEvolutionView } from './pages/CollaboratorEvolutionView';
+import { CollaboratorHomeView } from './pages/CollaboratorHomeView';
+import { CompanyEvolutionView } from './pages/CompanyEvolutionView';
+import { CompanyHomeView } from './pages/CompanyHomeView';
+import { CorporateSurveyView } from './pages/CorporateSurveyView';
+import { DashboardView } from './pages/DashboardView';
+import { DocumentationView } from './pages/DocumentationView';
+import { FaqView } from './pages/FaqView';
+import { InitiativesView } from './pages/InitiativesView';
+import { JournalView } from './pages/JournalView';
+import { LoginView } from './pages/LoginView';
+import { PlanoAcaoHistoryView } from './pages/PlanoAcaoHistoryView';
+import { PlanoAcaoView } from './pages/PlanoAcaoView';
+import { SettingsView } from './pages/SettingsView';
+import { StaffCampaignApprovalView } from './pages/StaffCampaignApprovalView';
+import { StaffDataImportView } from './pages/StaffDataImportView';
+import { StaffDashboardView } from './pages/StaffDashboardView';
+import { StaffDocumentManagementView } from './pages/StaffDocumentManagementView';
+import { StaffImpersonationView } from './pages/StaffImpersonationView';
+import { StaffUserManagementView } from './pages/StaffUserManagementView';
+import { SupportTeamView } from './pages/SupportTeamView';
 
+
+// Services and other types
+import { AuthData, authService } from './services/authService';
+import { Notification, generateAndFetchNotifications, markAllAsRead } from './services/notificationService';
 
 export type ActiveView = 
   'home' | 'personal_reflection' | 'dashboard' | 'corporate_survey' | 'history' | 

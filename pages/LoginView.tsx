@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-// FIX: The original code imported a non-existent 'ArrowLeftIcon'. It has been replaced with 'ChevronLeftIcon' to match the icon used and fix the import error.
-import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon, ChevronLeftIcon } from './icons';
+import { LogoIcon, BuildingOfficeIcon, UserIcon, ExclamationCircleIcon, ChevronLeftIcon } from '../components/icons';
 import { UserRole } from '../App';
 import { authService, AuthData } from '../services/authService';
-import { LoadingSpinner } from './LoadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface LoginViewProps {
   onLogin: (authData: AuthData) => void;
@@ -159,7 +158,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
         <div className="mt-6 text-center">
             {activeForm !== 'chooser' ? (
                 <button onClick={handleBackToChooser} className="text-sm font-medium text-slate-500 hover:text-blue-600 transition-colors flex items-center gap-2 mx-auto">
-                    {/* FIX: Replaced inline SVG with the 'ChevronLeftIcon' component for consistency and maintainability. */}
                     <ChevronLeftIcon className="w-4 h-4" />
                     Voltar para seleção de perfil
                 </button>

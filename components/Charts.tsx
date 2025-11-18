@@ -915,7 +915,6 @@ export const ActionsImpactChart: React.FC<{ data: ActionImpactData[], yAxisLabel
 
     const startColor: [number, number, number] = [148, 163, 184]; // slate-400
     const endColor: [number, number, number] = [37, 99, 235];   // blue-700
-    // FIX: The original gradient logic passed an RGBA array (4 values) to a function expecting RGB (3 values), causing a type error. The logic was also inverted relative to the legend. This fix defines lighter start/end colors and corrects the gradient interpolation to properly reflect progress from slate (0%) to blue (100%).
     const lightStartColor: [number, number, number] = [203, 213, 225]; // slate-300
     const lightEndColor: [number, number, number] = [96, 165, 250];   // blue-400
 

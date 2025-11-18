@@ -29,9 +29,10 @@ Este pilar responde a duas perguntas: **"Quem é você?"** (Autenticação) e **
 
 #### c. Gerenciamento de Sessão com JWT (JSON Web Tokens)
 -   **Backend:** Após o login, o backend gera um token JWT assinado digitalmente. Este token conterá claims essenciais:
-    -   `userId`: Identificador único do usuário.
+    -   `sub` (Subject): Identificador único do usuário (`userId`).
     -   `role`: O papel do usuário (`STAFF`, `COMPANY`, `COLLABORATOR`).
     -   `companyId`: O identificador da empresa do usuário (nulo para `STAFF`). Este claim é **CRÍTICO** para o pilar de Multi-Tenancy.
+    -   `originalUserId` (Opcional): Presente apenas em tokens de personificação para rastrear a origem.
 -   **Frontend:** O token é armazenado no cliente (atualmente `localStorage`, mas idealmente em um **cookie `HttpOnly`** para maior segurança contra ataques XSS) e enviado em cada requisição à API no header `Authorization: Bearer <token>`.
 
 ### Pilar 2: Multi-Tenancy e Isolamento Total de Dados
@@ -76,6 +77,7 @@ Este é o pilar de segurança mais crítico para um SaaS. A regra de ouro é: **
 
 #### a. Validação de Entrada
 -   **Backend:** O backend **NUNCA DEVE CONFIAR** nos dados vindos do frontend. Toda entrada de API deve ser rigorosamente validada (tipo, formato, comprimento, valores permitidos) usando DTOs (Data Transfer Objects) e bibliotecas como `class-validator`. Isso previne uma vasta gama de ataques, incluindo injeção de dados.
+-   **Upload de Arquivos:** Arquivos enviados (documentos, planilhas de importação) devem ser validados no backend: verificar o tipo de arquivo (MIME type), limitar o tamanho e, idealmente, escanear por malwares antes de armazená-los.
 
 #### b. Prevenção de Vulnerabilidades Comuns
 -   **SQL Injection:** O uso de um ORM como o **Prisma** mitiga esse risco, pois ele constrói as queries de forma segura e parametrizada.

@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo } from 'react';
 import { 
     HomeIcon, 
@@ -18,7 +16,7 @@ import {
     UserGroupIcon,
     LightBulbIcon,
     ChatBubbleOvalLeftEllipsisIcon,
-    BookOpenIcon
+    BookOpenIcon,
 } from './icons';
 import { ActiveView, UserRole } from '../App';
 
@@ -49,7 +47,7 @@ const allNavItems = [
 const companyViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns', 'history', 'plano_acao', 'action_tracking', 'support_team', 'faq', 'settings'];
 const collaboratorViews: ActiveView[] = ['home', 'personal_reflection', 'corporate_survey', 'history', 'journal', 'initiatives', 'support_team', 'faq', 'settings'];
 
-const companyPrimaryViews: ActiveView[] = ['home', 'assistant', 'dashboard', 'campaigns'];
+const companyPrimaryViews: ActiveView[] = ['home', 'dashboard', 'campaigns', 'plano_acao'];
 const collaboratorPrimaryViews: ActiveView[] = ['home', 'personal_reflection', 'journal', 'corporate_survey'];
 
 const NavItem: React.FC<{
@@ -132,6 +130,10 @@ export const BottomNavbar: React.FC<BottomNavbarProps> = ({ activeView, setActiv
         secondaryNavigation.some(item => item.view === activeView),
         [activeView, secondaryNavigation]
     );
+
+    if (userRole === 'staff') {
+        return null; // Don't show bottom nav for staff
+    }
 
     return (
         <>

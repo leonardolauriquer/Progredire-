@@ -1,12 +1,8 @@
 
-
 import React, { useState, useEffect } from 'react';
-// FIX: The function getCrossAnalysisData does not exist in dataService.
-// Using getDashboardData and extracting the crossAnalysis property instead.
 import { getDashboardData, CrossAnalysisData } from '../services/dataService';
-import { QuestionMarkCircleIcon, ChevronDownIcon } from './icons';
-// FIX: Replaced ColumnChart with PotentialAnalysisChart as it expects the correct data type.
-import { LineChart, BubbleScatterChart, PotentialAnalysisChart, HeatmapChart, ActionsImpactChart } from './Charts';
+import { QuestionMarkCircleIcon, ChevronDownIcon } from '../components/icons';
+import { LineChart, BubbleScatterChart, PotentialAnalysisChart, HeatmapChart, ActionsImpactChart } from '../components/Charts';
 
 // --- Helper Components ---
 const InfoTooltip: React.FC<{ text: string }> = ({ text }) => (
@@ -53,7 +49,6 @@ export const CrossAnalysisView: React.FC = () => {
             setIsLoading(true);
             setError(null);
             try {
-                // FIX: Called getDashboardData and destructured the result to get crossAnalysis data.
                 const result = await getDashboardData({});
                 setData(result.crossAnalysis);
             } catch (err) {
@@ -112,7 +107,6 @@ export const CrossAnalysisView: React.FC = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                  <AnalysisSection title="ROI do IPE (Índice de Presenteísmo Emocional)" tooltip="Estima o custo anual do presenteísmo e o potencial de economia (ROI) ao implementar ações que melhorem a saúde mental e reduzam a perda de produtividade.">
-                    {/* FIX: Replaced ColumnChart with PotentialAnalysisChart to match the data type of 'data.presenteeismVsRoi'. */}
                     <PotentialAnalysisChart data={data.presenteeismVsRoi} />
                 </AnalysisSection>
                 

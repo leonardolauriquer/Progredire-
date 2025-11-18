@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Modal } from './Modal';
+import { Modal } from '../components/Modal';
 import { 
     ArchiveBoxIcon, 
     MagnifyingGlassIcon, 
@@ -8,8 +8,9 @@ import {
     ExclamationTriangleIcon, 
     ExclamationCircleIcon,
     PlusCircleIcon,
-} from './icons';
-import { Document, mockDocuments } from './dashboardMockData';
+    CalendarDaysIcon,
+} from '../components/icons';
+import { Document, mockDocuments } from '../components/dashboardMockData';
 
 
 // The xlsx library is loaded via a script tag and is available as a global.
@@ -181,7 +182,22 @@ const UploadDocumentModal: React.FC<{ isOpen: boolean; onClose: () => void; onUp
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div>
                         <label htmlFor="doc-emission" className="block text-sm font-medium text-[--color-card-muted-foreground]">Data de Emissão</label>
-                        <input type="date" id="doc-emission" value={emissionDate} onChange={e => setEmissionDate(e.target.value)} required className="mt-1 w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
+                        <div className="relative mt-1">
+                            <input 
+                                type="date" 
+                                id="doc-emission" 
+                                value={emissionDate} 
+                                onChange={e => setEmissionDate(e.target.value)} 
+                                required 
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <div className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus-within:ring-2 focus-within:ring-[--color-ring] flex justify-between items-center pointer-events-none">
+                                <span className={!emissionDate ? 'text-slate-400' : 'text-[--color-foreground]'}>
+                                    {emissionDate ? new Date(emissionDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Selecione uma data'}
+                                </span>
+                                <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="doc-expiry" className="block text-sm font-medium text-[--color-card-muted-foreground]">Data de Vencimento (Automático)</label>

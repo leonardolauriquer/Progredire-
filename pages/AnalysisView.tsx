@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { runAnalysis } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon } from './icons';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SparklesIcon } from '../components/icons';
 
 export const AnalysisView: React.FC = () => {
     const [userInput, setUserInput] = useState<string>('');

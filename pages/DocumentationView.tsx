@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { ArchiveBoxIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ShieldCheckIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from './icons';
-import { Document, mockDocuments as allMockDocuments } from './dashboardMockData';
+import { ArchiveBoxIcon, MagnifyingGlassIcon, ArrowDownTrayIcon, ShieldCheckIcon, ExclamationTriangleIcon, ExclamationCircleIcon } from '../components/icons';
+import { Document, mockDocuments as allMockDocuments } from '../components/dashboardMockData';
 
 
 const branches = ['Todas', 'Matriz', 'Filial SP', 'Filial RJ', 'Filial MG'];

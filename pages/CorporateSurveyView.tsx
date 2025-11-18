@@ -1,14 +1,10 @@
-
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { runCorporateSurveyAnalysis } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon, ShieldCheckIcon } from './icons';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SparklesIcon, ShieldCheckIcon } from '../components/icons';
 import { saveCollaboratorSurvey } from '../services/dataService';
 import { ActiveView } from '../App';
 
-// FIX: Define explicit types for survey questions and topics to resolve TypeScript inference errors.
-// This ensures that the optional 'type' property is recognized on all question objects.
 interface SurveyQuestion {
     id: string;
     text: string;

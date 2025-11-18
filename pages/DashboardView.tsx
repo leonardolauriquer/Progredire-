@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { getDashboardData, DashboardData, RiskFactor } from '../services/dataService';
 import { runDashboardAnalysis } from '../services/geminiService';
-import { LoadingSpinner } from './LoadingSpinner';
-import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from './icons';
-import { mockFilters } from './dashboardMockData';
-import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart, ActionsImpactChart, SimpleHorizontalBarChart } from './Charts';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SparklesIcon, ShieldCheckIcon, ExclamationTriangleIcon, ChevronDownIcon, ArrowDownTrayIcon, PrinterIcon, ClipboardDocumentListIcon, QuestionMarkCircleIcon } from '../components/icons';
+import { mockFilters } from '../components/dashboardMockData';
+import { GaugeChart, RadarChart, DistributionChart, LineChart, MaturityProgressBar, StackedBarChart, ThermometerChart, DonutChart, HeatmapChart, HorizontalBarChartWithColorScale, PotentialAnalysisChart, ActionsImpactChart, SimpleHorizontalBarChart } from '../components/Charts';
 
 // --- Types ---
 interface AiInsightData {
@@ -19,6 +19,30 @@ interface DashboardViewProps {
   initialFilters?: Record<string, string>;
   onNavigateToActionPlan: (context: { filters: Record<string, string>, factorId: string }) => void;
 }
+
+// Helper for export
+const createKeyValueTable = (title: string, obj: Record<string, any>): string => {
+    let table = `<h2>${title}</h2><table><tbody>`;
+    for (const key in obj) {
+        table += `<tr><td><strong>${key}</strong></td><td>${obj[key]}</td></tr>`;
+    }
+    table += '</tbody></table>';
+    return table;
+};
+
+// Helper for export
+const createArrayTable = (title: string, headers: string[], rows: (string|number|null)[][]): string => {
+    let table = `<h2>${title}</h2><table><thead><tr>`;
+    headers.forEach(h => table += `<th>${h}</th>`);
+    table += '</tr></thead><tbody>';
+    rows.forEach(row => {
+        table += '<tr>';
+        row.forEach(cell => table += `<td>${cell ?? 'N/A'}</td>`);
+        table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+};
 
 const exportToExcel = (htmlContent: string, filename: string) => {
     const template = `
@@ -236,37 +260,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
         }, {});
     
         return Object.entries(counts)
-            .map(([label, value]) => ({ label, value }))
-// @FIX: Cast `value` to number to allow arithmetic operation in sort, resolving an error where `Object.entries` infers `value` as `unknown`.
-            .sort((a, b) => (b.value as number) - (a.value as number));
+            .map(([label, value]): {label: string, value: number} => ({ label, value: value as number }))
+            .sort((a, b) => b.value - a.value);
 
     }, [data?.leaveEvents, leavePeriod]);
     
     const handleExportXls = useCallback(() => {
         if (!data || !data.riskFactors || data.riskFactors.length === 0) return;
-    
-        // Helper functions inside the handler
-        const createKeyValueTable = (title: string, obj: Record<string, any>) => {
-            let table = `<h2>${title}</h2><table><tbody>`;
-            for (const key in obj) {
-                table += `<tr><td><strong>${key}</strong></td><td>${obj[key]}</td></tr>`;
-            }
-            table += '</tbody></table>';
-            return table;
-        };
-        
-        const createArrayTable = (title: string, headers: string[], rows: (string|number|null)[][]) => {
-            let table = `<h2>${title}</h2><table><thead><tr>`;
-            headers.forEach(h => table += `<th>${h}</th>`);
-            table += '</tr></thead><tbody>';
-            rows.forEach(row => {
-                table += '<tr>';
-                row.forEach(cell => table += `<td>${cell ?? 'N/A'}</td>`);
-                table += '</tr>';
-            });
-            table += '</tbody></table>';
-            return table;
-        };
         
         // Start building HTML string
         let html = `<h1>Relatório Dashboard Executivo - Progredire+</h1>`;
@@ -275,8 +275,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             .filter(([, value]) => value)
             .reduce((acc, [key, value]) => {
                 const filterLabel = mockFilters.find(f => f.id === key)?.label || key;
-// @FIX: Cast `value` to string to fix assignment error where `Object.entries` infers `value` as `unknown` and `acc` expects a string.
-                acc[filterLabel] = value as string;
+                acc[filterLabel] = value;
                 return acc;
             }, {} as Record<string, string>);
 
@@ -315,7 +314,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 factor.name,
                 factor.score,
                 companyFactor ? companyFactor.score : 'N/A',
-                // FIX: Changed fallback from number 0 to string '0' to ensure type consistency, as toFixed() returns a string. This can prevent subtle type inference issues.
                 distribution[0]?.value.toFixed(1) ?? '0',
                 distribution[1]?.value.toFixed(1) ?? '0',
                 distribution[2]?.value.toFixed(1) ?? '0',
@@ -323,8 +321,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
                 distribution[4]?.value.toFixed(1) ?? '0',
             ];
         });
-        // @ts-ignore
-        html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows);
+        html += createArrayTable('Análise Detalhada dos Fatores de Risco', factorHeaders, factorRows as (string|number)[][]);
         
         // 4. Rankings
         html += createArrayTable(
@@ -367,9 +364,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             acc[event.type] = (acc[event.type] || 0) + 1;
             return acc;
         }, {});
-        // FIX: Explicitly type the map return value to ensure correct type inference for the sort function.
         const processedLeaveDataRows = Object.entries(leaveCounts)
-// @FIX: Cast `value` to number to satisfy the map function's return type `[string, number]`, as `Object.entries` infers `value` as `unknown`.
             .map(([label, value]): [string, number] => [label, value as number])
             .sort((a, b) => b[1] - a[1]);
     
@@ -394,7 +389,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
         );
         
         const heatmapHeaders = ['Dimensão', ...data.crossAnalysis.dimensionVsAreaHeatmap.yLabels];
-        // FIX: Explicitly cast `dimLabel` to a string to resolve type inference issues, ensuring `heatmapRows` is typed correctly.
         const heatmapRows = data.crossAnalysis.dimensionVsAreaHeatmap.xLabels.map((dimLabel, colIndex) => {
             const rowData = data.crossAnalysis.dimensionVsAreaHeatmap.yLabels.map((_, rowIndex) => {
                 return data.crossAnalysis.dimensionVsAreaHeatmap.data[rowIndex][colIndex].toFixed(1);
@@ -519,7 +513,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ initialFilters, on
             <DashboardSection title="Visão Geral">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                     <KpiCard title="IRP (Índice de Risco Psicossocial) Global" tooltip="Índice de Risco Psicossocial: Nota de 1 a 5 que resume a saúde psicossocial geral. Valores mais altos são melhores."><span className="flex items-center">{data.irpGlobal.toFixed(1)} <span className={`ml-2 px-2 py-0.5 text-xs font-semibold text-white rounded-full ${data.riskClassification.color}`}>{data.riskClassification.text}</span></span></KpiCard>
-                    <KpiCard title="% Respostas" tooltip="Percentual de colaboradores que responderam ao questionário. Uma alta adesão aumenta a precisão dos dados.">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {80}</span></KpiCard>
+                    <KpiCard title="% Respostas" tooltip="Percentual de colaboradores que responderam ao questionário. Uma alta adesão aumenta a precisão dos dados.">{data.participationRate.toFixed(0)}% <span className="text-base text-slate-500">de {data.totalEmployees}</span></KpiCard>
                     <KpiCard title="ROI Estimado (25%)" tooltip="Retorno sobre o Investimento estimado ao reduzir os riscos psicossociais em 25%, com base na redução de custos com absenteísmo e presenteísmo.">{data.roiScenarios.find(s=>s.scenario === '25%')?.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? 'N/A'}</KpiCard>
                     <KpiCard title="Economia Estimada (Anual)" tooltip="Estimativa de economia anual ao mitigar os riscos identificados, impactando positivamente a produtividade e a retenção de talentos.">{data.estimatedSavings}</KpiCard>
                     <KpiCard title="Absenteísmo Estimado" tooltip="Percentual estimado de horas de trabalho perdidas devido a ausências não planejadas, influenciadas pelo clima organizacional.">{data.absenteeismRate.toFixed(1)}%</KpiCard>

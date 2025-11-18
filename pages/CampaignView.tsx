@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon, ArrowDownTrayIcon } from './icons';
-import { mockFilters, Campaign, CampaignStatus } from './dashboardMockData';
+import { PlusCircleIcon, XIcon, CalendarDaysIcon, EyeIcon, ArchiveBoxIcon, ShieldCheckIcon, ArrowDownTrayIcon } from '../components/icons';
+import { mockFilters, Campaign, CampaignStatus } from '../components/dashboardMockData';
 import { getCampaigns, addCampaign, approveCampaign } from '../services/dataService';
 import { ActiveView } from '../App';
 
@@ -227,11 +227,39 @@ const CreateCampaignModal: React.FC<{
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="c-start" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Data de Início</label>
-                                    <input type="date" id="c-start" value={campaignData.startDate || ''} onChange={e => handleInputChange('startDate', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
+                                    <div className="relative">
+                                        <input 
+                                            type="date" 
+                                            id="c-start" 
+                                            value={campaignData.startDate || ''} 
+                                            onChange={e => handleInputChange('startDate', e.target.value)} 
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus-within:ring-2 focus-within:ring-[--color-ring] flex justify-between items-center pointer-events-none">
+                                            <span className={!campaignData.startDate ? 'text-slate-400' : 'text-[--color-foreground]'}>
+                                                {campaignData.startDate ? new Date(campaignData.startDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Selecione uma data'}
+                                            </span>
+                                            <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
                                     <label htmlFor="c-end" className="block text-sm font-medium text-[--color-card-muted-foreground] mb-1">Data de Fim</label>
-                                    <input type="date" id="c-end" value={campaignData.endDate || ''} onChange={e => handleInputChange('endDate', e.target.value)} className="w-full p-2 bg-[--color-input] border border-[--color-border] text-[--color-foreground] rounded-md focus:ring-2 focus:ring-[--color-ring]"/>
+                                    <div className="relative">
+                                        <input 
+                                            type="date" 
+                                            id="c-end" 
+                                            value={campaignData.endDate || ''} 
+                                            onChange={e => handleInputChange('endDate', e.target.value)} 
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        />
+                                        <div className="w-full p-2 bg-[--color-input] border border-[--color-border] rounded-md focus-within:ring-2 focus-within:ring-[--color-ring] flex justify-between items-center pointer-events-none">
+                                            <span className={!campaignData.endDate ? 'text-slate-400' : 'text-[--color-foreground]'}>
+                                                {campaignData.endDate ? new Date(campaignData.endDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Selecione uma data'}
+                                            </span>
+                                            <CalendarDaysIcon className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                    </div>
                                 </div>
                              </div>
                         </div>

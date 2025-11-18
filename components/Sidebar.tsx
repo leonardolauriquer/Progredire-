@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useMemo } from 'react';
 import { LogoIcon, PencilSquareIcon, CogIcon, ChartBarIcon, HomeIcon, QuestionMarkCircleIcon, ArrowTrendingUpIcon, ClipboardDocumentListIcon, BrainIcon, ClipboardDocumentCheckIcon, PaperAirplaneIcon, UserGroupIcon, ArrowLeftOnRectangleIcon, ChevronDoubleLeftIcon, LightBulbIcon, ChatBubbleOvalLeftEllipsisIcon, BookOpenIcon, ShieldCheckIcon, ArchiveBoxIcon, ClockIcon, UserIcon, UploadIcon } from './icons';
 import { ActiveView, UserRole } from '../App';

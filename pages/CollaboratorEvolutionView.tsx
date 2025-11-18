@@ -1,10 +1,11 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { getCollaboratorEvolutionData, CollaboratorEvolutionEntry } from '../services/dataService';
 import { getJournalEntries, JournalEntry } from '../services/journalService';
-import { LineChart } from './Charts';
-import { dimensions } from './dashboardMockData';
-import { ArrowTrendingUpIcon, ShieldCheckIcon, ExclamationTriangleIcon, BrainIcon } from './icons';
+import { LineChart } from '../components/Charts';
+import { dimensions } from '../components/dashboardMockData';
+import { ArrowTrendingUpIcon, ShieldCheckIcon, ExclamationTriangleIcon, BrainIcon } from '../components/icons';
 import { ActiveView } from '../App';
 
 interface CollaboratorEvolutionViewProps {
@@ -47,7 +48,7 @@ export const CollaboratorEvolutionView: React.FC<CollaboratorEvolutionViewProps>
       if (selectedFactorId === 'geral') {
         return entry.generalScore;
       }
-      return entry.scores[selectedFactorId] ?? null;
+      return entry.scores?.[selectedFactorId] ?? null;
     });
 
     return {
@@ -80,18 +81,24 @@ export const CollaboratorEvolutionView: React.FC<CollaboratorEvolutionViewProps>
   }, [journalData]);
 
   const keyInsights = useMemo(() => {
-    if (evolutionData.length < 2) return null;
+    if (!evolutionData || evolutionData.length < 2) {
+        return null;
+    }
 
-    const last = evolutionData[evolutionData.length - 1];
-    const secondLast = evolutionData[evolutionData.length - 2];
+    const last = evolutionData[0]; // Data is sorted descending from service
+    const secondLast = evolutionData[1];
     
+    if (!last || !secondLast) {
+        return null;
+    }
+
     let changes: { factorId: string, change: number, endScore: number }[] = [];
 
     allFactorIds.forEach(factorId => {
-      const lastScore = factorId === 'geral' ? last.generalScore : last.scores[factorId];
-      const secondLastScore = factorId === 'geral' ? secondLast.generalScore : secondLast.scores[factorId];
+      const lastScore = factorId === 'geral' ? last.generalScore : last.scores?.[factorId];
+      const secondLastScore = factorId === 'geral' ? secondLast.generalScore : secondLast.scores?.[factorId];
       
-      if (lastScore !== undefined && secondLastScore !== undefined) {
+      if (typeof lastScore === 'number' && typeof secondLastScore === 'number') {
         changes.push({
           factorId,
           change: lastScore - secondLastScore,
@@ -102,13 +109,22 @@ export const CollaboratorEvolutionView: React.FC<CollaboratorEvolutionViewProps>
 
     changes.sort((a, b) => b.change - a.change);
     
-    const topImprovement = changes[0];
+    const topImprovement = changes.length > 0 ? changes[0] : null;
     
-    const attentionPoint = Object.entries(last.scores)
-        // FIX: Explicitly cast score values to number to resolve TypeScript's type inference issue with Object.entries.
-        .sort((a, b) => (a[1] as number) - (b[1] as number))[0];
+    let attentionPoint: { factorId: string; score: number } | null = null;
+    if (last.scores && typeof last.scores === 'object' && Object.keys(last.scores).length > 0) {
+        const validScores = Object.entries(last.scores)
+            .filter((entry): entry is [string, number] => typeof entry[1] === 'number');
 
-    return { topImprovement, attentionPoint: { factorId: attentionPoint[0], score: attentionPoint[1] } };
+        if (validScores.length > 0) {
+            const attentionPointEntry = validScores.sort(([, a], [, b]) => a - b)[0];
+            if (attentionPointEntry) {
+                attentionPoint = { factorId: attentionPointEntry[0], score: attentionPointEntry[1] };
+            }
+        }
+    }
+
+    return { topImprovement, attentionPoint };
   }, [evolutionData]);
 
 
@@ -194,6 +210,9 @@ export const CollaboratorEvolutionView: React.FC<CollaboratorEvolutionViewProps>
                                 <p className="text-slate-600 text-sm">O fator com a menor pontuação na sua última resposta foi <span className="font-bold">{factorIdToName[keyInsights.attentionPoint.factorId]}</span> ({keyInsights.attentionPoint.score}/100). Pode ser uma boa área para focar.</p>
                             </div>
                         </div>
+                    )}
+                    {!keyInsights.topImprovement && !keyInsights.attentionPoint && (
+                        <p className="text-slate-500 text-sm">Não há insights suficientes para comparar. Responda a mais um questionário para ver as mudanças.</p>
                     )}
                 </div>
              </div>

@@ -80,6 +80,7 @@ A migração será dividida em fases para garantir um desenvolvimento organizado
 1.  **Mover Cálculos:** Transferir **toda** a lógica de `services/dataService.ts` para os *services* do NestJS.
 2.  **Implementar Endpoints de Cliente (`COMPANY`/`COLLABORATOR`):** Criar os endpoints principais como `GET /api/dashboard`, `GET /api/evolution/company`, etc., garantindo que todas as consultas ao banco de dados sejam estritamente filtradas pelo `companyId` presente no token JWT.
 3.  **Implementar Endpoints de Staff:** Desenvolver todos os endpoints de CRUD para gerenciamento de empresas, filiais, colaboradores e documentos, além do endpoint de aprovação de campanhas, todos protegidos para acesso exclusivo do `role` `STAFF`.
+4.  **Implementar Endpoints de Importação de Dados:** Criar os endpoints `POST /api/staff/import/*` para lidar com o upload e processamento de arquivos XLS, populando o banco de dados.
 
 ### Fase 3: Implementação do Proxy Seguro da API Gemini
 1.  **Criar Módulo de IA:** Criar um `AiModule` no NestJS.
