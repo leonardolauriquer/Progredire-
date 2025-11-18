@@ -6,7 +6,7 @@
 
 **Arquitetura Atual:** Seguimos uma abordagem "frontend-first". Isso significa que toda a lógica de negócio, manipulação de dados multi-tenant (múltiplas empresas, colaboradores, filiais) e chamadas à API de IA (Gemini) estão **simuladas diretamente no frontend**. Arquivos como `services/dataService.ts` atuam como um "backend falso", permitindo que a interface completa seja desenvolvida e testada de forma independente.
 
-**Próximo Grande Passo:** A próxima fase crítica do projeto é a **construção do backend** e a **refatoração do frontend** para se comunicar com ele, efetivamente transformando o protótipo em uma aplicação full-stack.
+**Próximo Grande Passo:** A próxima fase crítica do projeto é a **construção do backend no Replit** e a **refatoração do frontend** para se comunicar com ele, efetivamente transformando o protótipo em uma aplicação full-stack.
 
 ---
 
@@ -14,9 +14,9 @@
 
 Para a próxima fase, consulte os guias específicos:
 
--   **[BACKEND_IMPLEMENTATION_GUIDE.md](./BACKEND_IMPLEMENTATION_GUIDE.md):** Mapa técnico da API e Banco de Dados.
--   **[REPLIT_GUIDE.md](./REPLIT_GUIDE.md):** (NOVO) Passo a passo para configurar e rodar o backend usando o Replit (alternativa ao Docker local).
--   **[FULL_STACK_MIGRATION_PLAN.md](./FULL_STACK_MIGRATION_PLAN.md):** Estratégia de migração.
+-   **[REPLIT_GUIDE.md](./REPLIT_GUIDE.md):** (PRINCIPAL) Passo a passo para configurar e rodar o backend e o banco de dados usando o Replit.
+-   **[BACKEND_IMPLEMENTATION_GUIDE.md](./BACKEND_IMPLEMENTATION_GUIDE.md):** Mapa técnico da API e Banco de Dados (independente da plataforma).
+-   **[FULL_STACK_MIGRATION_PLAN.md](./FULL_STACK_MIGRATION_PLAN.md):** Estratégia de migração adaptada para o Replit.
 
 ---
 
@@ -152,27 +152,25 @@ Cada arquivo aqui representa uma "página" ou visão principal da aplicação.
 
 ### 3.5. Documentação (`docs/`)
 
--   **`BACKEND_IMPLEMENTATION_GUIDE.md`:** O guia técnico para a construção do servidor backend. Descreve o schema do banco de dados (usando a sintaxe do Prisma) e o contrato da API RESTful (endpoints, métodos, payloads). É o mapa para a equipe de backend.
--   **`REPLIT_GUIDE.md`:** Guia específico para rodar o backend na nuvem do Replit.
--   **`FULL_STACK_MIGRATION_PLAN.md`:** O plano estratégico para a transição do protótipo para uma aplicação full-stack. Define a arquitetura (Frontend SPA, Backend Monólito, DB PostgreSQL), a stack de tecnologia e as fases de execução, desde a configuração do backend até a refatoração do frontend.
+-   **`REPLIT_GUIDE.md`:** (NOVO) Guia completo para configurar e rodar o projeto no Replit.
+-   **`BACKEND_IMPLEMENTATION_GUIDE.md`:** O guia técnico para a construção do servidor backend. Descreve o schema do banco de dados (usando a sintaxe do Prisma) e o contrato da API RESTful (endpoints, métodos, payloads).
+-   **`FULL_STACK_MIGRATION_PLAN.md`:** O plano estratégico para a transição do protótipo para uma aplicação full-stack no Replit.
 -   **`SECURITY_ARCHITECTURE.md`:** Descreve os pilares de segurança da aplicação, com foco em Autenticação (bcrypt), Autorização (RBAC com JWT), Multi-Tenancy (isolamento de dados por `companyId`) e o padrão de Proxy Seguro para a API do Gemini.
 -   **`PROJECT_STATUS.md`:** Este próprio arquivo, que serve como um resumo e um índice técnico de todo o projeto no seu estado atual.
 
 ---
 
-## 4. Resumo das Fases Futuras
+## 4. Resumo das Fases Futuras (Focadas no Replit)
 
-1.  **Fase 1: Construção do Backend (Core Multi-Tenant)**
-    -   Configurar o projeto NestJS e o banco de dados com Prisma.
-    -   Implementar o schema do banco de dados multi-tenant (`User`, `Company`, `Branch`, `Employee`, `Document`, etc.).
-    -   Criar os endpoints de autenticação para todos os papéis e a lógica de personificação.
+1.  **Fase 1: Construção do Backend no Replit**
+    -   Criar o Repl "Node.js".
+    -   Configurar dependências e o banco de dados PostgreSQL integrado do Replit.
+    -   Implementar o schema Prisma e a autenticação.
 
-2.  **Fase 2: Migração da Lógica de Negócio e Endpoints de Staff**
-    -   Mover toda a lógica de cálculo de `dataService.ts` para os services do backend.
-    -   Implementar o endpoint `GET /api/dashboard`, garantindo o isolamento de dados por `companyId`.
-    -   Implementar todos os endpoints de `staff` para gerenciamento de clientes e importação de dados.
+2.  **Fase 2: Migração da Lógica de Negócio**
+    -   Mover toda a lógica de cálculo de `dataService.ts` para os services do NestJS.
+    -   Implementar os endpoints da API e testar no ambiente do Replit.
 
-3.  **Fase 3: Refatoração do Frontend**
-    -   Criar um cliente de API centralizado no frontend.
-    -   Substituir todas as chamadas aos serviços mockados pelas chamadas ao novo cliente de API.
-    -   Remover completamente os arquivos de dados mockados e a lógica de cálculo do frontend.
+3.  **Fase 3: Integração com Frontend**
+    -   Atualizar o frontend para apontar para a URL pública do Repl do backend.
+    -   Substituir o mock service pelo cliente HTTP real.

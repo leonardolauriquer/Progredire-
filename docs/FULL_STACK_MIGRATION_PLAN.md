@@ -1,110 +1,62 @@
-# Plano de Migração Full-Stack: Do Protótipo à Produção
+# Plano de Migração Full-Stack: Do Protótipo à Produção (Via Replit)
 
 ## 1. Visão Estratégica e Objetivos
 
-O estado atual do **Progredire+** é um protótipo de frontend de alta fidelidade, totalmente funcional e interativo, que já inclui funcionalidades complexas como o painel de Staff e a gestão de múltiplos clientes. Esta abordagem "frontend-first" foi crucial para validar a experiência do usuário e o design da interface em todos os níveis de acesso.
-
-O objetivo desta próxima fase é evoluir a aplicação para uma **arquitetura full-stack robusta, segura e escalável**. Isso envolve a criação de um servidor backend que centralizará a lógica de negócio, a persistência de dados e a comunicação com serviços externos (API Gemini), enquanto o frontend será refatorado para consumir este backend via uma API RESTful.
-
-Este documento serve como a especificação técnica e o roteiro para essa transição.
+O estado atual do **Progredire+** é um protótipo de frontend de alta fidelidade. O objetivo desta próxima fase é evoluir para uma **arquitetura full-stack robusta**, utilizando o **Replit** como plataforma de infraestrutura. Isso nos permitirá ter um backend NestJS e um banco de dados PostgreSQL prontos para produção em minutos, sem a complexidade de gerenciar servidores.
 
 ---
 
 ## 2. Abordagem Arquitetônica
 
-Adotaremos uma arquitetura projetada para suportar a complexidade e os requisitos de um SaaS multi-tenant.
-
-1.  **Frontend (Single Page Application - SPA):**
-    -   **Tecnologia:** React com TypeScript.
-    -   **Responsabilidade:** Renderização da UI, gerenciamento do estado local e comunicação com o backend. O frontend será "burro", ou seja, não conterá nenhuma lógica de negócio ou acesso direto a dados sensíveis.
-
-2.  **Backend (Monólito com API RESTful):**
-    -   **Tecnologia:** Node.js com o framework NestJS.
-    -   **Responsabilidade:**
-        -   **Lógica de Negócio:** Centralizar todos os cálculos de scores, KPIs, e análises.
-        -   **Persistência de Dados:** Gerenciar toda a interação com o banco de dados.
-        -   **Multi-Tenancy:** Garantir o isolamento total dos dados entre as diferentes empresas clientes. Cada requisição de um usuário do tipo `COMPANY` ou `COLLABORATOR` deve ser estritamente escopada ao seu respectivo `companyId`.
-        -   **Autenticação e Autorização:** Controlar o acesso aos recursos da API com base no `role` do usuário (`STAFF`, `COMPANY`, `COLLABORATOR`).
-        -   **Proxy de IA:** Atuar como um intermediário seguro entre o frontend e a API do Google Gemini.
-
-3.  **Banco de Dados (Relacional):**
-    -   **Tecnologia:** PostgreSQL.
-    -   **Responsabilidade:** Armazenar de forma persistente e segura todos os dados da aplicação, com relacionamentos claros que garantam a integridade e o isolamento dos dados dos tenants.
-
-4.  **Integração com IA (Padrão de Proxy):**
-    -   **Abordagem:** O frontend **NUNCA** se comunicará diretamente com a API do Google Gemini. Todas as solicitações de IA serão enviadas para o nosso backend (ex: `POST /api/ai/dashboard-insight`). O backend adicionará a `API_KEY` e fará a chamada para a API do Gemini. Isso é **crítico** para a segurança.
+1.  **Frontend (SPA):** React + TypeScript (hospedado onde preferir, consumindo o backend do Replit).
+2.  **Backend (Replit):** NestJS rodando em um Repl.
+    -   Lógica de negócio e cálculos (IRP, IPE).
+    -   Proxy seguro para a API do Gemini.
+    -   Autenticação JWT e RBAC.
+3.  **Banco de Dados (Replit):** PostgreSQL integrado ao ambiente do Replit.
 
 ---
 
-## 3. Stack de Tecnologia (Linguagens e Dependências)
+## 3. Stack de Tecnologia
 
--   **Linguagem Principal: TypeScript**
-    -   **Justificativa:** A escolha pelo TypeScript em todo o stack (Frontend e Backend) permite o compartilhamento de tipagens (DTOs), reduz a carga cognitiva da equipe e evita erros de contrato entre cliente e servidor.
-
--   **Backend:**
-    -   **Runtime:** **Node.js** (v18+).
-    -   **Framework:** **NestJS**.
-        -   **Justificativa:** Arquitetura robusta, modular e escalável, ideal para organizar a lógica de negócio complexa e as regras de autorização multi-tenant.
-    -   **Dependências Principais (Componentes a Instalar):**
-        -   **Core:** `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`, `@nestjs/config`.
-        -   **Banco de Dados:** `prisma`, `@prisma/client`.
-        -   **Autenticação:** `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt`, `bcrypt`.
-        -   **Validação:** `class-validator`, `class-transformer`.
-        -   **IA:** `@google/genai`.
-
--   **Banco de Dados:**
-    -   **SGBD:** **PostgreSQL**.
-        -   **Justificativa:** Confiabilidade, performance em consultas analíticas e suporte a tipos de dados complexos (JSON).
-    -   **ORM:** **Prisma**.
-        -   **Justificativa:** Type-safety nas queries e um sistema de migração que simplifica a evolução do schema.
-
--   **Autenticação:**
-    -   **Método:** **JWT (JSON Web Tokens)**.
-        -   **Justificativa:** Padrão de mercado para APIs RESTful, permitindo um sistema de autenticação stateless. O payload do token conterá `userId`, `role` e `companyId` para forçar a autorização em cada requisição.
+-   **Linguagem:** TypeScript (Frontend e Backend).
+-   **Backend Framework:** NestJS.
+    -   Dependências: `@nestjs/core`, `@nestjs/config`, `@nestjs/jwt`, `@nestjs/passport`, `passport-jwt`, `bcrypt`, `class-validator`, `@google/genai`.
+-   **Banco de Dados:** PostgreSQL (via Replit Postgres).
+-   **ORM:** Prisma (`prisma`, `@prisma/client`).
 
 ---
 
 ## 4. Plano de Execução Detalhado
 
-A migração será dividida em fases para garantir um desenvolvimento organizado.
+### Fase 1: Configuração do Ambiente no Replit
+1.  **Criar Repl:** Iniciar um projeto "Node.js" no Replit chamado `progredire-backend`.
+2.  **Dependências:** Configurar o `package.json` com as libs do NestJS e Prisma (ver `REPLIT_GUIDE.md`).
+3.  **Banco de Dados:** Ativar o PostgreSQL no painel lateral do Replit.
+4.  **Secrets:** Configurar `API_KEY` (Gemini) e `JWT_SECRET` nas Secrets do Replit.
+5.  **Schema e Migração:** Copiar o `schema.prisma` (do `BACKEND_IMPLEMENTATION_GUIDE.md`) e rodar `npx prisma migrate dev` no shell do Replit.
 
-### Fase 1: Configuração do Ambiente e Backend Core Multi-Tenant
-1.  **Inicializar Projeto Backend:** Criar um novo projeto NestJS (`nest new progredire-backend`).
-2.  **Configurar Prisma e DB:** Configurar a conexão com o PostgreSQL.
-3.  **Definir e Migrar Schema:** Implementar o schema multi-tenant completo (com `Company`, `User`, `Branch`, `Document`, etc.) definido no `BACKEND_IMPLEMENTATION_GUIDE.md` e executar a migração inicial (`prisma migrate dev`).
-4.  **Implementar Autenticação:** Criar o `AuthModule` com a lógica de login para todos os papéis (`STAFF`, `COMPANY`, `COLLABORATOR`) e a estratégia de validação de JWT. Implementar a lógica de "personificação".
+### Fase 2: Desenvolvimento do Core Backend
+1.  **Auth Module:** Implementar login e JWT para os 3 papéis (`STAFF`, `COMPANY`, `COLLABORATOR`).
+2.  **Migração de Lógica:** Transferir as funções de cálculo de `services/dataService.ts` (frontend) para Services do NestJS.
+3.  **Proxy Gemini:** Criar o `AiModule` para receber requisições do frontend, adicionar a `API_KEY` segura e chamar o Google Gemini.
 
-### Fase 2: Migração da Lógica de Negócio e Endpoints de Gestão
-1.  **Mover Cálculos:** Transferir **toda** a lógica de `services/dataService.ts` para os *services* do NestJS.
-2.  **Implementar Endpoints de Cliente (`COMPANY`/`COLLABORATOR`):** Criar os endpoints principais como `GET /api/dashboard`, `GET /api/evolution/company`, etc., garantindo que todas as consultas ao banco de dados sejam estritamente filtradas pelo `companyId` presente no token JWT.
-3.  **Implementar Endpoints de Staff:** Desenvolver todos os endpoints de CRUD para gerenciamento de empresas, filiais, colaboradores e documentos, além do endpoint de aprovação de campanhas, todos protegidos para acesso exclusivo do `role` `STAFF`.
-4.  **Implementar Endpoints de Importação de Dados:** Criar os endpoints `POST /api/staff/import/*` para lidar com o upload e processamento de arquivos XLS, populando o banco de dados.
+### Fase 3: Endpoints de Dados e Gestão
+1.  **Dashboard:** Criar `GET /api/dashboard` com filtragem estrita por `companyId`.
+2.  **Staff:** Implementar endpoints para criar empresas e usuários, protegidos pelo guard de `STAFF`.
+3.  **Importação:** Implementar endpoints que aceitam JSON (convertido de XLS no frontend) para popular o banco.
 
-### Fase 3: Implementação do Proxy Seguro da API Gemini
-1.  **Criar Módulo de IA:** Criar um `AiModule` no NestJS.
-2.  **Configurar Variável de Ambiente:** Armazenar a `API_KEY` do Google Gemini de forma segura.
-3.  **Implementar Endpoints de Proxy:** Criar os controllers para os endpoints `/api/ai/*`. A lógica do serviço deve adicionar a `API_KEY`, as instruções de sistema e chamar o Gemini, retornando a resposta ao frontend.
+### Fase 4: Integração do Frontend
+1.  **API Client:** Criar `services/apiClient.ts` no frontend.
+2.  **Configuração:** Apontar a `BASE_URL` do frontend para a URL pública do Repl (ex: `https://progredire-backend.user.repl.co/api`).
+3.  **Substituição:** Trocar as chamadas ao `dataService.ts` (mock) pelas chamadas ao `apiClient.ts`.
 
-### Fase 4: Refatoração do Frontend
-1.  **Criar API Client:** Criar um novo serviço `services/apiClient.ts` que encapsulará todas as chamadas `fetch`, gerenciando a adição do token de autenticação.
-2.  **Refatorar Serviços:**
-    -   Reescrever `services/dataService.ts` e `services/geminiService.ts` para que suas funções chamem os endpoints do backend via `apiClient`.
-3.  **Refatorar Componentes:** Atualizar todos os componentes que consomem dados para lidar com os estados de `loading` e `error` das chamadas de API assíncronas.
-4.  **Remover Código Legado:** Excluir `components/dashboardMockData.ts` e toda a lógica de cálculo e chamadas diretas ao Gemini do frontend.
-
-### Fase 5: Deployment e Testes
-1.  **Containerização:** Criar `Dockerfile`s para as aplicações.
-2.  **CI/CD:** Configurar um pipeline de integração e deploy contínuo (ex: GitHub Actions).
-3.  **Gerenciamento de Segredos:** Garantir que todas as chaves e senhas sejam injetadas como variáveis de ambiente no ambiente de produção.
+### Fase 5: Testes e Validação
+1.  **Testes de Integração:** Usar o Shell do Replit para rodar testes (`npm run test`) e verificar a integridade dos dados.
+2.  **Validação E2E:** Acessar o frontend, fazer login e verificar se os dados carregados vêm do banco do Replit.
 
 ---
 
-## 5. Contrato da API Detalhado
+## 5. Conclusão
 
-O contrato completo da API, com todos os endpoints, métodos, payloads e respostas esperadas, está documentado no arquivo `BACKEND_IMPLEMENTATION_GUIDE.md`. Este documento é a fonte da verdade para a implementação da comunicação entre frontend e backend.
-
----
-
-## 6. Conclusão
-
-Este plano abrangente fornece a base técnica e estratégica para a transição do Progredire+ de um protótipo para uma aplicação full-stack de nível de produção, com uma arquitetura multi-tenant robusta desde o início. Seguir estas fases e diretrizes garantirá um desenvolvimento estruturado, resultando em um produto final seguro, escalável e de alta qualidade.
+Utilizar o Replit acelera drasticamente a configuração da infraestrutura, permitindo que foquemos na lógica de negócio e na segurança dos dados. Siga o `REPLIT_GUIDE.md` para os comandos exatos de configuração.
