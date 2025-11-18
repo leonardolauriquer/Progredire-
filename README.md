@@ -15,7 +15,7 @@ Uma aplicação para análise psicossocial e pesquisa organizacional utilizando 
 - [Stack de Tecnologia](#-stack-de-tecnologia)
 - [Como Usar o Protótipo](#-como-usar-o-protótipo)
 - [Arquitetura e Próximos Passos](#-arquitetura-e-próximos-passos)
-- [Documentação Adicional](#-documentação-adicional)
+- [Documentação Técnica](#-documentação-técnica)
 
 ---
 
@@ -32,13 +32,11 @@ O objetivo é transformar dados subjetivos de bem-estar em insights acionáveis,
 
 ## 🚀 Status Atual do Projeto
 
-Atualmente, o projeto existe como um **protótipo de frontend de alta fidelidade e totalmente funcional**.
+Atualmente, este repositório contém o **Frontend de Alta Fidelidade** da aplicação.
 
--   **Frontend-First:** Toda a interface, experiência do usuário e interações do lado do cliente estão implementadas.
--   **Backend Simulado:** A lógica de negócio, manipulação de dados (`services/dataService.ts`) e chamadas à API de IA (`services/geminiService.ts`) são simuladas diretamente no frontend. Isso permitiu o desenvolvimento e teste rápidos da interface.
--   **Próximo Passo:** A próxima fase crítica do projeto é a **construção do backend** e a refatoração do frontend para se comunicar com ele, transformando o protótipo em uma aplicação full-stack.
-
-O `BACKEND_IMPLEMENTATION_GUIDE.md` é o mapa detalhado para essa próxima fase de desenvolvimento.
+-   **Frontend:** Interface completa, responsiva e interativa desenvolvida em React.
+-   **Backend Simulado:** A lógica de negócio e banco de dados estão atualmente simulados no frontend (`services/dataService.ts`) para fins de prototipagem e validação de UX.
+-   **Próxima Fase (Em Andamento):** Estamos migrando a lógica de negócio para um backend real hospedado no **Replit**, utilizando NestJS e PostgreSQL.
 
 ---
 
@@ -51,7 +49,6 @@ O `BACKEND_IMPLEMENTATION_GUIDE.md` é o mapa detalhado para essa próxima fase 
 -   **Análise de Evolução:** Acompanhe a trajetória dos indicadores de saúde organizacional ao longo do tempo e compare diferentes setores.
 -   **Gerenciamento de Campanhas:** Crie, dispare e monitore pesquisas de clima para públicos segmentados.
 -   **Plano de Ação com IA:** Transforme insights em planos de ação concretos, com diagnóstico, objetivos, ações sugeridas e KPIs gerados por IA.
--   **Acompanhamento de Ações:** Monitore o progresso de todas as iniciativas em um painel centralizado.
 -   **Assistente IA:** Converse com um assistente para obter respostas rápidas sobre os dados da sua organização.
 
 ### Para o Colaborador
@@ -61,12 +58,11 @@ O `BACKEND_IMPLEMENTATION_GUIDE.md` é o mapa detalhado para essa próxima fase 
 -   **Questionário Psicossocial:** Responda às pesquisas da empresa de forma 100% anônima.
 -   **Evolução Pessoal:** Visualize seu progresso pessoal com base nas suas respostas aos questionários ao longo do tempo.
 -   **Mural de Iniciativas:** Veja as ações que a empresa está tomando para melhorar o ambiente de trabalho.
--   **Equipe de Apoio:** Acesse contatos de profissionais de saúde e da equipe Progredire+ para um bate-papo confidencial.
 
 ### Para a Equipe Staff
 
 -   **Painel de Staff:** Um painel centralizado para aprovar campanhas pendentes e gerenciar a documentação de segurança de todas as empresas clientes.
--   **Gerenciamento de Documentos:** Monitore o status de validade de documentos importantes (PGR, PCMSO, etc.) com filtros e dashboards.
+-   **Acesso Delegado:** Funcionalidade para simular a visão de clientes para suporte e testes.
 
 ---
 
@@ -76,53 +72,55 @@ O `BACKEND_IMPLEMENTATION_GUIDE.md` é o mapa detalhado para essa próxima fase 
 
 -   **Framework:** React 19
 -   **Linguagem:** TypeScript
+-   **Build Tool:** Vite
 -   **Estilização:** Tailwind CSS
--   **IA:** Integração direta com a API do Google Gemini (`@google/genai`)
+-   **IA:** Google Gemini API (`@google/genai`)
 
-### Backend (Planejado)
+### Backend & Infraestrutura (Definido)
 
+A infraestrutura de backend foi definida para utilizar a plataforma **Replit** pela sua agilidade e recursos integrados.
+
+-   **Plataforma:** Replit
 -   **Runtime:** Node.js
 -   **Framework:** NestJS
--   **Banco de Dados:** PostgreSQL
+-   **Banco de Dados:** PostgreSQL (Integrado ao Replit)
 -   **ORM:** Prisma
 -   **Autenticação:** JWT (JSON Web Tokens)
--   **IA:** Proxy seguro que fará as chamadas para a API do Google Gemini.
+-   **Proxy de IA:** O backend atuará como proxy seguro para a API do Gemini.
 
 ---
 
 ## 💻 Como Usar o Protótipo
 
-Como o projeto é um protótipo autocontido, não há um processo de build ou instalação. A interação principal se dá pela tela de login, que simula diferentes perfis de usuário.
+Como o projeto atual é um protótipo frontend-first, você pode testar todas as funcionalidades imediatamente:
 
 1.  **Abra a aplicação:** A tela de login será exibida.
 2.  **Escolha seu perfil:**
-    -   Clique em **"Acessar como Empresa"** para entrar no painel de gestão, com acesso ao dashboard, campanhas, etc.
-    -   Clique em **"Acessar como Colaborador"** para entrar na visão do funcionário, com acesso à reflexão pessoal, diário e questionários.
+    -   Clique em **"Acessar como Empresa"** para entrar no painel de gestão.
+    -   Clique em **"Acessar como Colaborador"** para entrar na visão do funcionário.
 3.  **Acesso Staff (Especial):**
     -   Na tela de login, clique no link "É membro da equipe? Acesse aqui." na parte inferior.
-    -   Use um dos seguintes e-mails para autenticar:
-        -   `paula.progredire@gmail.com`
-        -   `natieli.progredire@gmail.com`
-        -   `leonardo.progredire@gmail.com`
+    -   Use o e-mail: `leonardo.progredire@gmail.com` e senha `123`.
 
 ---
 
 ## 🏗️ Arquitetura e Próximos Passos
 
-A arquitetura atual, "frontend-first", será migrada para uma arquitetura **full-stack** robusta.
+A arquitetura seguirá o modelo SPA (Single Page Application) consumindo uma API RESTful.
 
--   **O Frontend** será refatorado para se tornar uma SPA (Single Page Application) "pura", responsável apenas pela apresentação.
--   **Um novo Backend** será construído para:
-    1.  Centralizar toda a lógica de negócio e cálculos.
-    2.  Persistir todos os dados em um banco de dados PostgreSQL.
-    3.  Atuar como um proxy seguro para a API do Gemini, protegendo a chave de API.
+1.  **Frontend:** Responsável apenas pela apresentação e interação do usuário.
+2.  **Backend (Replit):** Responsável pela regra de negócios, cálculos de IRP/IPE, segurança e persistência de dados.
 
-O plano detalhado para esta migração está descrito no documento `FULL_STACK_MIGRATION_PLAN.md`.
+Consulte o **[FULL_STACK_MIGRATION_PLAN.md](./docs/FULL_STACK_MIGRATION_PLAN.md)** para detalhes da migração.
 
 ---
 
-## 📄 Documentação Adicional
+## 📄 Documentação Técnica
 
--   **[PROJECT_STATUS.md](./PROJECT_STATUS.md):** Um resumo detalhado do estado atual do projeto e as próximas etapas para cada módulo.
--   **[BACKEND_IMPLEMENTATION_GUIDE.md](./BACKEND_IMPLEMENTATION_GUIDE.md):** O guia técnico completo para a construção do servidor backend, incluindo o schema do banco de dados e o contrato da API.
--   **[FULL_STACK_MIGRATION_PLAN.md](./FULL_STACK_MIGRATION_PLAN.md):** O plano estratégico e arquitetônico para a transição do protótipo para uma aplicação full-stack.
+A documentação detalhada para desenvolvedores está localizada na pasta `docs/`:
+
+-   **[REPLIT_GUIDE.md](./docs/REPLIT_GUIDE.md):** (IMPORTANTE) Guia passo a passo para configurar o backend e banco de dados no Replit.
+-   **[BACKEND_IMPLEMENTATION_GUIDE.md](./docs/BACKEND_IMPLEMENTATION_GUIDE.md):** Especificação técnica da API, Schema do Prisma e estrutura do NestJS.
+-   **[ARCHITECTURE_OVERVIEW.md](./docs/ARCHITECTURE_OVERVIEW.md):** Mapa visual da arquitetura e explicação dos componentes.
+-   **[SECURITY_ARCHITECTURE.md](./docs/SECURITY_ARCHITECTURE.md):** Diretrizes de segurança, criptografia e controle de acesso (RBAC).
+-   **[DATA_GLOSSARY.md](./docs/DATA_GLOSSARY.md):** Explicação das métricas e cálculos (IRP, IPE, Maturidade).
