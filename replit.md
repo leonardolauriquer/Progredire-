@@ -42,9 +42,11 @@ O workflow "Frontend" está configurado para rodar automaticamente:
 ## Variáveis de Ambiente Necessárias
 
 Adicione estas secrets no Replit:
-- `GEMINI_API_KEY` ou `API_KEY`: Chave da API do Google Gemini
+- `GEMINI_API_KEY` ou `API_KEY`: Chave da API do Google Gemini (obtenha em https://aistudio.google.com/app/apikey)
 - `JWT_SECRET`: Segredo para tokens JWT
 - `DATABASE_URL`: URL do banco PostgreSQL (gerado automaticamente pelo Replit)
+
+**Nota**: A aplicação carrega normalmente mesmo sem a `GEMINI_API_KEY` configurada. As funcionalidades de IA só serão ativadas após você adicionar a chave nas Secrets do Replit.
 
 ## Tecnologias
 
