@@ -2,9 +2,11 @@
 
 Este guia detalha os passos para configurar o ambiente de desenvolvimento local e rodar a aplicação Progredire+ (frontend e backend).
 
+**Nota:** Se você prefere utilizar o **Replit** para desenvolver o backend sem configurar Docker localmente, consulte o arquivo `docs/REPLIT_GUIDE.md`.
+
 ---
 
-## 1. Pré-requisitos
+## 1. Pré-requisitos (Ambiente Local)
 
 Antes de começar, certifique-se de que você tem os seguintes softwares instalados na sua máquina:
 
@@ -16,7 +18,7 @@ Antes de começar, certifique-se de que você tem os seguintes softwares instala
 
 ---
 
-## 2. Configuração do Backend
+## 2. Configuração do Backend (Local)
 
 O backend é uma aplicação NestJS que centraliza a lógica de negócio e a comunicação com o banco de dados.
 

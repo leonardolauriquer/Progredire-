@@ -6,15 +6,25 @@
 
 **Arquitetura Atual:** Seguimos uma abordagem "frontend-first". Isso significa que toda a lógica de negócio, manipulação de dados multi-tenant (múltiplas empresas, colaboradores, filiais) e chamadas à API de IA (Gemini) estão **simuladas diretamente no frontend**. Arquivos como `services/dataService.ts` atuam como um "backend falso", permitindo que a interface completa seja desenvolvida e testada de forma independente.
 
-**Próximo Grande Passo:** A próxima fase crítica do projeto é a **construção do backend** e a **refatoração do frontend** para se comunicar com ele, efetivamente transformando o protótipo em uma aplicação full-stack. O `BACKEND_IMPLEMENTATION_GUIDE.md` é o nosso mapa para essa fase.
+**Próximo Grande Passo:** A próxima fase crítica do projeto é a **construção do backend** e a **refatoração do frontend** para se comunicar com ele, efetivamente transformando o protótipo em uma aplicação full-stack.
 
 ---
 
-## 2. Análise Detalhada dos Arquivos do Protótipo
+## 2. Guias de Implementação
+
+Para a próxima fase, consulte os guias específicos:
+
+-   **[BACKEND_IMPLEMENTATION_GUIDE.md](./BACKEND_IMPLEMENTATION_GUIDE.md):** Mapa técnico da API e Banco de Dados.
+-   **[REPLIT_GUIDE.md](./REPLIT_GUIDE.md):** (NOVO) Passo a passo para configurar e rodar o backend usando o Replit (alternativa ao Docker local).
+-   **[FULL_STACK_MIGRATION_PLAN.md](./FULL_STACK_MIGRATION_PLAN.md):** Estratégia de migração.
+
+---
+
+## 3. Análise Detalhada dos Arquivos do Protótipo
 
 Esta seção serve como um guia técnico completo, detalhando o propósito, a lógica e as responsabilidades de cada arquivo no projeto.
 
-### 2.1. Raiz do Projeto
+### 3.1. Raiz do Projeto
 
 Estes são os arquivos centrais que inicializam e estruturam a aplicação.
 
@@ -62,7 +72,7 @@ Estes são os arquivos centrais que inicializam e estruturam a aplicação.
     -   **O que é:** A documentação principal do projeto.
     -   **Conteúdo:** Explica a visão geral do Progredire+, seu status atual (protótipo funcional), as principais funcionalidades para cada perfil de usuário, a stack de tecnologia (atual e planejada) e, crucialmente, como navegar e interagir com o protótipo. Também aponta para os outros documentos para informações mais detalhadas.
 
-### 2.2. Serviços (`services/`)
+### 3.2. Serviços (`services/`)
 
 Estes arquivos encapsulam a lógica de negócio, acesso a dados e comunicação com APIs externas. No protótipo, eles simulam um backend completo.
 
@@ -106,7 +116,7 @@ Estes arquivos encapsulam a lógica de negócio, acesso a dados e comunicação 
     -   **O que são:** Serviços mais simples que gerenciam, respectivamente, as entradas do diário de emoções e as notificações, usando o `localStorage` para persistência.
     -   **Lógica (`notificationService`):** A função `generateAndFetchNotifications` contém lógica de negócio para criar novas notificações, como a de boas-vindas para o primeiro acesso ou uma notificação quando uma campanha de pesquisa é concluída.
 
-### 2.3. Componentes Compartilhados (`components/`)
+### 3.3. Componentes Compartilhados (`components/`)
 
 Estes são os blocos de construção reutilizáveis da UI.
 
@@ -119,7 +129,7 @@ Estes são os blocos de construção reutilizáveis da UI.
     -   **O que é:** A fonte de dados "bruta" para a simulação.
     -   **Lógica:** Contém arrays de objetos que simulam tabelas de banco de dados (campanhas, documentos). Inclui a função `generateWeightedAnswer` que gera respostas de questionário com um viés ("bom" ou "ruim"), tornando a simulação de dados mais realista.
 
-### 2.4. Páginas (`pages/`)
+### 3.4. Páginas (`pages/`)
 
 Cada arquivo aqui representa uma "página" ou visão principal da aplicação.
 
@@ -140,16 +150,17 @@ Cada arquivo aqui representa uma "página" ou visão principal da aplicação.
         -   **`StaffUserManagementView`:** Contém a lógica de UI para CRUD (Adicionar, Deletar) de Empresas, Filiais, Usuários e Colaboradores. Inclui paginação e busca, cujos estados são usados para chamar as funções correspondentes do `dataService`.
         -   **`StaffDataImportView`:** Lida com a interface de upload de arquivos. Usa a biblioteca `XLSX` (carregada via CDN no `index.html`) para ler os arquivos `.xls` ou `.xlsx` no navegador, convertê-los para JSON e, em seguida, enviar esses dados para as funções `import...` do `dataService`.
 
-### 2.5. Documentação (`docs/`)
+### 3.5. Documentação (`docs/`)
 
 -   **`BACKEND_IMPLEMENTATION_GUIDE.md`:** O guia técnico para a construção do servidor backend. Descreve o schema do banco de dados (usando a sintaxe do Prisma) e o contrato da API RESTful (endpoints, métodos, payloads). É o mapa para a equipe de backend.
+-   **`REPLIT_GUIDE.md`:** Guia específico para rodar o backend na nuvem do Replit.
 -   **`FULL_STACK_MIGRATION_PLAN.md`:** O plano estratégico para a transição do protótipo para uma aplicação full-stack. Define a arquitetura (Frontend SPA, Backend Monólito, DB PostgreSQL), a stack de tecnologia e as fases de execução, desde a configuração do backend até a refatoração do frontend.
 -   **`SECURITY_ARCHITECTURE.md`:** Descreve os pilares de segurança da aplicação, com foco em Autenticação (bcrypt), Autorização (RBAC com JWT), Multi-Tenancy (isolamento de dados por `companyId`) e o padrão de Proxy Seguro para a API do Gemini.
 -   **`PROJECT_STATUS.md`:** Este próprio arquivo, que serve como um resumo e um índice técnico de todo o projeto no seu estado atual.
 
 ---
 
-## 3. Resumo das Fases Futuras
+## 4. Resumo das Fases Futuras
 
 1.  **Fase 1: Construção do Backend (Core Multi-Tenant)**
     -   Configurar o projeto NestJS e o banco de dados com Prisma.
