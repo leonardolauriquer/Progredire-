@@ -22,18 +22,16 @@ O backend é uma aplicação NestJS que centraliza a lógica de negócio e a com
 
 ### Passo 1: Instalar Dependências
 
-Navegue até o diretório do backend (ex: `progredire-backend/`). Se você estiver iniciando o projeto do zero, use o comando abaixo para instalar todas os componentes necessários de uma vez:
+Navegue até o diretório do backend (ex: `progredire-backend/`). Se você estiver iniciando o projeto do zero com o CLI do NestJS, use o comando abaixo para instalar todas os componentes adicionais necessários:
 
 ```bash
-# Componentes Core do NestJS, Prisma, Autenticação e IA
-npm install @nestjs/core @nestjs/common @nestjs/platform-express @nestjs/config @nestjs/passport @nestjs/jwt
-npm install prisma @prisma/client
-npm install passport passport-jwt bcrypt
-npm install class-validator class-transformer reflect-metadata rxjs
-npm install @google/genai
+# Instalação dos pacotes fundamentais para a stack do Progredire+
+npm install @nestjs/core @nestjs/common @nestjs/platform-express @nestjs/config @nestjs/passport @nestjs/jwt prisma @prisma/client passport passport-jwt bcrypt class-validator class-transformer @google/genai
+```
 
-# Tipagens para TypeScript (devDependencies)
-npm install -D @types/node @types/passport-jwt @types/bcrypt @types/express
+Se você estiver clonando um repositório existente com `package.json`, basta rodar:
+```bash
+npm install
 ```
 
 ### Passo 2: Configurar Variáveis de Ambiente

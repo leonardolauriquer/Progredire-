@@ -2,7 +2,7 @@
 
 ## 1. Introdução
 
-Este documento fornece uma visão de alto nível da arquitetura de software da plataforma Progredire+. Ele serve como o ponto de partida para entender como os diferentes componentes do sistema (frontend, backend, banco de dados, serviços de IA) se interconectam.
+Este documento fornece uma visão de alto nível da arquitetura de software da plataforma Progredire+. Ele serve como o ponto de partida para entender como os diferentes componentes do sistema (frontend, backend, banco de dados, serviços de IA) se interconectam e como o código está organizado.
 
 Para detalhes mais aprofundados sobre cada componente, consulte os documentos específicos linkados ao longo deste guia.
 
@@ -67,27 +67,69 @@ O fluxo de dados principal pode ser descrito da seguinte forma:
 
 ---
 
-## 4. Princípios Arquitetônicos Chave
+## 4. Estrutura de Arquivos e Funcionalidade das Páginas
+
+O frontend do projeto está organizado de forma modular. Abaixo descrevemos o propósito de cada diretório e arquivo principal.
+
+### 4.1. Diretórios Principais
+
+-   **`/components`**: Contém componentes de UI reutilizáveis e "dumb components" (apenas apresentação).
+    -   `Sidebar.tsx` / `Header.tsx`: Estrutura de navegação principal.
+    -   `Charts.tsx`: Biblioteca interna de gráficos (Radar, Linha, Barra, etc.).
+    -   `icons.tsx`: Coleção centralizada de ícones SVG.
+    -   `Modal.tsx`: Componente genérico para diálogos modais.
+    
+-   **`/pages`**: Contém as "Views" ou telas completas da aplicação. Cada arquivo aqui representa uma rota acessível pelo usuário.
+
+-   **`/services`**: Camada de lógica e dados.
+    -   `apiClient.ts` (Planejado): Centralizará as chamadas HTTP para o backend.
+    -   `authService.ts`: Gerencia login, logout e armazenamento de tokens.
+    -   `dataService.ts`: (Atualmente Mock) Contém a lógica de manipulação de dados que será migrada para o backend.
+    -   `geminiService.ts`: Gerencia a construção dos prompts e a comunicação com a IA.
+
+-   **`/docs`**: Documentação técnica e de projeto.
+
+### 4.2. Detalhamento das Páginas (Views)
+
+#### Acesso Público / Comum
+-   **`LoginView.tsx`**: Tela de autenticação. Gerencia o login para os três perfis (Staff, Empresa, Colaborador) e a lógica inicial de redirecionamento.
+-   **`SettingsView.tsx`**: Configurações globais da aplicação, como troca de tema (Claro/Escuro/Daltonismo) e tamanho da fonte.
+-   **`FaqView.tsx`**: Central de ajuda com perguntas frequentes segmentadas por perfil de usuário.
+
+#### Perfil Empresa (Gestão)
+-   **`CompanyHomeView.tsx`**: Landing page do gestor. Oferece um insight diário e atalhos rápidos para as principais ações (Dashboard, Campanhas).
+-   **`DashboardView.tsx`**: O painel principal. Exibe KPIs (IRP, IPE), gráficos de risco e permite gerar o Relatório Estratégico com IA.
+-   **`AssistantView.tsx`**: Interface de chat com a IA (RAG) para fazer perguntas em linguagem natural sobre os dados da empresa.
+-   **`CampaignView.tsx`**: Gerenciamento de pesquisas de clima. Permite criar novas campanhas, ver status e histórico.
+-   **`PlanoAcaoView.tsx`**: Ferramenta para criar planos de melhoria. O usuário seleciona um fator de risco e a IA gera sugestões de ações, objetivos e KPIs.
+-   **`PlanoAcaoHistoryView.tsx`**: Painel de acompanhamento (Kanban/Lista) de todas as ações criadas e seus status.
+-   **`CompanyEvolutionView.tsx`**: Gráficos de linha comparativos para analisar a tendência dos indicadores de saúde ao longo do tempo.
+-   **`InitiativesView.tsx`**: Mural onde a empresa publica as iniciativas oficiais para que os colaboradores vejam.
+-   **`DocumentationView.tsx`**: Repositório de documentos legais (PGR, PCMSO) com status de validade.
+-   **`SupportTeamView.tsx`**: Lista de contatos de profissionais de saúde e da equipe Staff para suporte.
+
+#### Perfil Colaborador
+-   **`CollaboratorHomeView.tsx`**: Landing page do funcionário. Inclui o registro rápido de humor ("Como você se sente hoje?") e atalhos.
+-   **`AnalysisView.tsx`** (Reflexão Pessoal): Espaço seguro para o colaborador descrever um problema e receber aconselhamento empático da IA.
+-   **`CorporateSurveyView.tsx`**: Interface para responder aos questionários psicossociais enviados pela empresa.
+-   **`JournalView.tsx`**: Diário de emoções pessoal, onde o colaborador vê o histórico de seus registros de humor.
+-   **`CollaboratorEvolutionView.tsx`**: Visualização da própria evolução do colaborador (mood e respostas de questionário) ao longo do tempo.
+
+#### Perfil Staff (Administração)
+-   **`StaffDashboardView.tsx`**: Visão geral do sistema para administradores (nº de clientes, campanhas pendentes, etc.).
+-   **`StaffCampaignApprovalView.tsx`**: Fila de aprovação para campanhas criadas pelas empresas.
+-   **`StaffUserManagementView.tsx`**: CRUD completo de Empresas, Filiais, Usuários e Colaboradores.
+-   **`StaffDocumentManagementView.tsx`**: Upload e gestão de validade de documentos para todas as empresas clientes.
+-   **`StaffDataImportView.tsx`**: Interface para importação em massa de dados via planilhas Excel.
+-   **`StaffImpersonationView.tsx`**: Ferramenta de "Acesso Delegado" para simular a visão de um cliente específico.
+
+---
+
+## 5. Princípios Arquitetônicos Chave
 
 -   **Multi-Tenancy:** A arquitetura é projetada desde o início para suportar múltiplos clientes. O isolamento de dados é a principal prioridade e é garantido no nível do backend e do banco de dados através do uso obrigatório de `companyId` em todas as consultas.
 -   **Proxy Seguro para IA:** A chave da API do Gemini é um segredo de produção e nunca deve ser exposta no lado do cliente. O padrão de proxy no backend é uma medida de segurança não negociável.
 -   **Role-Based Access Control (RBAC):** O acesso a cada endpoint da API é rigorosamente controlado pelo papel (`STAFF`, `COMPANY`, `COLLABORATOR`) contido no token JWT do usuário.
-
----
-
-## 5. Exemplo de Fluxo de Dados: Carregando o Dashboard
-
-Para ilustrar como os componentes interagem, vamos detalhar o fluxo quando um usuário da **Empresa** acessa o dashboard:
-
-1.  **Login:** O usuário insere suas credenciais. O frontend envia para `POST /api/auth/login`.
-2.  **Token:** O backend valida as credenciais, gera um token JWT contendo `userId`, `role: 'COMPANY'`, e `companyId`, e o retorna ao frontend.
-3.  **Navegação:** O usuário clica no link do Dashboard.
-4.  **Requisição:** O frontend faz uma requisição `GET /api/dashboard` para o backend, incluindo o token JWT no header `Authorization`.
-5.  **Autorização:** O backend recebe a requisição, valida a assinatura do token e extrai o payload, confirmando que o usuário tem o papel `COMPANY` e pertence a uma `companyId` específica.
-6.  **Lógica de Negócio:** O serviço do dashboard no backend executa as consultas necessárias ao banco de dados para buscar as respostas dos questionários, **sempre** adicionando a cláusula `WHERE companyId = [companyId do token]`.
-7.  **Agregação:** O backend calcula todas as métricas (IRP, rankings, distribuições) com base nos dados filtrados.
-8.  **Resposta:** O backend monta um objeto JSON com todos os dados calculados para o dashboard e o retorna como resposta à requisição do frontend.
-9.  **Renderização:** O frontend recebe o JSON e o utiliza para renderizar os componentes de gráficos e KPIs.
 
 ---
 

@@ -19,20 +19,35 @@ Este documento descreve a implementação completa do servidor backend para a ap
 -   **Escala Likert e Normalização:** As respostas do questionário (1-5) devem ser normalizadas para uma escala consistente de 0-100 para análise, usando a fórmula: `PontuaçãoNormalizada = ((PontuaçãoMédia - 1) / 4) * 100`.
 -   **IRP (Índice de Risco Psicossocial):** Métrica global de saúde (1-5), calculada a partir da média das pontuações normalizadas e convertida de volta para a escala de 1-5: `IRP = (MédiaDasPontuaçõesNormalizadas / 100) * 4 + 1`.
 
-### 1.2. Stack Tecnológica Recomendada (A Melhor Escolha)
+### 1.2. Stack Tecnológica e Componentes (NestJS)
 
-Para garantir consistência com o frontend, tipagem estática robusta e escalabilidade, a stack definida é:
+Para garantir robustez, escalabilidade e tipagem estática em todo o projeto, a stack definida é **Node.js com NestJS**.
 
--   **Linguagem:** **TypeScript**. (Permite compartilhar interfaces DTO entre Front e Back).
--   **Runtime:** **Node.js** (v18 ou superior).
--   **Framework:** **NestJS**. (Padrão de mercado para arquiteturas modulares e escaláveis em Node.js).
--   **Banco de Dados:** **PostgreSQL**. (Robusto, relacional e com excelente suporte a JSON).
--   **ORM:** **Prisma**. (A melhor experiência de desenvolvedor para TypeScript e SQL).
--   **Componentes/Bibliotecas Essenciais:**
-    -   `@nestjs/passport` e `passport-jwt`: Para autenticação segura.
-    -   `bcrypt`: Para hash de senhas.
-    -   `class-validator`: Para validação de dados de entrada.
-    -   `@google/genai`: SDK oficial para integração com o Gemini.
+-   **Linguagem:** **TypeScript**.
+-   **Framework:** **NestJS**.
+-   **Banco de Dados:** **PostgreSQL**.
+-   **ORM:** **Prisma**.
+
+**Componentes e Bibliotecas Essenciais (Pacotes NPM):**
+
+Ao inicializar o projeto, os seguintes pacotes devem ser instalados para cobrir os requisitos funcionais:
+
+1.  **Core e Banco de Dados:**
+    *   `@nestjs/core`, `@nestjs/common`, `@nestjs/platform-express`, `@nestjs/config` (Base do framework)
+    *   `prisma`, `@prisma/client` (ORM e Client do DB)
+
+2.  **Autenticação e Segurança:**
+    *   `@nestjs/passport`, `passport`, `passport-jwt` (Estratégias de Auth)
+    *   `@nestjs/jwt` (Geração e validação de tokens)
+    *   `bcrypt` (Hash seguro de senhas)
+    *   `helmet` (Headers de segurança HTTP)
+
+3.  **Validação e Transformação de Dados:**
+    *   `class-validator` (Validação baseada em decorators para DTOs)
+    *   `class-transformer` (Transformação de objetos/JSON)
+
+4.  **Inteligência Artificial:**
+    *   `@google/genai` (SDK oficial do Google Gemini para Node.js)
 
 ---
 
