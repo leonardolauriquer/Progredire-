@@ -6,23 +6,23 @@ export declare class CampaignsService {
     findAll(companyId: string): Promise<{
         id: string;
         name: string;
+        companyId: string;
+        createdAt: Date;
         description: string;
-        status: string;
         targetAudience: string;
-        adherence: number;
         startDate: Date;
         endDate: Date;
         emailMessage: string;
         filters: import("@prisma/client/runtime/library").JsonValue;
-        companyId: string;
-        createdAt: Date;
+        status: string;
+        adherence: number;
     }[]>;
     findOne(id: string, companyId: string): Promise<{
         surveyResponses: ({
             user: {
                 id: string;
-                name: string;
                 email: string;
+                name: string;
             };
         } & {
             id: string;
@@ -36,57 +36,57 @@ export declare class CampaignsService {
     } & {
         id: string;
         name: string;
+        companyId: string;
+        createdAt: Date;
         description: string;
-        status: string;
         targetAudience: string;
-        adherence: number;
         startDate: Date;
         endDate: Date;
         emailMessage: string;
         filters: import("@prisma/client/runtime/library").JsonValue;
-        companyId: string;
-        createdAt: Date;
+        status: string;
+        adherence: number;
     }>;
     create(companyId: string, createCampaignDto: CreateCampaignDto): Promise<{
         id: string;
         name: string;
+        companyId: string;
+        createdAt: Date;
         description: string;
-        status: string;
         targetAudience: string;
-        adherence: number;
         startDate: Date;
         endDate: Date;
         emailMessage: string;
         filters: import("@prisma/client/runtime/library").JsonValue;
-        companyId: string;
-        createdAt: Date;
+        status: string;
+        adherence: number;
     }>;
     approve(id: string, companyId: string): Promise<{
         id: string;
         name: string;
+        companyId: string;
+        createdAt: Date;
         description: string;
-        status: string;
         targetAudience: string;
-        adherence: number;
         startDate: Date;
         endDate: Date;
         emailMessage: string;
         filters: import("@prisma/client/runtime/library").JsonValue;
-        companyId: string;
-        createdAt: Date;
+        status: string;
+        adherence: number;
     }>;
     remove(id: string, companyId: string): Promise<{
         id: string;
         name: string;
+        companyId: string;
+        createdAt: Date;
         description: string;
-        status: string;
         targetAudience: string;
-        adherence: number;
         startDate: Date;
         endDate: Date;
         emailMessage: string;
         filters: import("@prisma/client/runtime/library").JsonValue;
-        companyId: string;
-        createdAt: Date;
+        status: string;
+        adherence: number;
     }>;
 }

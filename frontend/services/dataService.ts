@@ -1,4 +1,5 @@
 import { authService } from './authService';
+import { apiClient } from './apiClient';
 import { mockResponses as initialMockResponses, mockFilters, dimensions, Campaign, CampaignStatus, initialCampaigns, Document, mockDocuments } from '../components/dashboardMockData';
 
 // --- Types ---
@@ -446,13 +447,21 @@ const calculateDashboardData = (filters: Record<string, string>): DashboardData 
 };
 
 // Main data getter function
-export const getDashboardData = (filters: Record<string, string>): Promise<DashboardData> => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const data = calculateDashboardData(filters);
-            resolve(data);
-        }, 500); // Simulate network delay
-    });
+export const getDashboardData = async (filters: Record<string, string>): Promise<DashboardData> => {
+    try {
+        const params = new URLSearchParams();
+        if (filters.unidade) params.append('unidade', filters.unidade);
+        if (filters.genero) params.append('genero', filters.genero);
+        if (filters.nivelCargo) params.append('nivelCargo', filters.nivelCargo);
+        if (filters.area) params.append('area', filters.area);
+
+        const response = await apiClient.get(`/analytics/dashboard?${params.toString()}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        const data = calculateDashboardData(filters);
+        return data;
+    }
 };
 
 // --- Other Data Services ---

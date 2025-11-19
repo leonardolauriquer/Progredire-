@@ -5,11 +5,11 @@ export declare class SurveysController {
     constructor(surveysService: SurveysService);
     submit(submitSurveyDto: SubmitSurveyDto, user: any): Promise<{
         id: string;
+        companyId: string;
         createdAt: Date;
         answers: import("@prisma/client/runtime/library").JsonValue;
         segmentation: import("@prisma/client/runtime/library").JsonValue;
         userId: string;
-        companyId: string;
         campaignId: string;
     }>;
     getHistory(user: any): Promise<({
@@ -19,11 +19,11 @@ export declare class SurveysController {
         };
     } & {
         id: string;
+        companyId: string;
         createdAt: Date;
         answers: import("@prisma/client/runtime/library").JsonValue;
         segmentation: import("@prisma/client/runtime/library").JsonValue;
         userId: string;
-        companyId: string;
         campaignId: string;
     })[]>;
 }

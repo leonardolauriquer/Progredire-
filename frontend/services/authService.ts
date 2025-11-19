@@ -1,5 +1,5 @@
 import { UserRole } from '../App';
-import { findCompanyUserByEmail, findEmployeeByCpf } from './dataService';
+import { apiClient } from './apiClient';
 
 export interface AuthData {
   token: string;
@@ -16,64 +16,40 @@ interface LoginCredentials {
     cpf?: string;
 }
 
-const login = (credentials: LoginCredentials): Promise<AuthData> => {
-    return new Promise((resolve, reject) => {
-        // Simulate network delay
-        setTimeout(async () => {
-            try {
-                if (credentials.role === 'staff') {
-                    if (!credentials.email || !credentials.password) {
-                        return reject(new Error('Email e senha são obrigatórios para acesso Staff.'));
-                    }
-                    const allowedStaffEmails = [
-                        'paula.progredire@gmail.com',
-                        'natieli.progredire@gmail.com',
-                        'leonardo.progredire@gmail.com'
-                    ];
-                    if (!allowedStaffEmails.includes(credentials.email.toLowerCase())) {
-                        return reject(new Error('Acesso negado. Email não autorizado.'));
-                    }
-                    if (credentials.password !== '123') {
-                        return reject(new Error('Senha inválida.'));
-                    }
-                } else if (credentials.role === 'collaborator') {
-                    if (!credentials.cpf || !credentials.password) {
-                        return reject(new Error('CPF e senha são obrigatórios.'));
-                    }
-                    // Find user by CPF and check password
-                    const user = await findEmployeeByCpf(credentials.cpf);
-                    if (!user || user.password !== credentials.password) {
-                        return reject(new Error('CPF ou senha inválidos.'));
-                    }
-                } else if (credentials.role === 'company') {
-                    if (!credentials.email || !credentials.password) {
-                        return reject(new Error('Email e senha são obrigatórios.'));
-                    }
-                     // Find user by email and check password
-                    const user = await findCompanyUserByEmail(credentials.email);
-                    if (!user || user.password !== credentials.password) {
-                        return reject(new Error('Email ou senha inválidos.'));
-                    }
-                } else {
-                     // Default mock for old company/collaborator login without credentials
-                     console.warn(`Login sem credenciais para ${credentials.role}. Usando mock.`);
-                }
-                
-                // On success, create mock auth data
-                const authData: AuthData = {
-                    token: `mock_token_${credentials.role}_${Date.now()}`,
-                    role: credentials.role,
-                };
+const login = async (credentials: LoginCredentials): Promise<AuthData> => {
+    try {
+        const roleMap: Record<UserRole, string> = {
+            'staff': 'STAFF',
+            'company': 'COMPANY',
+            'collaborator': 'COLLABORATOR'
+        };
 
-                localStorage.removeItem(IMPERSONATION_ORIGIN_KEY); // Clear any old impersonation
-                localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
-                resolve(authData);
-            } catch (error) {
-                console.error('Login process failed', error);
-                reject(new Error('Ocorreu um erro inesperado durante o login.'));
-            }
-        }, 1000); // 1 second delay
-    });
+        const backendRole = roleMap[credentials.role];
+        
+        const response = await apiClient.post('/auth/login', {
+            email: credentials.email,
+            password: credentials.password,
+            cpf: credentials.cpf,
+            role: backendRole
+        });
+
+        const { access_token, user } = response.data;
+        
+        const authData: AuthData = {
+            token: access_token,
+            role: credentials.role,
+        };
+
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authData));
+        
+        return authData;
+    } catch (error: any) {
+        const errorMessage = error.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.';
+        throw new Error(errorMessage);
+    }
 };
 
 
@@ -81,6 +57,8 @@ const logout = (): void => {
   try {
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(IMPERSONATION_ORIGIN_KEY);
+    localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
   } catch (error) {
     console.error('Failed to remove auth data from localStorage', error);
   }
