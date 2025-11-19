@@ -22,8 +22,8 @@ export declare class AuthService {
             name: string;
             createdAt: Date;
             updatedAt: Date;
-            razaoSocial: string;
             cnpj: string;
+            razaoSocial: string;
             setor: string;
             numColaboradores: number;
             contatoPrincipalNome: string;

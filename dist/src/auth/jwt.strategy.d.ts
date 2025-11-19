@@ -12,8 +12,8 @@ export declare class JwtStrategy extends JwtStrategy_base {
             name: string;
             createdAt: Date;
             updatedAt: Date;
-            razaoSocial: string;
             cnpj: string;
+            razaoSocial: string;
             setor: string;
             numColaboradores: number;
             contatoPrincipalNome: string;
