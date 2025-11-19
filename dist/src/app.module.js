@@ -12,6 +12,8 @@ const config_1 = require("@nestjs/config");
 const auth_module_1 = require("./auth/auth.module");
 const prisma_service_1 = require("./prisma.service");
 const analytics_module_1 = require("./analytics/analytics.module");
+const campaigns_module_1 = require("./campaigns/campaigns.module");
+const surveys_module_1 = require("./surveys/surveys.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -23,6 +25,8 @@ exports.AppModule = AppModule = __decorate([
             }),
             auth_module_1.AuthModule,
             analytics_module_1.AnalyticsModule,
+            campaigns_module_1.CampaignsModule,
+            surveys_module_1.SurveysModule,
         ],
         controllers: [],
         providers: [prisma_service_1.PrismaService],
