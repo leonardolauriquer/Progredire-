@@ -26,12 +26,16 @@ const login = async (credentials: LoginCredentials): Promise<AuthData> => {
 
         const backendRole = roleMap[credentials.role];
         
+        console.log('Attempting login with:', { role: backendRole, email: credentials.email, hasCpf: !!credentials.cpf });
+        
         const response = await apiClient.post('/auth/login', {
             email: credentials.email,
             password: credentials.password,
             cpf: credentials.cpf,
             role: backendRole
         });
+
+        console.log('Login successful:', response.data);
 
         const { access_token, user } = response.data;
         
@@ -47,6 +51,8 @@ const login = async (credentials: LoginCredentials): Promise<AuthData> => {
         
         return authData;
     } catch (error: any) {
+        console.error('Login error:', error);
+        console.error('Error response:', error.response?.data);
         const errorMessage = error.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.';
         throw new Error(errorMessage);
     }
